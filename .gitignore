@@ -1,0 +1,54 @@
+# Dependencies
+node_modules
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Next.js build output
+/.next
+/out
+
+# Production
+/build
+
+# Environment variables
+# NEVER commit these - they contain secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.secret
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Data exports (never commit personal data)
+/data/exports
+/data/backups
+*.csv
+*.xlsx
+
+# SSL certificates
+*.pem
+*.key
