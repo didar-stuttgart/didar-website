@@ -1,26 +1,25 @@
-import { validateSession } from '../../../../lib/admin-auth.js';
+import { requireAdminSession } from '../../../../lib/api-middleware.js';
 import { createAdminClient } from '../../../../lib/supabase.js';
 
 export default async function handler(req, res) {
-  const sessionToken = req.cookies?.admin_session;
-  if (!sessionToken || !validateSession(sessionToken)) {
+  if (!requireAdminSession(req, res)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
   const { slug } = req.query;
 
   if (req.method === 'GET') {
-    return handleGetEvent(req, res, slug);
+    return handleGetEvent(slug, req, res);
   } else if (req.method === 'PATCH') {
-    return handleUpdateEvent(req, res, slug);
+    return handleUpdateEvent(slug, req, res);
   } else if (req.method === 'DELETE') {
-    return handleDeleteEvent(req, res, slug);
+    return handleDeleteEvent(slug, req, res);
   } else {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 }
 
-async function handleGetEvent(req, res, slug) {
+async function handleGetEvent(slug, req, res) {
   try {
     const adminClient = createAdminClient();
     const { data: event, error } = await adminClient
@@ -29,8 +28,10 @@ async function handleGetEvent(req, res, slug) {
       .eq('slug', slug)
       .single();
 
-    if (error) throw error;
-    if (!event) return res.status(404).json({ error: 'Event not found' });
+    if (error || !event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
     return res.status(200).json({ event });
   } catch (err) {
     console.error('Get event error:', err);
@@ -38,7 +39,7 @@ async function handleGetEvent(req, res, slug) {
   }
 }
 
-async function handleUpdateEvent(req, res, slug) {
+async function handleUpdateEvent(slug, req, res) {
   try {
     const { event } = req.body;
     const adminClient = createAdminClient();
@@ -48,15 +49,15 @@ async function handleUpdateEvent(req, res, slug) {
       .update({
         title_fa: event.title_fa,
         title_de: event.title_de,
-        description_fa: event.description_fa,
-        description_de: event.description_de,
+        description_fa: event.description_fa || '',
+        description_de: event.description_de || '',
         event_date: event.event_date,
-        event_time: event.event_time,
-        location_fa: event.location_fa,
-        location_de: event.location_de,
-        image_url: event.image_url,
-        status: event.status,
-        registration_open: event.registration_open,
+        event_time: event.event_time || null,
+        location_fa: event.location_fa || '',
+        location_de: event.location_de || '',
+        image_url: event.image_url || '',
+        status: event.status || 'draft',
+        registration_open: event.registration_open || false,
       })
       .eq('slug', slug)
       .select();
@@ -69,7 +70,7 @@ async function handleUpdateEvent(req, res, slug) {
   }
 }
 
-async function handleDeleteEvent(req, res, slug) {
+async function handleDeleteEvent(slug, req, res) {
   try {
     const adminClient = createAdminClient();
     const { error } = await adminClient

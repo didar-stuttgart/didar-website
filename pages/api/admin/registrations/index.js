@@ -1,9 +1,8 @@
-import { validateSession } from '../../../../lib/admin-auth.js';
+import { requireAdminSession } from '../../../../lib/api-middleware.js';
 import { createAdminClient } from '../../../../lib/supabase.js';
 
 export default async function handler(req, res) {
-  const sessionToken = req.cookies?.admin_session;
-  if (!sessionToken || !validateSession(sessionToken)) {
+  if (!requireAdminSession(req, res)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -15,17 +14,18 @@ export default async function handler(req, res) {
     const adminClient = createAdminClient();
     const { data: registrations, error } = await adminClient
       .from('registrations')
-      .select('*, event:event(title_fa, title_de)')
+      .select('*')
       .order('registration_date', { ascending: false });
 
     if (error) throw error;
 
-    const formatted = registrations.map((reg) => ({
+    // Enrich with event titles
+    const enriched = registrations?.map((reg) => ({
       ...reg,
-      event_title: reg.event?.title_fa || reg.event?.title_de || reg.event,
-    }));
+      event_title: reg.event || 'Unknown Event',
+    })) || [];
 
-    return res.status(200).json({ registrations: formatted });
+    return res.status(200).json({ registrations: enriched });
   } catch (err) {
     console.error('Get registrations error:', err);
     return res.status(500).json({ error: 'Failed to load registrations' });

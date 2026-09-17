@@ -1,5 +1,6 @@
-import { validateSession } from '../../../../lib/admin-auth.js';
+import { requireAdminSession } from '../../../../lib/api-middleware.js';
 
+// In-memory storage for settings
 let settingsStore = {
   contact_email: 'info@didar.de',
   telegram_channel: '@didar_channel',
@@ -8,8 +9,7 @@ let settingsStore = {
 };
 
 export default function handler(req, res) {
-  const sessionToken = req.cookies?.admin_session;
-  if (!sessionToken || !validateSession(sessionToken)) {
+  if (!requireAdminSession(req, res)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

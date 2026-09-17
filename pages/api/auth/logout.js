@@ -1,9 +1,4 @@
-/**
- * Admin logout endpoint
- * Clears the admin session
- */
-
-import { deleteSession } from '@/lib/admin-auth';
+import { deleteSession } from '@/lib/session-store';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -11,16 +6,26 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { admin_session: sessionToken } = req.cookies;
+    const cookieHeader = req.headers.cookie || '';
+    const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+      const [key, value] = cookie.trim().split('=');
+      if (key && value) {
+        acc[key] = decodeURIComponent(value);
+      }
+      return acc;
+    }, {});
+
+    const sessionToken = cookies?.session_token;
 
     if (sessionToken) {
+      console.log('\n📨 LOGOUT REQUEST');
       deleteSession(sessionToken);
+      console.log('🔓 Session cleared\n');
     }
 
-    // Clear cookie
-    res.setHeader('Set-Cookie', [
-      'admin_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict',
-    ]);
+    res.setHeader('Set-Cookie', 
+      'session_token=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax'
+    );
 
     return res.status(200).json({
       success: true,

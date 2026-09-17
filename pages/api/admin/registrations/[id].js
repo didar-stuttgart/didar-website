@@ -1,9 +1,8 @@
-import { validateSession } from '../../../../lib/admin-auth.js';
+import { requireAdminSession } from '../../../../lib/api-middleware.js';
 import { createAdminClient } from '../../../../lib/supabase.js';
 
 export default async function handler(req, res) {
-  const sessionToken = req.cookies?.admin_session;
-  if (!sessionToken || !validateSession(sessionToken)) {
+  if (!requireAdminSession(req, res)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -17,13 +16,9 @@ export default async function handler(req, res) {
     const { status, admin_notes } = req.body;
     const adminClient = createAdminClient();
 
-    const updateData = {};
-    if (status) updateData.status = status;
-    if (admin_notes !== undefined) updateData.admin_notes = admin_notes;
-
     const { data, error } = await adminClient
       .from('registrations')
-      .update(updateData)
+      .update({ status, admin_notes })
       .eq('id', id)
       .select();
 
