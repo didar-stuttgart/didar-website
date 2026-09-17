@@ -105,18 +105,26 @@
 }
 
 .language-switch button {
-  background: none;
-  border: none;
+  background: var(--color-gray-light);
+  border: 2px solid transparent;
   padding: var(--space-2) var(--space-3);
   color: var(--color-text-dark);
   cursor: pointer;
   min-height: auto;
-  transition: color var(--transition-base);
+  border-radius: 4px;
+  font-weight: var(--fw-semibold);
+  transition: all var(--transition-base);
+}
+
+.language-switch button:hover {
+  background: var(--color-sand);
+  color: var(--color-white);
 }
 
 .language-switch button.active {
-  color: var(--color-olive);
-  border-bottom: 2px solid var(--color-olive);
+  background: var(--color-olive);
+  color: var(--color-white);
+  border-color: var(--color-olive-dark);
 }
 
 .hamburger {
