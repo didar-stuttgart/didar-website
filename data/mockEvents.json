@@ -1,6 +1,6 @@
 [
   {
-    "id": "event-001",
+    "id": 1,
     "slug": "persian-cinema-night",
     "title_fa": "شب سینمای ایرانی",
     "title_de": "Persische Kinonacht",
@@ -14,7 +14,7 @@
     "image": "/images/event-placeholder-1.jpg"
   },
   {
-    "id": "event-002",
+    "id": 2,
     "slug": "poetry-recitation",
     "title_fa": "شب شاعری و قصه گویی",
     "title_de": "Poetry Reading Abend",
@@ -28,7 +28,7 @@
     "image": "/images/event-placeholder-2.jpg"
   },
   {
-    "id": "event-003",
+    "id": 3,
     "slug": "traditional-music-concert",
     "title_fa": "کنسرت موسیقی سنتی ایرانی",
     "title_de": "Traditionelles iranisches Musikkonzert",
@@ -42,7 +42,7 @@
     "image": "/images/event-placeholder-3.jpg"
   },
   {
-    "id": "event-004",
+    "id": 4,
     "slug": "calligraphy-workshop",
     "title_fa": "کارگاه خوشنویسی ایرانی",
     "title_de": "Iranischer Kalligraphie-Workshop",
@@ -56,7 +56,7 @@
     "image": "/images/event-placeholder-4.jpg"
   },
   {
-    "id": "event-005",
+    "id": 5,
     "slug": "new-year-celebration",
     "title_fa": "جشن نوروز",
     "title_de": "Neujahrsfeier",

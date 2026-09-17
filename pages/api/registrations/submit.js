@@ -3,6 +3,8 @@
  * Public endpoint - no authentication required
  * Rate limited to prevent spam
  * Server-side validation required
+ * 
+ * Modified for Phase 3A4: Added event existence and published status check
  */
 
 import { createServerClient } from '@/lib/supabase';
@@ -17,12 +19,30 @@ async function handler(req, res) {
   try {
     const { eventId, firstName, lastName, email, phone, telegramId, comment } = req.body;
 
-    // Validate required fields
+    // Validate required eventId
     if (!eventId || typeof eventId !== 'number') {
       return res.status(400).json({ error: 'Event ID is required' });
     }
 
-    // Validate all fields
+    // Verify event exists and is published with registration open
+    const supabase = createServerClient();
+    
+    const { data: event, error: eventError } = await supabase
+      .from('events')
+      .select('id, status, registration_open')
+      .eq('id', eventId)
+      .eq('status', 'published')
+      .single();
+
+    if (eventError || !event) {
+      return res.status(404).json({ error: 'Event not found or is not accepting registrations' });
+    }
+
+    if (!event.registration_open) {
+      return res.status(400).json({ error: 'Registration is not open for this event' });
+    }
+
+    // Validate all form fields
     const validation = validateEventRegistration({
       firstName,
       lastName,
@@ -39,10 +59,8 @@ async function handler(req, res) {
       });
     }
 
-    // Submit to Supabase
-    const supabase = createServerClient();
-
-    const { data, error } = await supabase
+    // Submit registration to Supabase
+    const { error } = await supabase
       .from('event_registrations')
       .insert([
         {
@@ -55,8 +73,7 @@ async function handler(req, res) {
           comment: comment?.trim() || null,
           status: 'new',
         },
-      ])
-      .select('id');
+      ]);
 
     if (error) {
       // Handle duplicate email for this event
@@ -73,7 +90,6 @@ async function handler(req, res) {
     return res.status(201).json({
       success: true,
       message: 'Registration submitted successfully',
-      id: data[0]?.id,
     });
   } catch (error) {
     console.error('Registration submission error:', error);

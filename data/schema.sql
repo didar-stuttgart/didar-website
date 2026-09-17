@@ -125,7 +125,16 @@ CREATE POLICY "public_read_published_events" ON events
   USING (status = 'published');
 
 -- REGISTRATIONS: Public can INSERT only (no SELECT/UPDATE/DELETE)
+-- Public form submissions run as the anonymous Postgres role. Restrict table
+-- access to INSERT and permit only generated registration IDs from the sequence.
+REVOKE ALL ON TABLE event_registrations FROM anon, authenticated;
+GRANT INSERT ON TABLE event_registrations TO anon;
+
+REVOKE ALL ON SEQUENCE event_registrations_id_seq FROM anon, authenticated;
+GRANT USAGE ON SEQUENCE event_registrations_id_seq TO anon;
+
 CREATE POLICY "public_insert_event_registrations" ON event_registrations
+  TO anon
   FOR INSERT
   WITH CHECK (true);
 
@@ -143,7 +152,17 @@ CREATE POLICY "block_public_delete_registrations" ON event_registrations
   USING (false);
 
 -- MEMBERSHIPS: Public can INSERT only (no SELECT/UPDATE/DELETE)
+-- The public form uses the publishable key without a signed-in user, so it is
+-- executed as the `anon` Postgres role. A BIGSERIAL insert also needs sequence
+-- USAGE, but not SELECT (which would reveal the generated identifier).
+REVOKE ALL ON TABLE membership_applications FROM anon, authenticated;
+GRANT INSERT ON TABLE membership_applications TO anon;
+
+REVOKE ALL ON SEQUENCE membership_applications_id_seq FROM anon, authenticated;
+GRANT USAGE ON SEQUENCE membership_applications_id_seq TO anon;
+
 CREATE POLICY "public_insert_membership_applications" ON membership_applications
+  TO anon
   FOR INSERT
   WITH CHECK (true);
 

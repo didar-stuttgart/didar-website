@@ -1,18 +1,46 @@
+/**
+ * Events Listing Page
+ * Path: /veranstaltungen
+ * Displays upcoming and past events from Supabase
+ */
+
 import Head from 'next/head';
 import EventCard from '@/components/EventCard';
 import { t } from '@/lib/i18n';
-import mockEvents from '@/data/mockEvents.json';
 
-export default function Events({ currentLang }) {
+export async function getStaticProps() {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+    // Fetch upcoming events
+    const upcomingRes = await fetch(`${baseUrl}/api/events?status=upcoming`);
+    const upcomingData = upcomingRes.ok ? await upcomingRes.json() : { events: [] };
+
+    // Fetch past events
+    const pastRes = await fetch(`${baseUrl}/api/events?status=past`);
+    const pastData = pastRes.ok ? await pastRes.json() : { events: [] };
+
+    return {
+      props: {
+        upcomingEvents: upcomingData.events || [],
+        pastEvents: pastData.events || [],
+      },
+      revalidate: 3600, // Regenerate every hour
+    };
+  } catch (error) {
+    console.error('Error fetching events:', error);
+    return {
+      props: {
+        upcomingEvents: [],
+        pastEvents: [],
+      },
+      revalidate: 300, // Retry after 5 minutes on error
+    };
+  }
+}
+
+export default function Events({ upcomingEvents, pastEvents, currentLang }) {
   const dir = currentLang === 'fa' ? 'rtl' : 'ltr';
-
-  const upcomingEvents = mockEvents
-    .filter((e) => e.status !== 'past_event')
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
-
-  const pastEvents = mockEvents
-    .filter((e) => e.status === 'past_event')
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
 
   return (
     <>

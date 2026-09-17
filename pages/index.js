@@ -1,17 +1,46 @@
+/**
+ * Homepage
+ * Path: /
+ * 
+ * Modified for Phase 3A4: Now fetches featured upcoming events from Supabase
+ * Shows hero, featured events teaser, about, membership CTA
+ */
+
 import Head from 'next/head';
 import Link from 'next/link';
 import EventCard from '@/components/EventCard';
 import { t } from '@/lib/i18n';
-import mockEvents from '@/data/mockEvents.json';
 
-export default function Home({ currentLang }) {
+export async function getStaticProps() {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+    // Fetch upcoming events for featured display
+    const upcomingRes = await fetch(`${baseUrl}/api/events?status=upcoming`);
+    const upcomingData = upcomingRes.ok ? await upcomingRes.json() : { events: [] };
+
+    // Take only first 2 events for homepage teaser
+    const featuredEvents = (upcomingData.events || []).slice(0, 2);
+
+    return {
+      props: {
+        featuredEvents,
+      },
+      revalidate: 3600, // Regenerate every hour
+    };
+  } catch (error) {
+    console.error('Error fetching featured events:', error);
+    return {
+      props: {
+        featuredEvents: [],
+      },
+      revalidate: 300, // Retry after 5 minutes on error
+    };
+  }
+}
+
+export default function Home({ featuredEvents, currentLang }) {
   const dir = currentLang === 'fa' ? 'rtl' : 'ltr';
-
-  // Get upcoming events (first 2)
-  const upcomingEvents = mockEvents
-    .filter((e) => new Date(e.date) >= new Date() && e.status !== 'past_event')
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
-    .slice(0, 2);
 
   return (
     <>
@@ -38,10 +67,10 @@ export default function Home({ currentLang }) {
       <section className="section" dir={dir}>
         <div className="container">
           <h2>{t('home.upcoming_events', currentLang)}</h2>
-          {upcomingEvents.length > 0 ? (
+          {featuredEvents.length > 0 ? (
             <>
               <div className="grid grid-2 mt-8">
-                {upcomingEvents.map((event) => (
+                {featuredEvents.map((event) => (
                   <EventCard key={event.id} event={event} currentLang={currentLang} />
                 ))}
               </div>
