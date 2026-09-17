@@ -95,6 +95,12 @@ export default function EventDetail({ event, currentLang }) {
   // Registration is open only if registration_open = true
   const registrationOpen = event.registration_open === true;
 
+  // Distinguish "not yet open / coming soon" from "already took place"
+  const eventDateOnly = event.event_date ? new Date(event.event_date) : null;
+  const todayOnly = new Date();
+  todayOnly.setHours(0, 0, 0, 0);
+  const isPastEvent = eventDateOnly ? eventDateOnly < todayOnly : false;
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -398,9 +404,13 @@ export default function EventDetail({ event, currentLang }) {
                   </button>
                 </form>
               </>
+            ) : isPastEvent ? (
+              <div className="alert alert-warning" role="status">
+                {t('event.past_event', currentLang)}
+              </div>
             ) : (
               <div className="alert alert-warning" role="status">
-                {t('event.registration_closed', currentLang)}
+                {t('event.coming_soon_message', currentLang)}
               </div>
             )}
           </div>

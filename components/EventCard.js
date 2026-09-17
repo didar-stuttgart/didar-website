@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { t, formatDate, formatTime } from '@/lib/i18n';
 
-export default function EventCard({ event, currentLang }) {
+export default function EventCard({ event, currentLang, isPast = false }) {
   const dir = currentLang === 'fa' ? 'rtl' : 'ltr';
 
   const getTitle = () => event[`title_${currentLang}`] || event.title_de;
@@ -33,6 +33,23 @@ export default function EventCard({ event, currentLang }) {
           </div>
 
           <h3 className="event-title">{getTitle()}</h3>
+
+          {!isPast && event.registration_open === false && (
+            <span
+              className="badge"
+              style={{
+                display: 'inline-block',
+                background: 'var(--color-sand, #D4C4B0)',
+                color: 'var(--color-text, #333)',
+                borderRadius: 'var(--radius-sm, 4px)',
+                padding: '0.15rem 0.6rem',
+                fontSize: 'var(--fs-sm, 0.85rem)',
+                marginBottom: '0.5rem',
+              }}
+            >
+              {t('events.coming_soon', currentLang)}
+            </span>
+          )}
 
           <div className="event-location">
             📍 {getLocation() || t('events.location_tbd', currentLang)}

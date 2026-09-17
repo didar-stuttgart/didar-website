@@ -56,7 +56,7 @@ export default function Events({ upcomingEvents, pastEvents, currentLang }) {
           {upcomingEvents.length > 0 ? (
             <div className="grid grid-2 mt-8">
               {upcomingEvents.map((event) => (
-                <EventCard key={event.id} event={event} currentLang={currentLang} />
+                <EventCard key={event.id} event={event} currentLang={currentLang} isPast={false} />
               ))}
             </div>
           ) : (
@@ -68,7 +68,7 @@ export default function Events({ upcomingEvents, pastEvents, currentLang }) {
               <h2 className="mt-16">{t('events.past', currentLang)}</h2>
               <div className="grid grid-2 mt-8">
                 {pastEvents.map((event) => (
-                  <EventCard key={event.id} event={event} currentLang={currentLang} />
+                  <EventCard key={event.id} event={event} currentLang={currentLang} isPast={true} />
                 ))}
               </div>
             </>
