@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import Head from 'next/head';
 import { useState } from 'react';
 import { t } from '@/lib/i18n';
@@ -114,6 +115,20 @@ export default function Contact({ currentLang }) {
                   {error}
                 </div>
               )}
+              <div className="alert alert-info mt-6" role="region" aria-label="Privacy notice">
+                <p style={{ fontSize: '0.95rem', marginBottom: '0.5rem' }}>
+                  <strong>{currentLang === 'fa' ? 'اطلاع حریم خصوصی' : 'Datenschutzhinweis'}</strong>
+                </p>
+                <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
+                  {t('form.privacy_contact_notice', currentLang)}
+                </p>
+                <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', marginTop: 'var(--space-2)' }}>
+                  <Link href="/datenschutz">
+                    {t('form.privacy_policy_link', currentLang)}
+                  </Link>
+                </p>
+              </div>
+
 
               <form className="mt-8" onSubmit={handleSubmit} noValidate>
                 <div className="form-group">
