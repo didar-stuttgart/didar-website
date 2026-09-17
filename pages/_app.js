@@ -7,6 +7,7 @@ import '@/styles/globals.css';
 import '@/styles/layout.css';
 import '@/styles/components.css';
 import '@/styles/rtl.css';
+import '@/styles/enhancements.css';
 
 const defaultLang = 'fa';
 

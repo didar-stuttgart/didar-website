@@ -1,9 +1,11 @@
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { useState } from 'react';
 import { t, languages } from '@/lib/i18n';
 
 export default function Header({ currentLang, onLanguageChange }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const router = useRouter();
   const dir = currentLang === 'fa' ? 'rtl' : 'ltr';
 
   const navItems = [
@@ -14,17 +16,38 @@ export default function Header({ currentLang, onLanguageChange }) {
     { href: '/kontakt', label: t('nav.contact', currentLang) },
   ];
 
+  // Check if link is active (exact match for /, starts with for others)
+  const isActive = (href) => {
+    if (href === '/') return router.pathname === '/';
+    return router.pathname.startsWith(href);
+  };
+
   return (
     <header className="header" dir={dir}>
       <div className="header-content">
         <Link href="/" className="logo">
+          <img 
+            src="/images/logo.jpg" 
+            alt="DIDAR" 
+            className="logo-image"
+            style={{
+              height: '50px',
+              width: 'auto',
+              objectFit: 'contain'
+            }}
+          />
           <span className="logo-text">DIDAR</span>
         </Link>
 
         <nav className="nav">
           {navItems.map((item) => (
             <li key={item.href}>
-              <Link href={item.href}>{item.label}</Link>
+              <Link
+                href={item.href}
+                className={isActive(item.href) ? 'active' : ''}
+              >
+                {item.label}
+              </Link>
             </li>
           ))}
         </nav>
@@ -49,25 +72,38 @@ export default function Header({ currentLang, onLanguageChange }) {
                 <button
                   onClick={() => onLanguageChange(lang)}
                   className={currentLang === lang ? 'active' : ''}
-                  aria-current={currentLang === lang ? 'page' : undefined}
+                  title={config.name}
                 >
-                  {config.label}
+                  {config.flag}
                 </button>
               </li>
             ))}
           </ul>
 
           <button
-            className="hamburger"
+            className="mobile-menu-toggle"
             onClick={() => setMenuOpen(!menuOpen)}
-            aria-label={t('common.close', currentLang)}
+            aria-label="Toggle menu"
           >
-            <span></span>
-            <span></span>
-            <span></span>
+            ☰
           </button>
         </div>
       </div>
+
+      {menuOpen && (
+        <nav className="mobile-menu" role="navigation">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={isActive(item.href) ? 'active' : ''}
+              onClick={() => setMenuOpen(false)}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+      )}
     </header>
   );
 }

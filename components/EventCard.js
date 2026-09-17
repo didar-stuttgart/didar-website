@@ -7,40 +7,46 @@ export default function EventCard({ event, currentLang }) {
   const getTitle = () => event[`title_${currentLang}`] || event.title_de;
   const getLocation = () => event[`location_${currentLang}`] || event.location_de;
 
-  const statusKey = {
-    registration_open: 'events.registration_open',
-    registration_closed: 'events.registration_closed',
-    past_event: 'events.past_event',
-  }[event.status] || 'events.past_event';
-
   return (
     <Link href={`/veranstaltungen/${event.slug}`}>
       <article className="event-card" dir={dir}>
-        <div
-          className="event-card-image"
-          style={{
-            backgroundImage: `url('${event.image}')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          }}
-          role="img"
-          aria-label={getTitle()}
-        />
+        {/* Event Image Section */}
+        <div className="event-image">
+          {event.image_url ? (
+            <img
+              src={event.image_url}
+              alt={getTitle()}
+              loading="lazy"
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
+            />
+          ) : (
+            <div className="event-image-placeholder">🎭</div>
+          )}
+        </div>
 
-        <div className="event-card-content">
-          <time className="event-card-date" dateTime={event.date}>
-            {formatDate(event.date, currentLang)}
-          </time>
+        {/* Event Content Section */}
+        <div className="event-content">
+          <div className="event-date">
+            📅 {formatDate(event.event_date || event.date, currentLang)}
+          </div>
 
-          <h3 className="event-card-title">{getTitle()}</h3>
+          <h3 className="event-title">{getTitle()}</h3>
 
-          <time className="event-card-time" dateTime={`2026-01-01T${event.time}`}>
-            ⏰ {formatTime(event.time, currentLang)}
-          </time>
+          <div className="event-location">
+            📍 {getLocation() || t('events.location_tbd', currentLang)}
+          </div>
 
-          {getLocation() && <div className="event-card-location">📍 {getLocation()}</div>}
+          {event.event_time && (
+            <div className="event-time" style={{ fontSize: 'var(--fs-sm)', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>
+              ⏰ {formatTime(event.event_time || event.time, currentLang)}
+            </div>
+          )}
 
-          <span className="event-card-status">{t(statusKey, currentLang)}</span>
+          <a href={`/veranstaltungen/${event.slug}`} className="event-link">
+            {t('common.learn_more', currentLang)} →
+          </a>
         </div>
       </article>
     </Link>
