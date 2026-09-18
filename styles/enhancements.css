@@ -640,20 +640,33 @@ img[loading='lazy'] {
 
 /* ========================================
    HOMEPAGE HERO — editorial two-zone layout
-   Desktop: image fills the section; the copy column is anchored into the
-   image's own empty right-hand wall (see hero-banner.jpg) rather than
-   floating centered on top of it. Mobile: a completely separate, simpler
-   composition — a shorter image block, then the copy in normal reading
-   flow below it on the page's plain background (no overlay needed there).
+   Desktop (>=1024px, see media query below): image fills the section; the
+   copy column is anchored into the image's own empty right-hand wall (see
+   hero-banner.jpg) via absolute positioning.
+
+   Mobile/tablet (this base rule, <1024px): the hero copy was previously a
+   separate in-flow block that rendered BELOW the image (a plain flex
+   column: image, then a cream box underneath). That was the actual bug —
+   the copy was never part of the same visual "hero", just adjacent markup
+   that happened to sit next to it. Fixed by making .hero-section a CSS
+   grid with both .hero-media and .hero-copy placed in the SAME grid cell
+   (grid-area: 1 / 1), so they genuinely overlap as one component: the
+   image fills the cell, the copy sits on top of it, and the grid row's
+   height is driven automatically by whichever is taller (the image's own
+   min-height, or the copy's real content height) — so the copy can never
+   overflow the hero or leave a gap, regardless of how the fixed Persian/
+   German strings wrap at a given width. z-index applies to grid items even
+   without `position` set, so no extra positioning context is needed here.
    ======================================== */
 .hero-section {
-  display: flex;
-  flex-direction: column;
+  display: grid;
 }
 
 .hero-media {
+  grid-area: 1 / 1;
   width: 100%;
-  height: 260px;
+  height: 100%;
+  min-height: 480px;
   overflow: hidden;
 }
 
@@ -666,8 +679,19 @@ img[loading='lazy'] {
 }
 
 .hero-copy {
-  padding: var(--space-8) var(--gap-gutter) var(--space-10);
-  background-color: var(--color-cream);
+  grid-area: 1 / 1;
+  align-self: end;
+  z-index: 1;
+  padding: var(--space-10) var(--gap-gutter) var(--space-8);
+  /* Cream scrim fading up from solid (behind the text) to fully
+     transparent, so the image stays visible above the copy instead of the
+     text sitting in a separate opaque block. */
+  background-image: linear-gradient(
+    to top,
+    rgba(253, 247, 242, 0.97) 0%,
+    rgba(253, 247, 242, 0.88) 60%,
+    rgba(253, 247, 242, 0) 100%
+  );
 }
 
 .hero-copy .hero-title {
@@ -690,8 +714,12 @@ img[loading='lazy'] {
 
 /* justify-content: flex-start already resolves to the reading-start side
    (right for Persian, left for German) on its own — no dir override needed,
-   and one previously here was actually backwards for RTL. */
+   and one previously here was actually backwards for RTL. Buttons stack
+   vertically at every width (not just desktop) so two Persian/German CTA
+   labels never have to wrap awkwardly side by side over the image. */
 .hero-copy .hero-cta {
+  flex-direction: column;
+  align-items: flex-start;
   justify-content: flex-start;
 }
 
@@ -760,14 +788,8 @@ img[loading='lazy'] {
     font-size: clamp(1.125rem, 1.2vw, 1.25rem); /* ~18-20px */
   }
 
-  /* align-items: flex-start already resolves to the reading-start side
-     (right for Persian, left for German) — the previous dir="rtl" override
-     to flex-end pushed Persian buttons to the physical left, inconsistent
-     with the right-aligned Persian text right above them. Removed. */
-  .hero-copy .hero-cta {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+  /* .hero-copy .hero-cta's column/flex-start layout is now set once in the
+     shared base rule above (used at every width, not just desktop). */
 }
 
 /* Event card: category badge + short description (Phase 9) */
