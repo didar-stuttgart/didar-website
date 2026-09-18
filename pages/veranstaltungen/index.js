@@ -7,23 +7,41 @@
 import Head from 'next/head';
 import EventCard from '@/components/EventCard';
 import { t } from '@/lib/i18n';
+import { createServerClient } from '@/lib/supabase';
 
 export async function getStaticProps() {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const supabase = createServerClient();
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
-    // Fetch upcoming events
-    const upcomingRes = await fetch(`${baseUrl}/api/events?status=upcoming`);
-    const upcomingData = upcomingRes.ok ? await upcomingRes.json() : { events: [] };
+    // Fetch upcoming events directly from Supabase
+    const { data: upcomingEvents, error: upcomingError } = await supabase
+      .from('events')
+      .select('*')
+      .eq('status', 'published')
+      .gte('event_date', today)
+      .order('event_date', { ascending: true });
 
-    // Fetch past events
-    const pastRes = await fetch(`${baseUrl}/api/events?status=past`);
-    const pastData = pastRes.ok ? await pastRes.json() : { events: [] };
+    if (upcomingError) {
+      console.error('Error fetching upcoming events:', upcomingError);
+    }
+
+    // Fetch past events directly from Supabase
+    const { data: pastEvents, error: pastError } = await supabase
+      .from('events')
+      .select('*')
+      .eq('status', 'published')
+      .lt('event_date', today)
+      .order('event_date', { ascending: false });
+
+    if (pastError) {
+      console.error('Error fetching past events:', pastError);
+    }
 
     return {
       props: {
-        upcomingEvents: upcomingData.events || [],
-        pastEvents: pastData.events || [],
+        upcomingEvents: upcomingEvents || [],
+        pastEvents: pastEvents || [],
       },
       revalidate: 3600, // Regenerate every hour
     };

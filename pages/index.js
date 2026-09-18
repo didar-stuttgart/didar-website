@@ -11,17 +11,33 @@ import Link from 'next/link';
 import Image from 'next/image';
 import EventCard from '@/components/EventCard';
 import { t } from '@/lib/i18n';
+import { createServerClient } from '@/lib/supabase';
 
 export async function getStaticProps() {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const supabase = createServerClient();
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
-    // Fetch upcoming events for featured display
-    const upcomingRes = await fetch(`${baseUrl}/api/events?status=upcoming`);
-    const upcomingData = upcomingRes.ok ? await upcomingRes.json() : { events: [] };
+    // Fetch upcoming events directly from Supabase
+    const { data: events, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('status', 'published')
+      .gte('event_date', today)
+      .order('event_date', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching events from Supabase:', error);
+      return {
+        props: {
+          featuredEvents: [],
+        },
+        revalidate: 300,
+      };
+    }
 
     // Take only first 2 events for homepage teaser
-    const featuredEvents = (upcomingData.events || []).slice(0, 2);
+    const featuredEvents = (events || []).slice(0, 2);
 
     return {
       props: {
