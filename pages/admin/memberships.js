@@ -13,7 +13,7 @@ export default function AdminMemberships() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const response = await fetch('/api/auth/verify', { method: 'POST' });
+        const response = await fetch('/api/auth/verify', { method: 'POST', credentials: 'include' });
         if (response.ok) {
           setSessionValid(true);
           loadMemberships();
@@ -30,7 +30,7 @@ export default function AdminMemberships() {
 
   const loadMemberships = async () => {
     try {
-      const res = await fetch('/api/admin/memberships');
+      const res = await fetch('/api/admin/memberships', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setMemberships(data.memberships || []);
@@ -46,6 +46,7 @@ export default function AdminMemberships() {
     try {
       const res = await fetch(`/api/admin/memberships/${id}`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
@@ -64,7 +65,7 @@ export default function AdminMemberships() {
 
   const handleDownloadCSV = async () => {
     try {
-      const res = await fetch('/api/admin/memberships/export');
+      const res = await fetch('/api/admin/memberships/export', { credentials: 'include' });
       if (res.ok) {
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);

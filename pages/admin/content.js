@@ -14,7 +14,7 @@ export default function AdminContent() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const response = await fetch('/api/auth/verify', { method: 'POST' });
+        const response = await fetch('/api/auth/verify', { method: 'POST', credentials: 'include' });
         if (response.ok) {
           setSessionValid(true);
           loadContent();
@@ -31,7 +31,7 @@ export default function AdminContent() {
 
   const loadContent = async () => {
     try {
-      const res = await fetch('/api/admin/content');
+      const res = await fetch('/api/admin/content', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setContent(data.content);
@@ -72,6 +72,7 @@ export default function AdminContent() {
     try {
       const res = await fetch('/api/admin/content', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content }),
       });

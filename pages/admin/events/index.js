@@ -13,7 +13,7 @@ export default function AdminEvents() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const response = await fetch('/api/auth/verify', { method: 'POST' });
+        const response = await fetch('/api/auth/verify', { method: 'POST', credentials: 'include' });
         if (response.ok) {
           setSessionValid(true);
           loadEvents();
@@ -30,7 +30,7 @@ export default function AdminEvents() {
 
   const loadEvents = async () => {
     try {
-      const res = await fetch('/api/admin/events');
+      const res = await fetch('/api/admin/events', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setEvents(data.events || []);

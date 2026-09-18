@@ -14,7 +14,7 @@ export default function AdminSettings() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const response = await fetch('/api/auth/verify', { method: 'POST' });
+        const response = await fetch('/api/auth/verify', { method: 'POST', credentials: 'include' });
         if (response.ok) {
           setSessionValid(true);
           loadSettings();
@@ -31,7 +31,7 @@ export default function AdminSettings() {
 
   const loadSettings = async () => {
     try {
-      const res = await fetch('/api/admin/settings');
+      const res = await fetch('/api/admin/settings', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setSettings(data.settings);
@@ -52,6 +52,7 @@ export default function AdminSettings() {
     try {
       const res = await fetch('/api/admin/settings', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ settings }),
       });

@@ -13,7 +13,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const response = await fetch('/api/auth/verify', { method: 'POST' });
+        const response = await fetch('/api/auth/verify', { method: 'POST', credentials: 'include' });
         if (response.ok) {
           setSessionValid(true);
           loadStats();
@@ -30,7 +30,7 @@ export default function AdminDashboard() {
 
   const loadStats = async () => {
     try {
-      const res = await fetch('/api/admin/stats');
+      const res = await fetch('/api/admin/stats', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setStats(data);

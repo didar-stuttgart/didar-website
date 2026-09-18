@@ -14,7 +14,7 @@ export default function AdminRegistrations() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const response = await fetch('/api/auth/verify', { method: 'POST' });
+        const response = await fetch('/api/auth/verify', { method: 'POST', credentials: 'include' });
         if (response.ok) {
           setSessionValid(true);
           loadRegistrations();
@@ -31,7 +31,7 @@ export default function AdminRegistrations() {
 
   const loadRegistrations = async () => {
     try {
-      const res = await fetch('/api/admin/registrations');
+      const res = await fetch('/api/admin/registrations', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         setRegistrations(data.registrations || []);
@@ -47,6 +47,7 @@ export default function AdminRegistrations() {
     try {
       const res = await fetch(`/api/admin/registrations/${id}`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
@@ -65,7 +66,7 @@ export default function AdminRegistrations() {
 
   const handleDownloadCSV = async () => {
     try {
-      const res = await fetch('/api/admin/registrations/export');
+      const res = await fetch('/api/admin/registrations/export', { credentials: 'include' });
       if (res.ok) {
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
