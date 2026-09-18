@@ -91,9 +91,12 @@ export default function AdminEventEdit() {
     }
   };
 
-  if (!sessionValid) return null;
-  if (loading) return <div className={styles.loading}>درحال بارگذاری...</div>;
-  if (!event) return null;
+  if (!sessionValid || loading) {
+    return <div className={styles.loading}>درحال بارگذاری...</div>;
+  }
+  if (!event) {
+    return <div className={styles.loading}>درحال بارگذاری...</div>;
+  }
 
   return (
     <>

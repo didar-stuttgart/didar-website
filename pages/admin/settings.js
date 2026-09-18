@@ -69,9 +69,12 @@ export default function AdminSettings() {
     }
   };
 
-  if (!sessionValid) return null;
-  if (loading) return <div className={styles.loading}>درحال بارگذاری...</div>;
-  if (!settings) return null;
+  if (!sessionValid || loading) {
+    return <div className={styles.loading}>درحال بارگذاری...</div>;
+  }
+  if (!settings) {
+    return <div className={styles.loading}>درحال بارگذاری...</div>;
+  }
 
   return (
     <>

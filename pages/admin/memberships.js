@@ -78,8 +78,9 @@ export default function AdminMemberships() {
     }
   };
 
-  if (!sessionValid) return null;
-  if (loading) return <div className={styles.loading}>درحال بارگذاری...</div>;
+  if (!sessionValid || loading) {
+    return <div className={styles.loading}>درحال بارگذاری...</div>;
+  }
 
   return (
     <>

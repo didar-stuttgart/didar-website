@@ -35,10 +35,30 @@ export default function AdminContent() {
       if (res.ok) {
         const data = await res.json();
         setContent(data.content);
+      } else {
+        console.error('API error:', res.status);
+        // Set default empty content if API fails
+        setContent({
+          homepage_hero_title_fa: '',
+          homepage_hero_subtitle_fa: '',
+          homepage_hero_title_de: '',
+          homepage_hero_subtitle_de: '',
+          about_intro_fa: '',
+          about_intro_de: '',
+        });
       }
-      setLoading(false);
     } catch (err) {
       console.error('Failed to load content:', err);
+      // Set default empty content on error
+      setContent({
+        homepage_hero_title_fa: '',
+        homepage_hero_subtitle_fa: '',
+        homepage_hero_title_de: '',
+        homepage_hero_subtitle_de: '',
+        about_intro_fa: '',
+        about_intro_de: '',
+      });
+    } finally {
       setLoading(false);
     }
   };
@@ -69,9 +89,9 @@ export default function AdminContent() {
     }
   };
 
-  if (!sessionValid) return null;
-  if (loading) return <div className={styles.loading}>درحال بارگذاری...</div>;
-  if (!content) return null;
+  if (!sessionValid || loading) {
+    return <div className={styles.loading}>درحال بارگذاری...</div>;
+  }
 
   return (
     <>
@@ -89,86 +109,90 @@ export default function AdminContent() {
         </header>
 
         <div className={styles.contentArea}>
-          <form className={styles.contentForm}>
-            <section className={styles.formSection}>
-              <h2>صفحه خانگی</h2>
+          {content ? (
+            <form className={styles.contentForm}>
+              <section className={styles.formSection}>
+                <h2>صفحه خانگی</h2>
 
-              <div className={styles.formGroup}>
-                <label>عنوان اصلی (فارسی)</label>
-                <input
-                  type="text"
-                  value={content.homepage_hero_title_fa || ''}
-                  onChange={(e) => handleChange('homepage_hero_title_fa', e.target.value)}
-                  placeholder="عنوان صفحه خانگی"
-                />
+                <div className={styles.formGroup}>
+                  <label>عنوان اصلی (فارسی)</label>
+                  <input
+                    type="text"
+                    value={content.homepage_hero_title_fa || ''}
+                    onChange={(e) => handleChange('homepage_hero_title_fa', e.target.value)}
+                    placeholder="عنوان صفحه خانگی"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>زیر عنوان (فارسی)</label>
+                  <input
+                    type="text"
+                    value={content.homepage_hero_subtitle_fa || ''}
+                    onChange={(e) => handleChange('homepage_hero_subtitle_fa', e.target.value)}
+                    placeholder="زیر عنوان صفحه خانگی"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>Haupttitel (Deutsch)</label>
+                  <input
+                    type="text"
+                    value={content.homepage_hero_title_de || ''}
+                    onChange={(e) => handleChange('homepage_hero_title_de', e.target.value)}
+                    placeholder="Titel der Startseite"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>Untertitel (Deutsch)</label>
+                  <input
+                    type="text"
+                    value={content.homepage_hero_subtitle_de || ''}
+                    onChange={(e) => handleChange('homepage_hero_subtitle_de', e.target.value)}
+                    placeholder="Untertitel der Startseite"
+                  />
+                </div>
+              </section>
+
+              <section className={styles.formSection}>
+                <h2>درباره ما</h2>
+
+                <div className={styles.formGroup}>
+                  <label>متن درباره‌ای (فارسی)</label>
+                  <textarea
+                    value={content.about_intro_fa || ''}
+                    onChange={(e) => handleChange('about_intro_fa', e.target.value)}
+                    placeholder="متن صفحه درباره‌ی ما"
+                    rows="6"
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>Über uns Text (Deutsch)</label>
+                  <textarea
+                    value={content.about_intro_de || ''}
+                    onChange={(e) => handleChange('about_intro_de', e.target.value)}
+                    placeholder="Text der Seite Über uns"
+                    rows="6"
+                  />
+                </div>
+              </section>
+
+              <div className={styles.formActions}>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving}
+                  className={styles.primaryButton}
+                >
+                  {saving ? 'درحال ذخیره...' : 'ذخیره تغییرات'}
+                </button>
               </div>
-
-              <div className={styles.formGroup}>
-                <label>زیر عنوان (فارسی)</label>
-                <input
-                  type="text"
-                  value={content.homepage_hero_subtitle_fa || ''}
-                  onChange={(e) => handleChange('homepage_hero_subtitle_fa', e.target.value)}
-                  placeholder="زیر عنوان صفحه خانگی"
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label>Haupttitel (Deutsch)</label>
-                <input
-                  type="text"
-                  value={content.homepage_hero_title_de || ''}
-                  onChange={(e) => handleChange('homepage_hero_title_de', e.target.value)}
-                  placeholder="Titel der Startseite"
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label>Untertitel (Deutsch)</label>
-                <input
-                  type="text"
-                  value={content.homepage_hero_subtitle_de || ''}
-                  onChange={(e) => handleChange('homepage_hero_subtitle_de', e.target.value)}
-                  placeholder="Untertitel der Startseite"
-                />
-              </div>
-            </section>
-
-            <section className={styles.formSection}>
-              <h2>درباره ما</h2>
-
-              <div className={styles.formGroup}>
-                <label>متن درباره‌ای (فارسی)</label>
-                <textarea
-                  value={content.about_intro_fa || ''}
-                  onChange={(e) => handleChange('about_intro_fa', e.target.value)}
-                  placeholder="متن صفحه درباره‌ی ما"
-                  rows="6"
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label>Über uns Text (Deutsch)</label>
-                <textarea
-                  value={content.about_intro_de || ''}
-                  onChange={(e) => handleChange('about_intro_de', e.target.value)}
-                  placeholder="Text der Seite Über uns"
-                  rows="6"
-                />
-              </div>
-            </section>
-
-            <div className={styles.formActions}>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving}
-                className={styles.primaryButton}
-              >
-                {saving ? 'درحال ذخیره...' : 'ذخیره تغییرات'}
-              </button>
-            </div>
-          </form>
+            </form>
+          ) : (
+            <div className={styles.loading}>درحال بارگذاری...</div>
+          )}
         </div>
       </div>
     </>

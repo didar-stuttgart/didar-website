@@ -47,8 +47,9 @@ export default function AdminDashboard() {
     router.push('/admin/login');
   };
 
-  if (!sessionValid) return null;
-  if (loading) return <div className={styles.loading}>درحال بارگذاری...</div>;
+  if (!sessionValid || loading) {
+    return <div className={styles.loading}>درحال بارگذاری...</div>;
+  }
 
   return (
     <>
