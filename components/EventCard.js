@@ -52,6 +52,7 @@ export default function EventCard({ event, currentLang, isPast = false }) {
               className="badge"
               style={{
                 display: 'inline-block',
+                alignSelf: 'flex-start',
                 background: 'var(--color-sand, #D4C4B0)',
                 color: 'var(--color-text, #333)',
                 borderRadius: 'var(--radius-sm, 4px)',
@@ -81,7 +82,7 @@ export default function EventCard({ event, currentLang, isPast = false }) {
           )}
 
           <a href={`/veranstaltungen/${event.slug}`} className="event-link">
-            {t('common.learn_more', currentLang)} →
+            {t('common.learn_more', currentLang)} {currentLang === 'fa' ? '←' : '→'}
           </a>
         </div>
       </article>

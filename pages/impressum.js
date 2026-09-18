@@ -14,7 +14,7 @@ export default function Impressum({ currentLang }) {
       <section className="section" dir={dir}>
         <div className="container" style={{ maxWidth: '800px' }}>
           <Link href="/" className="btn btn-tertiary mb-8">
-            ← {t('common.back', currentLang)}
+            {currentLang === 'fa' ? '→' : '←'} {t('common.back', currentLang)}
           </Link>
 
           <h1>{t('legal.impressum', currentLang)}</h1>

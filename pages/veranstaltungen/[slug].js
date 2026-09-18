@@ -215,7 +215,7 @@ export default function EventDetail({ event, currentLang }) {
       <section className="section" dir={dir}>
         <div className="container">
           <Link href="/veranstaltungen" className="btn btn-tertiary mb-8">
-            ← {t('event.back_to_events', currentLang)}
+            {currentLang === 'fa' ? '→' : '←'} {t('event.back_to_events', currentLang)}
           </Link>
 
           {event.image_url && (
