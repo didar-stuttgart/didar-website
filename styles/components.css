@@ -340,16 +340,12 @@
 }
 
 /* FORM STYLES */
-.form-group {
-  margin-bottom: var(--space-6);
-}
-
-.form-label {
-  display: block;
-  margin-bottom: var(--space-2);
-  font-weight: var(--fw-semibold);
-  color: var(--color-text-dark);
-}
+/* .form-group / .form-label base rules used to be duplicated here and in
+   enhancements.css with a slightly different font-size on .form-label.
+   Since enhancements.css loads after this file, its version was the one
+   actually being applied; this duplicate has been removed rather than the
+   other one, so the rendered result is unchanged. See enhancements.css for
+   the active .form-group / .form-label rules (Phase 11 / Item 10). */
 
 .form-hint {
   font-size: var(--fs-sm);

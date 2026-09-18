@@ -119,12 +119,16 @@ export default function AdminEvents() {
                     <td>
                       <span
                         className={
-                          event.registration_open
+                          event.registration_status === 'open'
                             ? styles.statusOpen
                             : styles.statusClosed
                         }
                       >
-                        {event.registration_open ? 'باز' : 'بسته'}
+                        {event.registration_status === 'open'
+                          ? 'باز'
+                          : event.registration_status === 'closed'
+                          ? 'بسته'
+                          : 'به‌زودی'}
                       </span>
                     </td>
                     <td className={styles.actions}>

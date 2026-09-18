@@ -95,8 +95,13 @@ export default function EventDetail({ event, currentLang }) {
   const eventLanguage = event[`event_language_${currentLang}`] || event.event_language;
   const externalRegistrationUrl = event.external_registration_url || null;
 
-  // Registration is open only if registration_open = true
-  const registrationOpen = event.registration_open === true;
+  // Registration status is a 3-state field: 'not_open' (upcoming, not yet
+  // opened), 'open' (upcoming, accepting registrations), or 'closed'
+  // (upcoming, registration period has ended). It is independent of whether
+  // the event itself is in the past.
+  const registrationStatus = event.registration_status || 'not_open';
+  const registrationOpen = registrationStatus === 'open';
+  const registrationClosed = registrationStatus === 'closed';
 
   // Distinguish "not yet open / coming soon" from "already took place"
   const eventDateOnly = event.event_date ? new Date(event.event_date) : null;
@@ -243,7 +248,9 @@ export default function EventDetail({ event, currentLang }) {
               ? t('events.past_event', currentLang)
               : registrationOpen
               ? t('events.registration_open', currentLang)
-              : t('events.registration_closed', currentLang)}
+              : registrationClosed
+              ? t('events.registration_closed', currentLang)
+              : t('events.coming_soon', currentLang)}
           </p>
 
           <div className="grid grid-2 mt-8 gap-8">
@@ -450,6 +457,10 @@ export default function EventDetail({ event, currentLang }) {
             ) : isPastEvent ? (
               <div className="alert alert-warning" role="status">
                 {t('event.past_event', currentLang)}
+              </div>
+            ) : registrationClosed ? (
+              <div className="alert alert-warning" role="status">
+                {t('event.registration_closed_message', currentLang)}
               </div>
             ) : (
               <div className="alert alert-warning" role="status">

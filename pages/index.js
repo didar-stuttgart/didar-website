@@ -12,6 +12,7 @@ import EventCard from '@/components/EventCard';
 import { t } from '@/lib/i18n';
 import { createServerClient } from '@/lib/supabase';
 import { SOCIAL_LINKS, InstagramIcon, TelegramIcon } from '@/components/SocialIcons';
+import { LiteratureIcon, FilmIcon, ArtIcon, MusicIcon } from '@/components/CultureIcons';
 
 export async function getStaticProps() {
   try {
@@ -57,10 +58,10 @@ export async function getStaticProps() {
 }
 
 const CULTURAL_AREAS = [
-  { key: 'literature', icon: '📖' },
-  { key: 'film', icon: '🎬' },
-  { key: 'art', icon: '🎨' },
-  { key: 'music', icon: '🎵' },
+  { key: 'literature', Icon: LiteratureIcon },
+  { key: 'film', Icon: FilmIcon },
+  { key: 'art', Icon: ArtIcon },
+  { key: 'music', Icon: MusicIcon },
 ];
 
 export default function Home({ featuredEvents, currentLang }) {
@@ -181,9 +182,7 @@ export default function Home({ featuredEvents, currentLang }) {
           <div className="grid grid-4 mt-8">
             {CULTURAL_AREAS.map((area) => (
               <div key={area.key} className="culture-card">
-                <span className="culture-icon" aria-hidden="true">
-                  {area.icon}
-                </span>
+                <area.Icon className="culture-icon" />
                 <h3>{t(`culture.${area.key}_title`, currentLang)}</h3>
                 <p>{t(`culture.${area.key}_text`, currentLang)}</p>
               </div>

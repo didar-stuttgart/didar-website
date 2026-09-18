@@ -29,7 +29,7 @@ export default function Impressum({ currentLang }) {
               </p>
 
               <p className="mt-4">
-                <strong>ایمیل:</strong> <a href="mailto:info@didar-stuttgart.com">info@didar-stuttgart.com</a><br />
+                <strong>ایمیل:</strong> <a href="mailto:info@didar-stuttgart.com" dir="ltr">info@didar-stuttgart.com</a><br />
                 <strong>تلفن:</strong> +49 155 11250722
               </p>
 

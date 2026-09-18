@@ -57,7 +57,7 @@ async function handleUpdateEvent(slug, req, res) {
         location_de: event.location_de || '',
         image_url: event.image_url || '',
         status: event.status || 'draft',
-        registration_open: event.registration_open || false,
+        registration_status: event.registration_status || 'not_open',
       })
       .eq('slug', slug)
       .select();

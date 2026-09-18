@@ -108,7 +108,7 @@ export default function Datenschutz({ currentLang }) {
                 <strong>DIDAR – Hochschulgruppe an der Universität Stuttgart</strong><br />
                 Pfaffenwaldring 5c<br />
                 70569 Stuttgart, Deutschland<br />
-                Email: info@didar-stuttgart.com<br />
+                <span dir="ltr">Email: info@didar-stuttgart.com</span><br />
                 Phone: +49 155 11250722
               </p>
 

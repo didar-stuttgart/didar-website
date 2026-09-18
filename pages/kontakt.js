@@ -215,7 +215,7 @@ export default function Contact({ currentLang }) {
               <p className="mt-4">
                 <strong>{currentLang === 'fa' ? 'ایمیل' : 'E-Mail'}:</strong>
                 <br />
-                <a href="mailto:contact@didar-stuttgart.de">contact@didar-stuttgart.de</a>
+                <a href="mailto:info@didar-stuttgart.com" dir="ltr">info@didar-stuttgart.com</a>
               </p>
 
               <h3 className="mt-8">{t('footer.follow_us', currentLang)}</h3>

@@ -177,6 +177,10 @@
   font-family: var(--font-serif);
 }
 
+/* Canonical .form-group / .form-label rules (Phase 11 / Item 10: a
+   duplicate, slightly different version of these two rules in
+   components.css was removed since this one - loading later - was already
+   the one being applied). */
 .form-group {
   margin-bottom: 1.5rem;
 }
@@ -306,11 +310,24 @@ main {
   animation: fadeIn 0.5s ease;
 }
 
-/* UTILITY: Lazy loading images */
+/* UTILITY: Lazy-loading image placeholder.
+   The previous rule below used "img[loading='lazy']:loaded" to turn the
+   shimmer off once an image finished loading, but ":loaded" is not a real
+   CSS pseudo-class - it never matched, so the shimmer animation actually
+   ran forever on every lazy image, never stopping. Fixed with a short,
+   finite animation instead of trying to detect "loaded" in CSS (a calm
+   placeholder, not a permanent effect), and it only runs at all for people
+   who haven't asked for reduced motion. */
 img[loading='lazy'] {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: loading 1.5s infinite;
+  background-color: #f0f0f0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  img[loading='lazy'] {
+    background-image: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.4s ease-in-out 2;
+  }
 }
 
 @keyframes loading {
@@ -320,11 +337,6 @@ img[loading='lazy'] {
   100% {
     background-position: -200% 0;
   }
-}
-
-img[loading='lazy']:loaded {
-  animation: none;
-  background: none;
 }
 
 /* RESPONSIVE IMPROVEMENTS */
@@ -382,7 +394,6 @@ img[loading='lazy']:loaded {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   max-height: 400px;
-  direction: ltr; /* Reset LTR for image container */
 }
 
 .split-image img {
@@ -398,7 +409,12 @@ img[loading='lazy']:loaded {
 }
 
 .split-content {
-  direction: ltr; /* Reset LTR for content */
+  /* No hardcoded direction here — this used to force LTR unconditionally,
+     which broke paragraph alignment/flow for Persian text inside every
+     About/Membership/homepage split section. It now correctly inherits the
+     active language's direction from the page (set via dir="ltr"/"rtl" on
+     the surrounding section), same as [dir='rtl'] .split-grid already
+     intends for its children. */
   padding: 1rem 0;
 }
 
@@ -573,8 +589,8 @@ img[loading='lazy']:loaded {
 
 .culture-icon {
   display: block;
-  font-size: 2rem;
-  margin-bottom: var(--space-3);
+  margin: 0 auto var(--space-3);
+  color: var(--color-olive-dark, #6b7a4f);
 }
 
 /* .hero-cta is shared: the homepage hero's CTA column (styled below, scoped
@@ -637,12 +653,11 @@ img[loading='lazy']:loaded {
   color: var(--color-text-muted);
 }
 
+/* justify-content: flex-start already resolves to the reading-start side
+   (right for Persian, left for German) on its own — no dir override needed,
+   and one previously here was actually backwards for RTL. */
 .hero-copy .hero-cta {
   justify-content: flex-start;
-}
-
-html[dir="rtl"] .hero-copy .hero-cta {
-  justify-content: flex-end;
 }
 
 @media (min-width: 1024px) {
@@ -680,39 +695,43 @@ html[dir="rtl"] .hero-copy .hero-cta {
     );
   }
 
-  html[dir="ltr"] .hero-copy {
-    margin-inline-start: auto;
+  /* The copy column always anchors to the physical RIGHT edge, in both
+     languages, because that's where hero-banner.jpg's empty wall space
+     actually is — the image doesn't mirror, so the text position must not
+     mirror either. A logical margin-inline-end:auto used to be used for
+     RTL here, but inline-end means the LEFT edge in RTL, which silently
+     moved the Persian hero copy to the wrong (left) side. Using a plain
+     physical margin-left works identically for both languages; only the
+     text's own alignment/direction below is language-aware. */
+  .hero-copy {
+    margin-left: auto;
   }
 
-  html[dir="rtl"] .hero-copy {
-    margin-inline-end: auto;
-    background-image: linear-gradient(
-      to left,
-      transparent,
-      rgba(253, 247, 242, 0.55) 30%,
-      rgba(253, 247, 242, 0.92) 55%
-    );
-  }
-
+  /* Phase 11 / Item 6: the shared heading tokens (--fs-4xl etc.) render far
+     above the requested hero scale on desktop (--fs-4xl alone reaches 72px),
+     which is what made the hero feel typographically heavy. These three
+     rules give the hero its own, smaller desktop scale so the hierarchy
+     reads as brand (~48-56px) -> short headline -> short supporting
+     sentence (~18-20px) -> CTA, instead of stacking several large headings. */
   .hero-copy .hero-title {
-    font-size: var(--fs-4xl);
+    font-size: clamp(3rem, 3.5vw, 3.5rem); /* ~48-56px */
   }
 
   .hero-copy .hero-tagline {
-    font-size: var(--fs-xl);
+    font-size: 1.375rem; /* ~22px - clearly a headline, clearly below the brand name */
   }
 
   .hero-copy .hero-description {
-    font-size: var(--fs-lg);
+    font-size: clamp(1.125rem, 1.2vw, 1.25rem); /* ~18-20px */
   }
 
+  /* align-items: flex-start already resolves to the reading-start side
+     (right for Persian, left for German) — the previous dir="rtl" override
+     to flex-end pushed Persian buttons to the physical left, inconsistent
+     with the right-aligned Persian text right above them. Removed. */
   .hero-copy .hero-cta {
     flex-direction: column;
     align-items: flex-start;
-  }
-
-  html[dir="rtl"] .hero-copy .hero-cta {
-    align-items: flex-end;
   }
 }
 

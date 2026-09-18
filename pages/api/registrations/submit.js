@@ -29,7 +29,7 @@ async function handler(req, res) {
     
     const { data: event, error: eventError } = await supabase
       .from('events')
-      .select('id, status, registration_open')
+      .select('id, status, registration_status')
       .eq('id', eventId)
       .eq('status', 'published')
       .single();
@@ -38,7 +38,7 @@ async function handler(req, res) {
       return res.status(404).json({ error: 'Event not found or is not accepting registrations' });
     }
 
-    if (!event.registration_open) {
+    if (event.registration_status !== 'open') {
       return res.status(400).json({ error: 'Registration is not open for this event' });
     }
 

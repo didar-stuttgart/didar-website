@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Header from '@/components/Header';
@@ -11,23 +11,35 @@ import '@/styles/enhancements.css';
 
 const defaultLang = 'fa';
 
+// Language is driven by Next.js' own locale routing (see next.config.js:
+// locales ['fa', 'de'], defaultLocale 'fa'), which is already set up in
+// this project. router.locale is available on both server and client
+// render, so a direct link (e.g. /de/kontakt) always shows the intended
+// language immediately - no localStorage race, no flash of the wrong
+// language while the page hydrates. localStorage is kept only as a
+// convenience so the language switch is remembered for the next visit
+// to the homepage; it never overrides what a specific URL asks for.
 export default function App({ Component, pageProps }) {
-  const [currentLang, setCurrentLang] = useState(defaultLang);
   const router = useRouter();
+  const currentLang = router.locale || defaultLang;
 
-  // Sync language with localStorage and document
   useEffect(() => {
-    const saved = localStorage.getItem('didar-lang') || defaultLang;
-    setCurrentLang(saved);
-    document.documentElement.lang = saved;
-    document.documentElement.dir = saved === 'fa' ? 'rtl' : 'ltr';
-  }, []);
+    document.documentElement.lang = currentLang;
+    document.documentElement.dir = currentLang === 'fa' ? 'rtl' : 'ltr';
+    try {
+      localStorage.setItem('didar-lang', currentLang);
+    } catch {
+      // Ignore storage errors (private browsing, disabled storage, etc.)
+    }
+  }, [currentLang]);
 
   const handleLanguageChange = (lang) => {
-    setCurrentLang(lang);
-    localStorage.setItem('didar-lang', lang);
-    document.documentElement.lang = lang;
-    document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
+    if (lang === currentLang) return;
+    // Switch locale while staying on the same page (same route, same
+    // params), the standard Next.js i18n routing pattern.
+    router.push({ pathname: router.pathname, query: router.query }, router.asPath, {
+      locale: lang,
+    });
   };
 
   return (

@@ -39,7 +39,7 @@ export default function Footer({ currentLang }) {
             <h3>{t('footer.contact', currentLang)}</h3>
             <ul>
               <li>
-                <a href="mailto:contact@didar-stuttgart.de">contact@didar-stuttgart.de</a>
+                <a href="mailto:info@didar-stuttgart.com" dir="ltr">info@didar-stuttgart.com</a>
               </li>
               <li>
                 <Link href="/kontakt">{t('nav.contact', currentLang)}</Link>

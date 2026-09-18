@@ -35,7 +35,7 @@ const events = [
     location_fa: null,
     location_de: null,
     status: 'published',
-    registration_open: true,
+    registration_status: 'open',
     image_url: null,
   },
   {
@@ -49,7 +49,7 @@ const events = [
     location_fa: null,
     location_de: null,
     status: 'published',
-    registration_open: false,
+    registration_status: 'not_open',
     image_url: null,
   },
   {
@@ -63,7 +63,7 @@ const events = [
     location_fa: null,
     location_de: null,
     status: 'published',
-    registration_open: false,
+    registration_status: 'not_open',
     image_url: null,
   },
   {
@@ -77,7 +77,7 @@ const events = [
     location_fa: null,
     location_de: null,
     status: 'published',
-    registration_open: false,
+    registration_status: 'not_open',
     image_url: null,
   },
 ];
@@ -89,5 +89,5 @@ const events = [
     process.exit(1);
   }
   console.log('Inserted/updated', data.length, 'events:');
-  data.forEach((e) => console.log(' -', e.slug, e.id, e.event_date, e.status, 'reg_open=' + e.registration_open));
+  data.forEach((e) => console.log(' -', e.slug, e.id, e.event_date, e.status, 'reg_status=' + e.registration_status));
 })();

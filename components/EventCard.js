@@ -65,7 +65,7 @@ export default function EventCard({ event, currentLang, isPast = false }) {
 
           {shortDescription && <p className="event-description">{shortDescription}</p>}
 
-          {!isPast && event.registration_open === false && (
+          {!isPast && event.registration_status !== 'open' && (
             <span
               className="badge"
               style={{
@@ -79,7 +79,9 @@ export default function EventCard({ event, currentLang, isPast = false }) {
                 marginBottom: '0.5rem',
               }}
             >
-              {t('events.coming_soon', currentLang)}
+              {event.registration_status === 'closed'
+                ? t('events.registration_closed', currentLang)
+                : t('events.coming_soon', currentLang)}
             </span>
           )}
 

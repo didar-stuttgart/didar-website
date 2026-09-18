@@ -32,7 +32,7 @@ export default function AdminEventEdit() {
               location_de: '',
               image_url: '',
               status: 'draft',
-              registration_open: false,
+              registration_status: 'not_open',
             });
             setLoading(false);
           }
@@ -222,14 +222,15 @@ export default function AdminEventEdit() {
               </div>
 
               <div className={styles.formGroup}>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={event.registration_open || false}
-                    onChange={(e) => handleChange('registration_open', e.target.checked)}
-                  />
-                  {' '}ثبت‌نام باز است
-                </label>
+                <label>وضعیت ثبت‌نام</label>
+                <select
+                  value={event.registration_status || 'not_open'}
+                  onChange={(e) => handleChange('registration_status', e.target.value)}
+                >
+                  <option value="not_open">هنوز باز نشده (به‌زودی)</option>
+                  <option value="open">باز است</option>
+                  <option value="closed">بسته شده</option>
+                </select>
               </div>
 
               <div className={styles.formGroup}>
