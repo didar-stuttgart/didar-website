@@ -91,6 +91,9 @@ export default function EventDetail({ event, currentLang }) {
   const title = event[`title_${currentLang}`] || event.title_de;
   const description = event[`description_${currentLang}`] || event.description_de;
   const location = event[`location_${currentLang}`] || event.location_de;
+  const category = event[`category_${currentLang}`] || event.category;
+  const eventLanguage = event[`event_language_${currentLang}`] || event.event_language;
+  const externalRegistrationUrl = event.external_registration_url || null;
 
   // Registration is open only if registration_open = true
   const registrationOpen = event.registration_open === true;
@@ -231,7 +234,17 @@ export default function EventDetail({ event, currentLang }) {
             />
           )}
 
+          {category && <p className="event-category">{category}</p>}
+
           <h1>{title}</h1>
+
+          <p className="mt-2" style={{ color: 'var(--color-text-muted)' }}>
+            {isPastEvent
+              ? t('events.past_event', currentLang)
+              : registrationOpen
+              ? t('events.registration_open', currentLang)
+              : t('events.registration_closed', currentLang)}
+          </p>
 
           <div className="grid grid-2 mt-8 gap-8">
             <div>
@@ -251,6 +264,13 @@ export default function EventDetail({ event, currentLang }) {
                   <p>{location}</p>
                 </>
               )}
+
+              {eventLanguage && (
+                <>
+                  <h3 className="mt-6">{t('event.language', currentLang)}</h3>
+                  <p>{eventLanguage}</p>
+                </>
+              )}
             </div>
 
             <div>
@@ -260,7 +280,16 @@ export default function EventDetail({ event, currentLang }) {
           </div>
 
           <div className="mt-12" style={{ maxWidth: '600px' }}>
-            {registrationOpen ? (
+            {externalRegistrationUrl ? (
+              <a
+                href={externalRegistrationUrl}
+                className="btn btn-primary"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t('event.external_registration', currentLang)}
+              </a>
+            ) : registrationOpen ? (
               <>
                 <h2>{t('event.register', currentLang)}</h2>
 

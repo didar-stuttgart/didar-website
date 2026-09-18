@@ -6,6 +6,15 @@ export default function EventCard({ event, currentLang, isPast = false }) {
 
   const getTitle = () => event[`title_${currentLang}`] || event.title_de;
   const getLocation = () => event[`location_${currentLang}`] || event.location_de;
+  const getDescription = () => event[`description_${currentLang}`] || event.description_de;
+  const getCategory = () => event[`category_${currentLang}`] || event.category;
+  const getLanguage = () => event[`event_language_${currentLang}`] || event.event_language;
+
+  const shortDescription = (() => {
+    const text = getDescription();
+    if (!text) return '';
+    return text.length > 120 ? `${text.slice(0, 117)}\u2026` : text;
+  })();
 
   return (
     <Link href={`/veranstaltungen/${event.slug}`}>
@@ -32,7 +41,11 @@ export default function EventCard({ event, currentLang, isPast = false }) {
             📅 {formatDate(event.event_date || event.date, currentLang)}
           </div>
 
+          {getCategory() && <div className="event-category">{getCategory()}</div>}
+
           <h3 className="event-title">{getTitle()}</h3>
+
+          {shortDescription && <p className="event-description">{shortDescription}</p>}
 
           {!isPast && event.registration_open === false && (
             <span
@@ -58,6 +71,12 @@ export default function EventCard({ event, currentLang, isPast = false }) {
           {event.event_time && (
             <div className="event-time" style={{ fontSize: 'var(--fs-sm)', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>
               ⏰ {formatTime(event.event_time || event.time, currentLang)}
+            </div>
+          )}
+
+          {getLanguage() && (
+            <div className="event-language" style={{ fontSize: 'var(--fs-sm)', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>
+              {t('events.language', currentLang)}: {getLanguage()}
             </div>
           )}
 

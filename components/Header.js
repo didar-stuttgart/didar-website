@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { t, languages } from '@/lib/i18n';
 
 export default function Header({ currentLang, onLanguageChange }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
   const dir = currentLang === 'fa' ? 'rtl' : 'ltr';
+  const toggleRef = useRef(null);
 
   const navItems = [
     { href: '/', label: t('nav.home', currentLang) },
@@ -22,86 +23,168 @@ export default function Header({ currentLang, onLanguageChange }) {
     return router.pathname.startsWith(href);
   };
 
+  // Close the mobile menu on Escape and return focus to the toggle button
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setMenuOpen(false);
+        toggleRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [menuOpen]);
+
+  // Close the mobile menu automatically on route change
+  useEffect(() => {
+    const handleRouteChange = () => setMenuOpen(false);
+    router.events.on('routeChangeStart', handleRouteChange);
+    return () => router.events.off('routeChangeStart', handleRouteChange);
+  }, [router.events]);
+
   return (
     <header className="header" dir={dir}>
       <div className="header-content">
         <Link href="/" className="logo">
-          <img 
-            src="/images/logo.jpg" 
-            alt="DIDAR" 
-            className="logo-image"
-            style={{
-              height: '50px',
-              width: 'auto',
-              objectFit: 'contain'
-            }}
-          />
+          <picture>
+            <source srcSet="/images/logo-header.webp" type="image/webp" />
+            <img
+              src="/images/logo-header.jpg"
+              alt="DIDAR"
+              className="logo-image"
+              width="50"
+              height="50"
+              style={{
+                height: '50px',
+                width: 'auto',
+                objectFit: 'contain',
+              }}
+            />
+          </picture>
           <span className="logo-text">DIDAR</span>
         </Link>
 
-        <nav className="nav">
-          {navItems.map((item) => (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                className={isActive(item.href) ? 'active' : ''}
-              >
-                {item.label}
-              </Link>
-            </li>
-          ))}
+        <nav className="nav" aria-label={t('nav.primary', currentLang)}>
+          <ul>
+            {navItems.map((item) => (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  className={isActive(item.href) ? 'active' : ''}
+                  aria-current={isActive(item.href) ? 'page' : undefined}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </nav>
 
         <div className="header-end">
           <ul className="social-links">
             <li>
-              <a href="https://instagram.com" title="Instagram" rel="noopener noreferrer" target="_blank">
-                📷
+              <a
+                href="https://instagram.com"
+                aria-label="Instagram"
+                title="Instagram"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                <span aria-hidden="true">📷</span>
               </a>
             </li>
             <li>
-              <a href="https://t.me" title="Telegram" rel="noopener noreferrer" target="_blank">
-                ✈️
+              <a
+                href="https://t.me"
+                aria-label="Telegram"
+                title="Telegram"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                <span aria-hidden="true">✈️</span>
               </a>
             </li>
           </ul>
 
-          <ul className="language-switch">
+          <ul className="language-switch" aria-label={t('nav.languages', currentLang)}>
             {Object.entries(languages).map(([lang, config]) => (
               <li key={lang}>
                 <button
+                  type="button"
                   onClick={() => onLanguageChange(lang)}
                   className={currentLang === lang ? 'active' : ''}
+                  aria-pressed={currentLang === lang}
                   title={config.name}
                 >
-                  {config.flag}
+                  {config.label}
                 </button>
               </li>
             ))}
           </ul>
 
           <button
+            type="button"
             className="mobile-menu-toggle"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Toggle menu"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-label={menuOpen ? t('nav.close_menu', currentLang) : t('nav.menu', currentLang)}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-menu"
+            ref={toggleRef}
           >
-            ☰
+            <span aria-hidden="true">{menuOpen ? '✕' : '☰'}</span>
           </button>
         </div>
       </div>
 
       {menuOpen && (
-        <nav className="mobile-menu" role="navigation">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={isActive(item.href) ? 'active' : ''}
-              onClick={() => setMenuOpen(false)}
-            >
-              {item.label}
-            </Link>
-          ))}
+        <nav
+          className="mobile-menu"
+          id="mobile-menu"
+          aria-label={t('nav.primary', currentLang)}
+        >
+          <ul>
+            {navItems.map((item) => (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  className={isActive(item.href) ? 'active' : ''}
+                  aria-current={isActive(item.href) ? 'page' : undefined}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mobile-menu-languages">
+            {Object.entries(languages).map(([lang, config]) => (
+              <button
+                key={lang}
+                type="button"
+                onClick={() => {
+                  onLanguageChange(lang);
+                  setMenuOpen(false);
+                }}
+                className={currentLang === lang ? 'active' : ''}
+                aria-pressed={currentLang === lang}
+              >
+                {config.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="mobile-menu-social">
+            <a href="https://t.me" rel="noopener noreferrer" target="_blank">
+              Telegram
+            </a>
+            <a href="https://instagram.com" rel="noopener noreferrer" target="_blank">
+              Instagram
+            </a>
+          </div>
         </nav>
       )}
     </header>
