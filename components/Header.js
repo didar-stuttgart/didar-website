@@ -94,7 +94,7 @@ export default function Header({ currentLang, onLanguageChange }) {
                 rel="noopener noreferrer"
                 target="_blank"
               >
-                <InstagramIcon />
+                <InstagramIcon size={22} />
               </a>
             </li>
             <li>
@@ -105,7 +105,7 @@ export default function Header({ currentLang, onLanguageChange }) {
                 rel="noopener noreferrer"
                 target="_blank"
               >
-                <TelegramIcon />
+                <TelegramIcon size={22} />
               </a>
             </li>
           </ul>
@@ -160,23 +160,6 @@ export default function Header({ currentLang, onLanguageChange }) {
               </li>
             ))}
           </ul>
-
-          <div className="mobile-menu-languages">
-            {Object.entries(languages).map(([lang, config]) => (
-              <button
-                key={lang}
-                type="button"
-                onClick={() => {
-                  onLanguageChange(lang);
-                  setMenuOpen(false);
-                }}
-                className={currentLang === lang ? 'active' : ''}
-                aria-pressed={currentLang === lang}
-              >
-                {config.label}
-              </button>
-            ))}
-          </div>
 
           <div className="mobile-menu-social">
             <a href={SOCIAL_LINKS.telegram} rel="noopener noreferrer" target="_blank">

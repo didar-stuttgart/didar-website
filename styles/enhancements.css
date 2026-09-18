@@ -432,6 +432,59 @@ img[loading='lazy'] {
   margin-bottom: 1.5rem;
 }
 
+/* ========================================
+   ABOUT + MEMBERSHIP - two balanced blocks in one row on desktop
+   (homepage simplification pass). Deliberately restrained: one shared
+   card treatment, no per-card borders/heavy shadow, so two blocks read as
+   a pair rather than a "card grid".
+   ======================================== */
+.about-membership-grid {
+  align-items: stretch;
+}
+
+.info-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--color-white);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.info-card-image {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  display: block;
+}
+
+.info-card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: var(--space-8);
+}
+
+.info-card-body h2 {
+  font-size: var(--fs-2xl);
+  color: var(--color-olive);
+  font-family: var(--font-serif);
+  margin-bottom: var(--space-3);
+}
+
+.info-card-body p {
+  flex: 1;
+  font-size: var(--fs-base);
+  line-height: var(--lh-relaxed);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-6);
+}
+
+.info-card-body .btn {
+  align-self: flex-start;
+}
+
 [dir='rtl'] .split-grid {
   direction: rtl;
   text-align: right;
@@ -488,17 +541,31 @@ img[loading='lazy'] {
   }
 }
 
-/* Social links & language switch move into the mobile menu below 768px
-   so the header never overflows at 320px */
-.header-end > .social-links,
-.header-end > .language-switch {
+/* Social icons move into the mobile menu below 768px so the header never
+   overflows at 320px. The language toggle is small enough to stay visible
+   in the header at every width (see the mobile-only size reduction below),
+   so a direct link's language and the switcher itself are always reachable
+   without opening the menu. */
+.header-end > .social-links {
   display: none;
 }
 
 @media (min-width: 768px) {
-  .header-end > .social-links,
-  .header-end > .language-switch {
+  .header-end > .social-links {
     display: flex;
+  }
+}
+
+/* Even more compact on mobile, so it stays a small utility control next to
+   the logo and hamburger button rather than competing with them. */
+@media (max-width: 767px) {
+  .language-switch {
+    padding: 1px;
+  }
+
+  .language-switch button {
+    padding: 0.15rem 0.4rem;
+    font-size: 0.65rem;
   }
 }
 
@@ -541,27 +608,10 @@ img[loading='lazy'] {
   color: var(--color-olive);
 }
 
-.mobile-menu-languages,
 .mobile-menu-social {
   display: flex;
   gap: var(--space-4);
   flex-wrap: wrap;
-}
-
-.mobile-menu-languages button {
-  background: var(--color-gray-light);
-  border: 2px solid transparent;
-  padding: var(--space-2) var(--space-3);
-  color: var(--color-text-dark);
-  cursor: pointer;
-  min-height: auto;
-  border-radius: 4px;
-  font-weight: var(--fw-semibold);
-}
-
-.mobile-menu-languages button.active {
-  background: var(--color-olive);
-  color: var(--color-white);
 }
 
 .mobile-menu-social a {
@@ -576,21 +626,6 @@ img[loading='lazy'] {
 :focus-visible {
   outline: 3px solid var(--color-tan);
   outline-offset: 3px;
-}
-
-/* Cultural areas grid (homepage) */
-.culture-card {
-  text-align: center;
-  padding: var(--space-6) var(--space-4);
-  background-color: var(--color-white);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-lg);
-}
-
-.culture-icon {
-  display: block;
-  margin: 0 auto var(--space-3);
-  color: var(--color-olive-dark, #6b7a4f);
 }
 
 /* .hero-cta is shared: the homepage hero's CTA column (styled below, scoped
@@ -733,10 +768,6 @@ img[loading='lazy'] {
     flex-direction: column;
     align-items: flex-start;
   }
-}
-
-.community-section {
-  text-align: center;
 }
 
 /* Event card: category badge + short description (Phase 9) */

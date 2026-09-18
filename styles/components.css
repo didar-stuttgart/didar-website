@@ -80,12 +80,16 @@
   list-style: none;
 }
 
+/* Header social icons - "slightly larger" desktop-only enhancement.
+   This class is only ever rendered in the persistent desktop header (it's
+   hidden below 768px in favor of the hamburger menu's own, unchanged,
+   smaller icons), so sizing it up here doesn't affect mobile at all. */
 .social-links a {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-md);
   color: var(--color-olive);
   transition: all var(--transition-base);
@@ -96,35 +100,46 @@
   text-decoration: none;
 }
 
+/* Compact FA | DE language toggle - a small utility control, not a primary
+   nav element. One pill-shaped container with a subtle border; the active
+   language is shown as a filled segment rather than a separate button. */
 .language-switch {
   display: flex;
-  gap: var(--space-2);
+  align-items: center;
+  gap: 0;
   list-style: none;
-  font-size: var(--fs-sm);
-  font-weight: var(--fw-semibold);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: 2px;
+  background-color: var(--color-off-white);
+}
+
+.language-switch li {
+  display: flex;
 }
 
 .language-switch button {
-  background: var(--color-gray-light);
-  border: 2px solid transparent;
-  padding: var(--space-2) var(--space-3);
-  color: var(--color-text-dark);
+  background: transparent;
+  border: none;
+  padding: 0.2rem 0.6rem;
+  color: var(--color-text-muted);
   cursor: pointer;
   min-height: auto;
-  border-radius: 4px;
+  border-radius: var(--radius-full);
   font-weight: var(--fw-semibold);
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
   transition: all var(--transition-base);
 }
 
 .language-switch button:hover {
-  background: var(--color-sand);
-  color: var(--color-white);
+  color: var(--color-olive);
 }
 
 .language-switch button.active {
   background: var(--color-olive);
   color: var(--color-white);
-  border-color: var(--color-olive-dark);
 }
 
 .hamburger {
@@ -151,10 +166,13 @@
   transition: all var(--transition-base);
 }
 
-/* FOOTER */
+/* FOOTER - sophisticated darker neutral, restrained tan accent, clear
+   separation from the page above it (a colored top border rather than
+   just a thin light line). */
 .footer {
-  background-color: var(--color-off-white);
-  border-top: 1px solid var(--color-border-light);
+  background-color: var(--color-footer-bg);
+  color: var(--color-footer-text);
+  border-top: 3px solid var(--color-footer-accent);
   padding: var(--space-12) 0 var(--space-6);
   margin-top: var(--space-16);
 }
@@ -174,6 +192,7 @@
 
 .footer-section h3 {
   font-size: var(--fs-lg);
+  color: var(--color-footer-text);
   margin-bottom: var(--space-4);
 }
 
@@ -186,18 +205,26 @@
   margin-bottom: var(--space-2);
 }
 
+.footer-section p {
+  color: var(--color-footer-text-muted);
+}
+
 .footer-section a {
-  color: var(--color-text-muted);
+  color: var(--color-footer-text-muted);
   transition: color var(--transition-base);
 }
 
 .footer-section a:hover {
-  color: var(--color-olive);
+  color: var(--color-footer-accent);
   text-decoration: none;
 }
 
+.footer-section svg {
+  color: var(--color-footer-accent);
+}
+
 .footer-bottom {
-  border-top: 1px solid var(--color-border-light);
+  border-top: 1px solid var(--color-footer-border);
   padding-top: var(--space-6);
   display: flex;
   flex-direction: column;
@@ -205,7 +232,7 @@
   justify-content: space-between;
   align-items: center;
   font-size: var(--fs-sm);
-  color: var(--color-text-muted);
+  color: var(--color-footer-text-muted);
 }
 
 @media (min-width: 768px) {
@@ -222,12 +249,12 @@
 }
 
 .footer-legal a {
-  color: var(--color-text-muted);
+  color: var(--color-footer-text-muted);
 }
 
 .footer-legal a:hover {
   text-decoration: underline;
-  color: var(--color-olive);
+  color: var(--color-footer-accent);
 }
 
 /* EVENT CARD */

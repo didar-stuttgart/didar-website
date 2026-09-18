@@ -26,6 +26,15 @@
   --color-border: #e5ddd3;
   --color-border-light: #ede8e2;
 
+  /* Footer - a sophisticated darker neutral, distinct from the light
+     cream/white used everywhere else, so it reads as an intentional close
+     to the page rather than another content section. */
+  --color-footer-bg: #2a2620;
+  --color-footer-text: var(--color-beige);
+  --color-footer-text-muted: #b9ae98;
+  --color-footer-border: #453f33;
+  --color-footer-accent: var(--color-tan);
+
   /* Status Colors */
   --color-success: #7cb342;
   --color-error: #d32f2f;

@@ -11,8 +11,6 @@ import Link from 'next/link';
 import EventCard from '@/components/EventCard';
 import { t } from '@/lib/i18n';
 import { createServerClient } from '@/lib/supabase';
-import { SOCIAL_LINKS, InstagramIcon, TelegramIcon } from '@/components/SocialIcons';
-import { LiteratureIcon, FilmIcon, ArtIcon, MusicIcon } from '@/components/CultureIcons';
 
 export async function getStaticProps() {
   try {
@@ -56,13 +54,6 @@ export async function getStaticProps() {
     };
   }
 }
-
-const CULTURAL_AREAS = [
-  { key: 'literature', Icon: LiteratureIcon },
-  { key: 'film', Icon: FilmIcon },
-  { key: 'art', Icon: ArtIcon },
-  { key: 'music', Icon: MusicIcon },
-];
 
 export default function Home({ featuredEvents, currentLang }) {
   const dir = currentLang === 'fa' ? 'rtl' : 'ltr';
@@ -129,127 +120,48 @@ export default function Home({ featuredEvents, currentLang }) {
         </div>
       </section>
 
-      {/* ABOUT DIDAR */}
+      {/* ABOUT + MEMBERSHIP — two balanced content blocks, side by side on
+          desktop, stacked on mobile. Replaces the previous three separate
+          sections (About, Cultural Areas, Membership) and the standalone
+          Community/Social section per the homepage simplification pass. */}
       <section
-        className="section container-split"
+        className="section about-membership-section"
         dir={dir}
         style={{ backgroundColor: 'var(--color-off-white)' }}
       >
         <div className="container">
-          <div className="split-grid">
-            <div className="split-image">
+          <div className="grid grid-2 about-membership-grid">
+            <div className="info-card">
               <img
                 src="/images/about-heritage.jpg"
                 alt=""
                 loading="lazy"
-                style={{
-                  width: '100%',
-                  height: '400px',
-                  objectFit: 'cover',
-                  borderRadius: 'var(--radius-md)',
-                }}
+                className="info-card-image"
               />
-            </div>
-            <div className="split-content">
-              <h2>{t('home.about_section', currentLang)}</h2>
-              <p className="mt-8" style={{ fontSize: 'var(--fs-lg)' }}>
-                {t('home.about_text', currentLang)}
-              </p>
-              <Link href="/ueber-uns" className="btn btn-tertiary mt-8">
-                {t('common.learn_more', currentLang)}
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CULTURAL AREAS */}
-      <section className="section" dir={dir}>
-        <div className="container">
-          <img
-            src="/images/about-culture.jpg"
-            alt=""
-            loading="lazy"
-            style={{
-              width: '100%',
-              height: '320px',
-              objectFit: 'cover',
-              borderRadius: 'var(--radius-lg)',
-              marginBottom: 'var(--space-8)',
-            }}
-          />
-          <h2>{t('home.cultural_areas_title', currentLang)}</h2>
-          <div className="grid grid-4 mt-8">
-            {CULTURAL_AREAS.map((area) => (
-              <div key={area.key} className="culture-card">
-                <area.Icon className="culture-icon" />
-                <h3>{t(`culture.${area.key}_title`, currentLang)}</h3>
-                <p>{t(`culture.${area.key}_text`, currentLang)}</p>
+              <div className="info-card-body">
+                <h2>{t('home.about_section', currentLang)}</h2>
+                <p>{t('home.about_text', currentLang)}</p>
+                <Link href="/ueber-uns" className="btn btn-tertiary">
+                  {t('common.learn_more', currentLang)}
+                </Link>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
+            </div>
 
-      {/* MEMBERSHIP */}
-      <section className="section container-split" dir={dir} style={{ backgroundColor: 'var(--color-off-white)' }}>
-        <div className="container">
-          <div className="split-grid split-reverse">
-            <div className="split-image">
+            <div className="info-card">
               <img
                 src="/images/membership-community.jpg"
                 alt=""
                 loading="lazy"
-                style={{
-                  width: '100%',
-                  height: '400px',
-                  objectFit: 'cover',
-                  borderRadius: 'var(--radius-md)',
-                }}
+                className="info-card-image"
               />
+              <div className="info-card-body">
+                <h2>{t('home.membership_section', currentLang)}</h2>
+                <p>{t('home.membership_text', currentLang)}</p>
+                <Link href="/mitglied-werden" className="btn btn-primary">
+                  {t('home.membership_cta', currentLang)}
+                </Link>
+              </div>
             </div>
-            <div className="split-content">
-              <h2>{t('home.membership_section', currentLang)}</h2>
-              <p className="mt-8" style={{ fontSize: 'var(--fs-lg)' }}>
-                {t('home.membership_text', currentLang)}
-              </p>
-              <Link href="/mitglied-werden" className="btn btn-primary mt-8">
-                {t('home.membership_cta', currentLang)}
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* COMMUNITY / SOCIAL */}
-      <section className="section" dir={dir}>
-        <div className="container community-section">
-          <h2>{t('home.community_title', currentLang)}</h2>
-          <p className="mt-4" style={{ fontSize: 'var(--fs-lg)' }}>
-            {t('home.community_text', currentLang)}
-          </p>
-          <div className="hero-cta mt-8">
-            <a
-              href={SOCIAL_LINKS.telegram}
-              className="btn btn-secondary"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}
-            >
-              <TelegramIcon size={18} /> Telegram
-            </a>
-            <a
-              href={SOCIAL_LINKS.instagram}
-              className="btn btn-secondary"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}
-            >
-              <InstagramIcon size={18} /> Instagram
-            </a>
-            <Link href="/kontakt" className="btn btn-tertiary">
-              {t('nav.contact_cta', currentLang)}
-            </Link>
           </div>
         </div>
       </section>
