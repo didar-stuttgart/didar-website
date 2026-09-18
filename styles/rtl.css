@@ -154,10 +154,13 @@ html[dir="ltr"] .footer-grid {
   text-align: left;
 }
 
-/* Footer Bottom */
-html[dir="rtl"] .footer-bottom {
-  flex-direction: row-reverse;
-}
+/* Footer Bottom: no override needed. flex-direction: row (the base rule in
+   components.css) already follows the document's reading direction, so it
+   places the copyright text at the reading-start side and the legal links
+   at the reading-end side in both directions. Reversing it here for RTL was
+   canceling that out and visually re-ordering it back to LTR order,
+   inconsistent with .footer-grid and .hero-cta, which correctly mirror
+   without needing an override. */
 
 /* Language Switch */
 html[dir="rtl"] .language-switch {

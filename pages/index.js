@@ -68,9 +68,9 @@ export default function Home({ featuredEvents, currentLang }) {
   return (
     <>
       <Head>
-        <title>{t('home.title', currentLang)} - DIDAR</title>
+        <title>{t('home.page_title', currentLang)}</title>
         <meta name="description" content={t('home.subtitle', currentLang)} />
-        <meta property="og:title" content={t('home.title', currentLang)} />
+        <meta property="og:title" content={t('home.page_title', currentLang)} />
         <meta property="og:description" content={t('home.subtitle', currentLang)} />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="/images/hero-banner.jpg" />
@@ -150,7 +150,7 @@ export default function Home({ featuredEvents, currentLang }) {
                   width: '100%',
                   height: '400px',
                   objectFit: 'cover',
-                  borderRadius: '8px',
+                  borderRadius: 'var(--radius-md)',
                 }}
               />
             </div>
@@ -198,7 +198,7 @@ export default function Home({ featuredEvents, currentLang }) {
                   width: '100%',
                   height: '400px',
                   objectFit: 'cover',
-                  borderRadius: '8px',
+                  borderRadius: 'var(--radius-md)',
                 }}
               />
             </div>

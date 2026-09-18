@@ -261,34 +261,6 @@
   flex-direction: column;
 }
 
-.event-card-date {
-  font-size: var(--fs-sm);
-  color: var(--color-olive);
-  font-weight: var(--fw-semibold);
-  margin-bottom: var(--space-2);
-}
-
-.event-card-title {
-  font-family: var(--font-serif);
-  font-size: var(--fs-lg);
-  font-weight: var(--fw-semibold);
-  margin-bottom: var(--space-2);
-  color: var(--color-text-dark);
-}
-
-.event-card-time {
-  font-size: var(--fs-sm);
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-3);
-}
-
-.event-card-location {
-  font-size: var(--fs-sm);
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-4);
-  flex: 1;
-}
-
 .event-card-status {
   display: inline-block;
   padding: var(--space-1) var(--space-3);
