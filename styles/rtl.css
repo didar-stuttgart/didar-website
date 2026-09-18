@@ -10,6 +10,21 @@ html[dir="ltr"] {
   direction: ltr;
 }
 
+/* Persian typography: Vazirmatn for all UI/body text and headings (much
+   more readable than the Latin serif/system stack for Persian script).
+   Lalezar is reserved for the single hero display headline only — see
+   html[lang="fa"] .hero-title below — never for body copy. */
+html[lang="fa"] {
+  --font-sans: var(--font-fa-sans);
+  --font-serif: var(--font-fa-sans);
+}
+
+html[lang="fa"] .hero-title {
+  font-family: var(--font-fa-display);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
 /* Margin & Padding - Logical Properties */
 html[dir="rtl"] {
   --margin-inline-start-flex: margin-right;

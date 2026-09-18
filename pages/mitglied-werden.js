@@ -127,21 +127,36 @@ export default function Membership({ currentLang }) {
   return (
     <>
       <Head>
-        <title>{t('membership.title', currentLang)} - DIDAR</title>
+        <title>{t('membership.title', currentLang)} - {currentLang === 'fa' ? 'دیدار' : 'DIDAR'}</title>
       </Head>
 
       <section className="section" dir={dir}>
         <div className="container">
           <h1>{t('membership.title', currentLang)}</h1>
 
-          <div className="mt-12 mb-16" style={{ backgroundColor: 'var(--color-off-white)', padding: 'var(--space-8)', borderRadius: 'var(--radius-lg)' }}>
-            <h2>{t('membership.intro', currentLang)}</h2>
-            <p className="mt-4">
-              {currentLang === 'fa'
-                ? 'با پیوستن به دیدار، بخشی از جامعه‌ای فعال و پویا می‌شوید که علاقمند به فرهنگ و هنر ایرانی است. عضویت شما به ما کمک می‌کند تا رویدادها و برنامه‌های فرهنگی بیشتری سازماندهی کنیم.'
-                : 'Durch die Mitgliedschaft bei DIDAR werden Sie Teil einer aktiven und dynamischen Gemeinschaft, die sich für iranische Kultur und Kunst interessiert. Ihre Mitgliedschaft hilft uns, mehr kulturelle Veranstaltungen und Programme zu organisieren.'
-              }
-            </p>
+          <div className="split-grid mt-12 mb-16">
+            <div className="split-image">
+              <img
+                src="/images/membership-join.jpg"
+                alt=""
+                loading="lazy"
+                style={{
+                  width: '100%',
+                  height: '360px',
+                  objectFit: 'cover',
+                  borderRadius: 'var(--radius-lg)',
+                }}
+              />
+            </div>
+            <div className="split-content">
+              <h2>{t('membership.intro', currentLang)}</h2>
+              <p className="mt-4">
+                {currentLang === 'fa'
+                  ? 'با پیوستن به دیدار، بخشی از جامعه‌ای فعال و پویا می‌شوید که علاقمند به فرهنگ و هنر ایرانی است. عضویت شما به ما کمک می‌کند تا رویدادها و برنامه‌های فرهنگی بیشتری سازماندهی کنیم.'
+                  : 'Durch die Mitgliedschaft bei DIDAR werden Sie Teil einer aktiven und dynamischen Gemeinschaft, die sich für iranische Kultur und Kunst interessiert. Ihre Mitgliedschaft hilft uns, mehr kulturelle Veranstaltungen und Programme zu organisieren.'
+                }
+              </p>
+            </div>
           </div>
 
           <h2>{t('membership.form_title', currentLang)}</h2>

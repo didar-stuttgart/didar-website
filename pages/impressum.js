@@ -8,7 +8,7 @@ export default function Impressum({ currentLang }) {
   return (
     <>
       <Head>
-        <title>{t('legal.impressum', currentLang)} - DIDAR</title>
+        <title>{t('legal.impressum', currentLang)} - {currentLang === 'fa' ? 'دیدار' : 'DIDAR'}</title>
       </Head>
 
       <section className="section" dir={dir}>
@@ -64,7 +64,7 @@ export default function Impressum({ currentLang }) {
 
               <h2 className="mt-12">مالکیت معنوی</h2>
               <p className="mt-4">
-                تمام محتوا، طرح‌بندی و عناصر بصری این سایت (تصاویر، متن، لوگو) متعلق به DIDAR یا دارندگان مجوز آن است. تکثیر یا استفاده بدون اجازه نوشتاری ممنوع است.
+                تمام محتوا، طرح‌بندی و عناصر بصری این سایت (تصاویر، متن، لوگو) متعلق به دیدار یا دارندگان مجوز آن است. تکثیر یا استفاده بدون اجازه نوشتاری ممنوع است.
               </p>
 
               <h2 className="mt-12">سیاست حریم خصوصی</h2>

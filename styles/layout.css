@@ -144,20 +144,6 @@
   }
 }
 
-.section--hero {
-  min-height: 60vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-@media (min-width: 768px) {
-  .section--hero {
-    min-height: 70vh;
-  }
-}
-
 /* Main Layout */
 html[dir="rtl"] .main-layout {
   direction: rtl;

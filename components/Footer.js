@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { t } from '@/lib/i18n';
+import { SOCIAL_LINKS, InstagramIcon, TelegramIcon } from '@/components/SocialIcons';
 
 export default function Footer({ currentLang }) {
   const dir = currentLang === 'fa' ? 'rtl' : 'ltr';
@@ -10,10 +11,10 @@ export default function Footer({ currentLang }) {
       <div className="footer-content">
         <div className="footer-grid">
           <div className="footer-section">
-            <h3>DIDAR</h3>
+            <h3>{currentLang === 'fa' ? 'دیدار' : 'DIDAR'}</h3>
             <p>
               {currentLang === 'fa'
-                ? 'انجمن فرهنگی دیدار — شتوتگارت'
+                ? 'انجمن فرهنگی هنری دیدار — شتوتگارت'
                 : 'Iranische Kulturgemeinschaft Stuttgart'}
             </p>
           </div>
@@ -22,13 +23,13 @@ export default function Footer({ currentLang }) {
             <h3>{t('footer.follow_us', currentLang)}</h3>
             <ul>
               <li>
-                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer">
-                  Instagram
+                <a href={SOCIAL_LINKS.instagram} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  <InstagramIcon size={18} /> Instagram
                 </a>
               </li>
               <li>
-                <a href="https://t.me" target="_blank" rel="noopener noreferrer">
-                  Telegram
+                <a href={SOCIAL_LINKS.telegram} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  <TelegramIcon size={18} /> Telegram
                 </a>
               </li>
             </ul>

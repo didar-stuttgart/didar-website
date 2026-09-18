@@ -11,6 +11,7 @@ import Link from 'next/link';
 import EventCard from '@/components/EventCard';
 import { t } from '@/lib/i18n';
 import { createServerClient } from '@/lib/supabase';
+import { SOCIAL_LINKS, InstagramIcon, TelegramIcon } from '@/components/SocialIcons';
 
 export async function getStaticProps() {
   try {
@@ -76,24 +77,18 @@ export default function Home({ featuredEvents, currentLang }) {
         <meta property="og:image" content="/images/hero-banner.jpg" />
       </Head>
 
-      {/* HERO SECTION */}
-      <section
-        className="section section--hero hero-section"
-        dir={dir}
-        style={{
-          backgroundImage:
-            'linear-gradient(135deg, rgba(0,0,0,0.45), rgba(85,107,47,0.35)), url(/images/hero-banner.jpg)',
-          backgroundPosition: 'center',
-          backgroundSize: 'cover',
-          minHeight: '520px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          textAlign: 'center',
-        }}
-      >
-        <div className="container">
+      {/* HERO SECTION — image on the left/background, copy anchored into the
+          image's own empty right-hand wall on desktop; a separate, simpler
+          stacked composition (image, then copy) on mobile. */}
+      <section className="hero-section" dir={dir}>
+        <div className="hero-media">
+          <img
+            src="/images/hero-banner.jpg"
+            alt=""
+            className="hero-media-img"
+          />
+        </div>
+        <div className="hero-copy">
           <h1 className="hero-title">
             {currentLang === 'fa' ? 'دیدار اشتوتگارت' : 'DIDAR Stuttgart'}
           </h1>
@@ -170,6 +165,18 @@ export default function Home({ featuredEvents, currentLang }) {
       {/* CULTURAL AREAS */}
       <section className="section" dir={dir}>
         <div className="container">
+          <img
+            src="/images/about-culture.jpg"
+            alt=""
+            loading="lazy"
+            style={{
+              width: '100%',
+              height: '320px',
+              objectFit: 'cover',
+              borderRadius: 'var(--radius-lg)',
+              marginBottom: 'var(--space-8)',
+            }}
+          />
           <h2>{t('home.cultural_areas_title', currentLang)}</h2>
           <div className="grid grid-4 mt-8">
             {CULTURAL_AREAS.map((area) => (
@@ -224,20 +231,22 @@ export default function Home({ featuredEvents, currentLang }) {
           </p>
           <div className="hero-cta mt-8">
             <a
-              href="https://t.me"
+              href={SOCIAL_LINKS.telegram}
               className="btn btn-secondary"
               target="_blank"
               rel="noopener noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}
             >
-              Telegram
+              <TelegramIcon size={18} /> Telegram
             </a>
             <a
-              href="https://instagram.com"
+              href={SOCIAL_LINKS.instagram}
               className="btn btn-secondary"
               target="_blank"
               rel="noopener noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}
             >
-              Instagram
+              <InstagramIcon size={18} /> Instagram
             </a>
             <Link href="/kontakt" className="btn btn-tertiary">
               {t('nav.contact_cta', currentLang)}

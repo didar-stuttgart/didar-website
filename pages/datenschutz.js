@@ -8,7 +8,7 @@ export default function Datenschutz({ currentLang }) {
   return (
     <>
       <Head>
-        <title>{t('legal.datenschutz', currentLang)} - DIDAR</title>
+        <title>{t('legal.datenschutz', currentLang)} - {currentLang === 'fa' ? 'دیدار' : 'DIDAR'}</title>
       </Head>
 
       <section className="section" dir={dir}>

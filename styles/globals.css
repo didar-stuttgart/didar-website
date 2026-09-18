@@ -36,6 +36,12 @@
   --font-serif: 'Playfair Display', 'Georgia', serif;
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   --font-mono: 'Courier New', monospace;
+  /* Persian: Vazirmatn for all readable UI/body text and headings;
+     Lalezar is reserved for the single hero display headline only
+     (applied narrowly via html[lang="fa"] .hero-title), never for
+     paragraphs or long text. */
+  --font-fa-sans: 'Vazirmatn', 'Segoe UI', 'Tahoma', sans-serif;
+  --font-fa-display: 'Lalezar', 'Vazirmatn', sans-serif;
 
   /* Font Sizes — Responsive Scale */
   --fs-xs: clamp(0.75rem, 2vw, 0.875rem);

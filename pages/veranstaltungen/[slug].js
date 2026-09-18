@@ -209,7 +209,7 @@ export default function EventDetail({ event, currentLang }) {
   return (
     <>
       <Head>
-        <title>{title} - DIDAR</title>
+        <title>{title} - {currentLang === 'fa' ? 'دیدار' : 'DIDAR'}</title>
       </Head>
 
       <section className="section" dir={dir}>

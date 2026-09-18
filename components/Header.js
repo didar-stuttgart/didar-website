@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useEffect, useRef, useState } from 'react';
 import { t, languages } from '@/lib/i18n';
+import { SOCIAL_LINKS, InstagramIcon, TelegramIcon } from '@/components/SocialIcons';
 
 export default function Header({ currentLang, onLanguageChange }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -52,8 +53,8 @@ export default function Header({ currentLang, onLanguageChange }) {
           <picture>
             <source srcSet="/images/logo-header.webp" type="image/webp" />
             <img
-              src="/images/logo-header.jpg"
-              alt="DIDAR"
+              src="/images/logo-header.png"
+              alt={currentLang === 'fa' ? 'دیدار' : 'DIDAR'}
               className="logo-image"
               width="50"
               height="50"
@@ -64,7 +65,7 @@ export default function Header({ currentLang, onLanguageChange }) {
               }}
             />
           </picture>
-          <span className="logo-text">DIDAR</span>
+          <span className="logo-text">{currentLang === 'fa' ? 'دیدار' : 'DIDAR'}</span>
         </Link>
 
         <nav className="nav" aria-label={t('nav.primary', currentLang)}>
@@ -87,24 +88,24 @@ export default function Header({ currentLang, onLanguageChange }) {
           <ul className="social-links">
             <li>
               <a
-                href="https://instagram.com"
+                href={SOCIAL_LINKS.instagram}
                 aria-label="Instagram"
                 title="Instagram"
                 rel="noopener noreferrer"
                 target="_blank"
               >
-                <span aria-hidden="true">📷</span>
+                <InstagramIcon />
               </a>
             </li>
             <li>
               <a
-                href="https://t.me"
+                href={SOCIAL_LINKS.telegram}
                 aria-label="Telegram"
                 title="Telegram"
                 rel="noopener noreferrer"
                 target="_blank"
               >
-                <span aria-hidden="true">✈️</span>
+                <TelegramIcon />
               </a>
             </li>
           </ul>
@@ -178,11 +179,11 @@ export default function Header({ currentLang, onLanguageChange }) {
           </div>
 
           <div className="mobile-menu-social">
-            <a href="https://t.me" rel="noopener noreferrer" target="_blank">
-              Telegram
+            <a href={SOCIAL_LINKS.telegram} rel="noopener noreferrer" target="_blank">
+              <TelegramIcon size={18} /> Telegram
             </a>
-            <a href="https://instagram.com" rel="noopener noreferrer" target="_blank">
-              Instagram
+            <a href={SOCIAL_LINKS.instagram} rel="noopener noreferrer" target="_blank">
+              <InstagramIcon size={18} /> Instagram
             </a>
           </div>
         </nav>

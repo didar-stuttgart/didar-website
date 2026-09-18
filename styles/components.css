@@ -384,34 +384,6 @@
   }
 }
 
-.hero-title {
-  font-family: var(--font-serif);
-  font-size: var(--fs-4xl);
-  margin-bottom: var(--space-6);
-  color: var(--color-text-dark);
-}
-
-.hero-subtitle {
-  font-size: var(--fs-xl);
-  color: var(--color-text-muted);
-  margin-bottom: var(--space-8);
-  line-height: var(--lh-relaxed);
-}
-
-.hero-cta {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  align-items: center;
-  justify-content: center;
-}
-
-@media (min-width: 768px) {
-  .hero-cta {
-    flex-direction: row;
-  }
-}
-
 /* BADGE */
 .badge {
   display: inline-block;

@@ -1,6 +1,28 @@
 import Link from 'next/link';
 import { t, formatDate, formatTime } from '@/lib/i18n';
 
+// Curated, generic event photos (public/images/event-1.jpg … event-5.jpg)
+// used only as a fallback when an event has no image_url of its own, so
+// cards never fall back to a bare emoji. Picked deterministically from the
+// event's own id/slug, so the same event always shows the same fallback
+// image rather than a different one on every render.
+const FALLBACK_EVENT_IMAGES = [
+  '/images/event-1.jpg',
+  '/images/event-2.jpg',
+  '/images/event-3.jpg',
+  '/images/event-4.jpg',
+  '/images/event-5.jpg',
+];
+
+function getFallbackEventImage(event) {
+  const key = String(event.id ?? event.slug ?? '');
+  let hash = 0;
+  for (let i = 0; i < key.length; i += 1) {
+    hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+  }
+  return FALLBACK_EVENT_IMAGES[hash % FALLBACK_EVENT_IMAGES.length];
+}
+
 export default function EventCard({ event, currentLang, isPast = false }) {
   const dir = currentLang === 'fa' ? 'rtl' : 'ltr';
 
@@ -21,18 +43,14 @@ export default function EventCard({ event, currentLang, isPast = false }) {
       <article className="event-card" dir={dir}>
         {/* Event Image Section */}
         <div className="event-image">
-          {event.image_url ? (
-            <img
-              src={event.image_url}
-              alt={getTitle()}
-              loading="lazy"
-              onError={(e) => {
-                e.target.style.display = 'none';
-              }}
-            />
-          ) : (
-            <div className="event-image-placeholder">🎭</div>
-          )}
+          <img
+            src={event.image_url || getFallbackEventImage(event)}
+            alt={event.image_url ? getTitle() : ''}
+            loading="lazy"
+            onError={(e) => {
+              e.target.src = getFallbackEventImage(event);
+            }}
+          />
         </div>
 
         {/* Event Content Section */}

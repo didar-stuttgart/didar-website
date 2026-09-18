@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Head from 'next/head';
 import { useState } from 'react';
 import { t } from '@/lib/i18n';
+import { SOCIAL_LINKS, InstagramIcon, TelegramIcon } from '@/components/SocialIcons';
 
 export default function Contact({ currentLang }) {
   const dir = currentLang === 'fa' ? 'rtl' : 'ltr';
@@ -90,7 +91,7 @@ export default function Contact({ currentLang }) {
   return (
     <>
       <Head>
-        <title>{t('contact.title', currentLang)} - DIDAR</title>
+        <title>{t('contact.title', currentLang)} - {currentLang === 'fa' ? 'دیدار' : 'DIDAR'}</title>
       </Head>
 
       <section className="section" dir={dir}>
@@ -198,6 +199,18 @@ export default function Contact({ currentLang }) {
             </div>
 
             <div>
+              <img
+                src="/images/contact-visual.jpg"
+                alt=""
+                loading="lazy"
+                style={{
+                  width: '100%',
+                  height: '220px',
+                  objectFit: 'cover',
+                  borderRadius: 'var(--radius-lg)',
+                  marginBottom: 'var(--space-6)',
+                }}
+              />
               <h2>{t('footer.contact', currentLang)}</h2>
               <p className="mt-4">
                 <strong>{currentLang === 'fa' ? 'ایمیل' : 'E-Mail'}:</strong>
@@ -208,13 +221,23 @@ export default function Contact({ currentLang }) {
               <h3 className="mt-8">{t('footer.follow_us', currentLang)}</h3>
               <ul style={{ listStyle: 'none', padding: 0 }}>
                 <li className="mt-2">
-                  <a href="https://instagram.com" target="_blank" rel="noopener noreferrer">
-                    📷 Instagram
+                  <a
+                    href={SOCIAL_LINKS.instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}
+                  >
+                    <InstagramIcon size={18} /> Instagram
                   </a>
                 </li>
                 <li className="mt-2">
-                  <a href="https://t.me" target="_blank" rel="noopener noreferrer">
-                    ✈️ Telegram
+                  <a
+                    href={SOCIAL_LINKS.telegram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}
+                  >
+                    <TelegramIcon size={18} /> Telegram
                   </a>
                 </li>
               </ul>

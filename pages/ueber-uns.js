@@ -7,7 +7,7 @@ export default function About({ currentLang }) {
   return (
     <>
       <Head>
-        <title>{t('about.title', currentLang)} - DIDAR</title>
+        <title>{t('about.title', currentLang)} - {currentLang === 'fa' ? 'دیدار' : 'DIDAR'}</title>
       </Head>
 
       <section className="section" dir={dir}>
@@ -19,14 +19,29 @@ export default function About({ currentLang }) {
             {t('about.mission_text', currentLang)}
           </p>
 
-          <div className="mt-16" style={{ backgroundColor: 'var(--color-off-white)', padding: 'var(--space-8)', borderRadius: 'var(--radius-lg)' }}>
-            <h3>{currentLang === 'fa' ? 'درباره دیدار' : 'Über DIDAR'}</h3>
-            <p className="mt-4">
-              {currentLang === 'fa'
-                ? 'دیدار یک جامعه فرهنگی و هنری است که به ارتقای تبادل فرهنگی ایرانی در شتوتگارت اختصاص دارد. از طریق رویدادهای فرهنگی، نمایشگاه ها، سخنرانی ها و برنامه های تعاملی، دیدار به ارتباط، درک و تحسین میان فرهنگ ها کمک می کند.'
-                : 'DIDAR ist eine kulturelle und künstlerische Gemeinschaft, die sich dem Austausch iranischer Kultur in Stuttgart widmet. Durch kulturelle Veranstaltungen, Ausstellungen, Vorträge und interaktive Programme fördert DIDAR den Dialog, das Verständnis und die Wertschätzung zwischen Kulturen.'
-              }
-            </p>
+          <div className="split-grid mt-16">
+            <div className="split-image">
+              <img
+                src="/images/about-community.jpg"
+                alt=""
+                loading="lazy"
+                style={{
+                  width: '100%',
+                  height: '360px',
+                  objectFit: 'cover',
+                  borderRadius: 'var(--radius-lg)',
+                }}
+              />
+            </div>
+            <div className="split-content">
+              <h3>{currentLang === 'fa' ? 'درباره دیدار' : 'Über DIDAR'}</h3>
+              <p className="mt-4">
+                {currentLang === 'fa'
+                  ? 'دیدار یک جامعه فرهنگی و هنری است که به ارتقای تبادل فرهنگی ایرانی در شتوتگارت اختصاص دارد. از طریق رویدادهای فرهنگی، نمایشگاه ها، سخنرانی ها و برنامه های تعاملی، دیدار به ارتباط، درک و تحسین میان فرهنگ ها کمک می کند.'
+                  : 'DIDAR ist eine kulturelle und künstlerische Gemeinschaft, die sich dem Austausch iranischer Kultur in Stuttgart widmet. Durch kulturelle Veranstaltungen, Ausstellungen, Vorträge und interaktive Programme fördert DIDAR den Dialog, das Verständnis und die Wertschätzung zwischen Kulturen.'
+                }
+              </p>
+            </div>
           </div>
         </div>
       </section>

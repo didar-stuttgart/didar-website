@@ -3,53 +3,6 @@
    Improvements for visual design & interactivity
    ======================================== */
 
-/* ENHANCEMENT 1: HERO SECTION WITH BACKGROUND IMAGE */
-.section--hero {
-  position: relative;
-  min-height: 600px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(85, 107, 47, 0.3)),
-              url('/images/hero-banner.jpg') center/cover no-repeat;
-  background-attachment: fixed; /* parallax effect on desktop */
-  color: white;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-@media (max-width: 768px) {
-  .section--hero {
-    background-attachment: scroll; /* disable parallax on mobile */
-    min-height: 400px;
-  }
-}
-
-.section--hero .container {
-  text-align: center;
-  max-width: 700px;
-  margin: 0 auto;
-  padding: 3rem 2rem;
-}
-
-.hero-title {
-  font-size: var(--fs-4xl);
-  font-family: var(--font-serif);
-  margin-bottom: 1rem;
-  font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-tight);
-}
-
-.hero-subtitle {
-  font-size: var(--fs-xl);
-  margin-bottom: 2rem;
-  line-height: var(--lh-relaxed);
-  opacity: 0.95;
-}
-
-.hero-cta {
-  margin-top: 2rem;
-}
-
 /* ENHANCEMENT 2: EVENT CARD IMAGES */
 .event-card {
   border-radius: var(--radius-lg);
@@ -376,14 +329,6 @@ img[loading='lazy']:loaded {
 
 /* RESPONSIVE IMPROVEMENTS */
 @media (max-width: 768px) {
-  .hero-title {
-    font-size: var(--fs-3xl);
-  }
-
-  .hero-subtitle {
-    font-size: var(--fs-lg);
-  }
-
   .section-with-image {
     padding: var(--space-12) 0;
   }
@@ -604,6 +549,9 @@ img[loading='lazy']:loaded {
 }
 
 .mobile-menu-social a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   color: var(--color-olive);
   font-weight: var(--fw-medium);
 }
@@ -629,28 +577,143 @@ img[loading='lazy']:loaded {
   margin-bottom: var(--space-3);
 }
 
-/* Hero copy hierarchy */
-.hero-title {
-  margin-bottom: var(--space-4);
-}
-
-.hero-tagline {
-  font-size: var(--fs-xl);
-  font-weight: var(--fw-medium);
-  margin-bottom: var(--space-2);
-}
-
-.hero-description {
-  font-size: var(--fs-lg);
-  margin-bottom: var(--space-8);
-  opacity: 0.95;
-}
-
+/* .hero-cta is shared: the homepage hero's CTA column (styled below, scoped
+   under .hero-copy) and the plain centered button row in the homepage
+   Community/Social section, which uses this general-purpose version. */
 .hero-cta {
   display: flex;
   gap: var(--space-4);
   justify-content: center;
   flex-wrap: wrap;
+}
+
+/* ========================================
+   HOMEPAGE HERO — editorial two-zone layout
+   Desktop: image fills the section; the copy column is anchored into the
+   image's own empty right-hand wall (see hero-banner.jpg) rather than
+   floating centered on top of it. Mobile: a completely separate, simpler
+   composition — a shorter image block, then the copy in normal reading
+   flow below it on the page's plain background (no overlay needed there).
+   ======================================== */
+.hero-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-media {
+  width: 100%;
+  height: 260px;
+  overflow: hidden;
+}
+
+.hero-media-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 35%;
+  display: block;
+}
+
+.hero-copy {
+  padding: var(--space-8) var(--gap-gutter) var(--space-10);
+  background-color: var(--color-cream);
+}
+
+.hero-copy .hero-title {
+  margin-bottom: var(--space-3);
+  font-size: var(--fs-3xl);
+}
+
+.hero-copy .hero-tagline {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-medium);
+  margin-bottom: var(--space-2);
+  color: var(--color-text-dark);
+}
+
+.hero-copy .hero-description {
+  font-size: var(--fs-base);
+  margin-bottom: var(--space-6);
+  color: var(--color-text-muted);
+}
+
+.hero-copy .hero-cta {
+  justify-content: flex-start;
+}
+
+html[dir="rtl"] .hero-copy .hero-cta {
+  justify-content: flex-end;
+}
+
+@media (min-width: 1024px) {
+  .hero-section {
+    position: relative;
+    min-height: 620px;
+    display: block;
+  }
+
+  .hero-media {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .hero-copy {
+    position: relative;
+    z-index: 1;
+    min-height: 620px;
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: var(--space-12);
+    background-color: transparent;
+    /* Soft cream scrim fading from the image into the copy zone, matching
+       the empty wall's own light tone — not an opaque box over the photo. */
+    background-image: linear-gradient(
+      to right,
+      transparent,
+      rgba(253, 247, 242, 0.55) 30%,
+      rgba(253, 247, 242, 0.92) 55%
+    );
+  }
+
+  html[dir="ltr"] .hero-copy {
+    margin-inline-start: auto;
+  }
+
+  html[dir="rtl"] .hero-copy {
+    margin-inline-end: auto;
+    background-image: linear-gradient(
+      to left,
+      transparent,
+      rgba(253, 247, 242, 0.55) 30%,
+      rgba(253, 247, 242, 0.92) 55%
+    );
+  }
+
+  .hero-copy .hero-title {
+    font-size: var(--fs-4xl);
+  }
+
+  .hero-copy .hero-tagline {
+    font-size: var(--fs-xl);
+  }
+
+  .hero-copy .hero-description {
+    font-size: var(--fs-lg);
+  }
+
+  .hero-copy .hero-cta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  html[dir="rtl"] .hero-copy .hero-cta {
+    align-items: flex-end;
+  }
 }
 
 .community-section {
