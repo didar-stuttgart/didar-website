@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     const adminClient = createAdminClient();
 
     const { data, error } = await adminClient
-      .from('registrations')
+      .from('event_registrations')
       .update({ status, admin_notes })
       .eq('id', id)
       .select();

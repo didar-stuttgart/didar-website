@@ -13,9 +13,9 @@ export default async function handler(req, res) {
   try {
     const adminClient = createAdminClient();
     const { data: registrations, error } = await adminClient
-      .from('registrations')
+      .from('event_registrations')
       .select('*')
-      .order('registration_date', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
 
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
       reg.telegram_id || '',
       reg.event || '',
       reg.status || '',
-      new Date(reg.registration_date).toLocaleDateString('fa-IR'),
+      new Date(reg.created_at).toLocaleDateString('fa-IR'),
       reg.admin_notes || '',
     ]);
 

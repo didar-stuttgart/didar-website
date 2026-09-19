@@ -13,9 +13,9 @@ export default async function handler(req, res) {
   try {
     const adminClient = createAdminClient();
     const { data: registrations, error } = await adminClient
-      .from('registrations')
+      .from('event_registrations')
       .select('*')
-      .order('registration_date', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
 

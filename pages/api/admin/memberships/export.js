@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   try {
     const adminClient = createAdminClient();
     const { data: memberships, error } = await adminClient
-      .from('memberships')
+      .from('membership_applications')
       .select('*')
       .order('created_at', { ascending: false });
 

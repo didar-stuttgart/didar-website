@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     const adminClient = createAdminClient();
 
     const { data, error } = await adminClient
-      .from('memberships')
+      .from('membership_applications')
       .update({ status, admin_notes })
       .eq('id', id)
       .select();

@@ -24,12 +24,12 @@ export default async function handler(req, res) {
       .gte('event_date', today.toISOString().split('T')[0]);
 
     const { data: registrations } = await adminClient
-      .from('registrations')
+      .from('event_registrations')
       .select('id')
-      .gte('registration_date', weekAgo.toISOString());
+      .gte('created_at', weekAgo.toISOString());
 
     const { data: memberships } = await adminClient
-      .from('memberships')
+      .from('membership_applications')
       .select('id')
       .gte('created_at', weekAgo.toISOString());
 
