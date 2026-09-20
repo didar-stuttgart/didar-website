@@ -87,8 +87,6 @@ export default function Home({ featuredEvents, currentLang }) {
           {currentLang === 'fa' && (
             <p className="hero-subtitle">انجمن فرهنگی هنری اشتوتگارت</p>
           )}
-          <p className="hero-tagline">{t('home.hero_tagline', currentLang)}</p>
-          <p className="hero-description">{t('home.hero_description', currentLang)}</p>
           <div className="hero-cta">
             <Link href="/veranstaltungen" className="btn btn-primary">
               {t('home.cta_primary', currentLang)}

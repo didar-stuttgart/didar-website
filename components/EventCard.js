@@ -56,9 +56,15 @@ export default function EventCard({ event, currentLang, isPast = false }) {
 
         {/* Event Content Section */}
         <div className="event-content">
-          <div className="event-date">
-            📅 {formatDate(event.event_date || event.date, currentLang)}
-          </div>
+          {event.registration_status === 'not_open' ? (
+            <div className="event-date event-date-comingsoon">
+              🗓️ {t('event.coming_soon', currentLang)}
+            </div>
+          ) : (
+            <div className="event-date">
+              📅 {formatDate(event.event_date || event.date, currentLang)}
+            </div>
+          )}
 
           {getCategory() && <div className="event-category">{getCategory()}</div>}
 
@@ -90,7 +96,7 @@ export default function EventCard({ event, currentLang, isPast = false }) {
             📍 {getLocation() || t('events.location_tbd', currentLang)}
           </div>
 
-          {event.event_time && (
+          {event.registration_status !== 'not_open' && event.event_time && (
             <div className="event-time" style={{ fontSize: 'var(--fs-sm)', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>
               ⏰ {formatTime(event.event_time || event.time, currentLang)}
             </div>

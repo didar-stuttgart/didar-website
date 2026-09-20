@@ -688,7 +688,7 @@ img[loading='lazy'] {
 }
 
 .hero-copy .hero-title {
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--space-6);
   font-size: var(--fs-3xl);
 }
 
@@ -700,20 +700,7 @@ img[loading='lazy'] {
   font-size: var(--fs-lg);
   font-weight: var(--fw-medium);
   color: var(--color-text-dark);
-  margin-bottom: var(--space-3);
-}
-
-.hero-copy .hero-tagline {
-  font-size: var(--fs-lg);
-  font-weight: var(--fw-medium);
-  margin-bottom: var(--space-2);
-  color: var(--color-text-dark);
-}
-
-.hero-copy .hero-description {
-  font-size: var(--fs-base);
   margin-bottom: var(--space-6);
-  color: var(--color-text-muted);
 }
 
 /* justify-content: flex-start already resolves to the reading-start side
@@ -789,15 +776,7 @@ img[loading='lazy'] {
   }
 
   .hero-copy .hero-subtitle {
-    font-size: 1.25rem; /* ~20px - between the brand name and the tagline */
-  }
-
-  .hero-copy .hero-tagline {
-    font-size: 1.375rem; /* ~22px - clearly a headline, clearly below the brand name */
-  }
-
-  .hero-copy .hero-description {
-    font-size: clamp(1.125rem, 1.2vw, 1.25rem); /* ~18-20px */
+    font-size: 1.25rem; /* ~20px - between the brand name and the CTAs */
   }
 
   /* .hero-copy .hero-cta's column/flex-start layout is now set once in the

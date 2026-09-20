@@ -62,7 +62,15 @@ export default function Datenschutz({ currentLang }) {
                 <li>بهتر کردن تجربه کاربری سایت</li>
               </ul>
 
-              <h2 className="mt-12">۵. اشتراک‌گذاری اطلاعات</h2>
+              <h2 className="mt-12">۵. عکاسی و محتوای رویدادها</h2>
+              <p className="mt-4">
+                انجمن دیدار می‌تواند از عکس‌ها و محتوایی که در رویدادهای آن ثبت و تولید می‌شود، در وب‌سایت و شبکه‌های اجتماعی خود استفاده کند. شرکت در رویدادها به‌طور پیش‌فرض به این معناست که با این نوع استفاده در ارتباط با فعالیت‌های دیدار مشکلی ندارید. اگر مایل باشید تصویر شما تا حد امکان محدود شود، می‌توانید پیش از پایان رویداد به ما اطلاع دهید تا در حد امکان حضور تصویر شما در عکس‌ها و محتوای منتشرشده محدود شود.
+              </p>
+              <p className="mt-4">
+                این استفاده بر اساس منافع مشروع دیدار در معرفی فعالیت‌ها و رویدادهای خود صورت می‌گیرد. اعلام تمایل شما برای محدود کردن استفاده از تصویرتان، به معنای تضمین حذف کامل آن از تمامی عکس‌ها یا ویدیوهای گروهی نیست؛ ما تا حد امکان و به‌صورت معقول تلاش خواهیم کرد این درخواست را رعایت کنیم.
+              </p>
+
+              <h2 className="mt-12">۶. اشتراک‌گذاری اطلاعات</h2>
               <p className="mt-4">
                 ما اطلاعات شخصی شما را با اشخاص ثالث به‌اشتراک نمی‌گذاریم، مگر در موارد زیر:
               </p>
@@ -71,7 +79,7 @@ export default function Datenschutz({ currentLang }) {
                 <li>برای حفاظت از حقوق، امنیت یا ایمنی ما یا دیگران</li>
               </ul>
 
-              <h2 className="mt-12">۶. مدت نگهداری اطلاعات</h2>
+              <h2 className="mt-12">۷. مدت نگهداری اطلاعات</h2>
               <p className="mt-4">
                 اطلاعات شما برای مدت‌های زیر نگهداری می‌شود:
               </p>
@@ -82,7 +90,7 @@ export default function Datenschutz({ currentLang }) {
                 <li><strong>پیام‌های تماس:</strong> ۶ ماه پس از بسته شدن موضوع</li>
               </ul>
 
-              <h2 className="mt-12">۷. حقوق شما</h2>
+              <h2 className="mt-12">۸. حقوق شما</h2>
               <p className="mt-4">
                 شما حقوق زیر را دارید:
               </p>
@@ -95,12 +103,12 @@ export default function Datenschutz({ currentLang }) {
                 <li><strong>حمل‌پذیری:</strong> درخواست اطلاعاتتان در قالب قابل‌استفاده</li>
               </ul>
 
-              <h2 className="mt-12">۸. امنیت اطلاعات</h2>
+              <h2 className="mt-12">۹. امنیت اطلاعات</h2>
               <p className="mt-4">
                 ما تدابیر فنی و سازمانی مناسب را برای حفاظت از اطلاعات شما علیه دسترسی غیرمجاز، تغییر، افشا یا حذف اعمال می‌کنیم. این تدابیر شامل رمزگذاری، محدودیت دسترسی، و پایش منظم است.
               </p>
 
-              <h2 className="mt-12">۹. تماس با ما</h2>
+              <h2 className="mt-12">۱۰. تماس با ما</h2>
               <p className="mt-4">
                 اگر سوالات یا نگرانی‌های خصوصی دارید، یا برای استفاده از حقوق فوق‌الذکر، لطفاً با ما تماس بگیرید:
               </p>
@@ -112,12 +120,12 @@ export default function Datenschutz({ currentLang }) {
                 Phone: +49 155 11250722
               </p>
 
-              <h2 className="mt-12">۱۰. شکایت نسبت به تصمیمات خصوصی</h2>
+              <h2 className="mt-12">۱۱. شکایت نسبت به تصمیمات خصوصی</h2>
               <p className="mt-4">
                 شما حق دارید شکایت را به مقامات حفاظت از داده‌ها در بادن-وورتمبرگ مطرح کنید. برای اطلاعات بیشتر، لطفاً <a href="https://www.bfdi.bund.de" target="_blank" rel="noopener noreferrer">وب‌سایت مقام مرکزی حفاظت از داده‌های فدرال آلمان</a> را ببینید.
               </p>
 
-              <h2 className="mt-12">۱۱. تغییرات این سیاست</h2>
+              <h2 className="mt-12">۱۲. تغییرات این سیاست</h2>
               <p className="mt-4">
                 ما ممکن است این سیاست را هر زمان به‌روز کنیم. تغییرات را از طریق سایت ما اطلاع خواهیم داد.
               </p>
@@ -165,7 +173,15 @@ export default function Datenschutz({ currentLang }) {
                 <li>Verbesserung der Benutzererfahrung auf unserer Website</li>
               </ul>
 
-              <h2 className="mt-12">5. Weitergabe von Informationen</h2>
+              <h2 className="mt-12">5. Veranstaltungsfotos und -inhalte</h2>
+              <p className="mt-4">
+                Didar kann Fotos und andere Inhalte, die bei Veranstaltungen von Didar aufgenommen und erstellt werden, auf seiner Website und in seinen Social-Media-Kanälen verwenden. Die Teilnahme an einer Veranstaltung bedeutet grundsätzlich, dass Sie mit dieser Art der Verwendung im Zusammenhang mit den Aktivitäten von Didar einverstanden sind. Wenn Sie möchten, dass Ihre Abbildung so weit wie möglich eingeschränkt wird, können Sie uns dies vor Ende der Veranstaltung mitteilen, damit wir Ihr Erscheinen in veröffentlichten Fotos und Inhalten nach Möglichkeit begrenzen.
+              </p>
+              <p className="mt-4">
+                Diese Nutzung erfolgt auf Grundlage des berechtigten Interesses von Didar an der Darstellung und Kommunikation seiner Aktivitäten und Veranstaltungen. Die Mitteilung eines entsprechenden Wunsches stellt keine Garantie für die vollständige Entfernung Ihrer Abbildung aus allen Fotos oder Gruppenaufnahmen dar; wir bemühen uns jedoch nach Möglichkeit und in zumutbarem Rahmen, diesem Wunsch nachzukommen.
+              </p>
+
+              <h2 className="mt-12">6. Weitergabe von Informationen</h2>
               <p className="mt-4">
                 Wir geben Ihre persönlichen Daten nicht an Dritte weiter, außer in folgenden Fällen:
               </p>
@@ -174,7 +190,7 @@ export default function Datenschutz({ currentLang }) {
                 <li>Zum Schutz unserer oder anderer Rechte, Sicherheit oder Sicherheit</li>
               </ul>
 
-              <h2 className="mt-12">6. Aufbewahrungsdauer der Daten</h2>
+              <h2 className="mt-12">7. Aufbewahrungsdauer der Daten</h2>
               <p className="mt-4">
                 Ihre Daten werden wie folgt aufbewahrt:
               </p>
@@ -185,7 +201,7 @@ export default function Datenschutz({ currentLang }) {
                 <li><strong>Kontaktnachrichten:</strong> 6 Monate nach Abschluss des Anliegens</li>
               </ul>
 
-              <h2 className="mt-12">7. Ihre Rechte</h2>
+              <h2 className="mt-12">8. Ihre Rechte</h2>
               <p className="mt-4">
                 Sie haben folgende Rechte:
               </p>
@@ -198,12 +214,12 @@ export default function Datenschutz({ currentLang }) {
                 <li><strong>Datenportabilität:</strong> Ihre Daten in lesbarer Form anfordern</li>
               </ul>
 
-              <h2 className="mt-12">8. Datensicherheit</h2>
+              <h2 className="mt-12">9. Datensicherheit</h2>
               <p className="mt-4">
                 Wir setzen angemessene technische und organisatorische Maßnahmen ein, um Ihre Daten vor unbefugtem Zugriff, Änderung, Offenlegung oder Löschung zu schützen. Diese Maßnahmen umfassen Verschlüsselung, Zugriffsbeschränkung und regelmäßige Überwachung.
               </p>
 
-              <h2 className="mt-12">9. Kontaktieren Sie uns</h2>
+              <h2 className="mt-12">10. Kontaktieren Sie uns</h2>
               <p className="mt-4">
                 Bei Fragen oder Bedenken zum Datenschutz oder um Ihre Rechte wahrzunehmen, kontaktieren Sie uns bitte:
               </p>
@@ -215,12 +231,12 @@ export default function Datenschutz({ currentLang }) {
                 Phone: +49 155 11250722
               </p>
 
-              <h2 className="mt-12">10. Beschwerde bei einer Datenschutzbehörde</h2>
+              <h2 className="mt-12">11. Beschwerde bei einer Datenschutzbehörde</h2>
               <p className="mt-4">
                 Sie haben das Recht, eine Beschwerde bei der Datenschutzbehörde in Baden-Württemberg einzureichen. Weitere Informationen finden Sie auf der <a href="https://www.bfdi.bund.de" target="_blank" rel="noopener noreferrer">Website der Bundesbeauftragten für den Datenschutz und die Informationsfreiheit</a>.
               </p>
 
-              <h2 className="mt-12">11. Änderungen dieser Richtlinie</h2>
+              <h2 className="mt-12">12. Änderungen dieser Richtlinie</h2>
               <p className="mt-4">
                 Wir können diese Richtlinie jederzeit aktualisieren. Änderungen werden auf unserer Website bekannt gegeben.
               </p>

@@ -466,13 +466,19 @@ export default function EventDetail({ event, currentLang }) {
                 )}
 
                 <div className="event-hero-overlay">
-                  <p className="event-hero-date-value">{formatDate(event.event_date, currentLang)}</p>
-                  <p className="event-hero-date-label">{t('event.date', currentLang)}</p>
-
-                  {event.event_time && (
+                  {registrationStatus === 'not_open' ? (
+                    <p className="event-hero-date-value">{t('event.coming_soon', currentLang)}</p>
+                  ) : (
                     <>
-                      <p className="event-hero-time-value">{formatTime(event.event_time, currentLang)}</p>
-                      <p className="event-hero-time-label">{t('event.time', currentLang)}</p>
+                      <p className="event-hero-date-value">{formatDate(event.event_date, currentLang)}</p>
+                      <p className="event-hero-date-label">{t('event.date', currentLang)}</p>
+
+                      {event.event_time && (
+                        <>
+                          <p className="event-hero-time-value">{formatTime(event.event_time, currentLang)}</p>
+                          <p className="event-hero-time-label">{t('event.time', currentLang)}</p>
+                        </>
+                      )}
                     </>
                   )}
                 </div>
