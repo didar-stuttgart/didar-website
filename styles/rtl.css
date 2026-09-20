@@ -54,9 +54,12 @@ html[dir="rtl"] .nav {
   justify-content: flex-end;
 }
 
-html[dir="rtl"] .header-content {
-  flex-direction: row-reverse;
-}
+/* Header brand order: the logo must always sit physically on the left with
+   the brand name to its right, in BOTH languages — this is a fixed brand
+   mark, not something that should mirror with reading direction. So
+   .header-content deliberately does NOT reverse for RTL (unlike .nav and
+   .header-end, which do follow reading direction on their own). See
+   components.css .header-content / .logo for the physical-order rules. */
 
 html[dir="rtl"] .logo-text {
   margin-right: var(--space-2);

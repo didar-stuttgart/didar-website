@@ -127,7 +127,7 @@ export default function Membership({ currentLang }) {
   return (
     <>
       <Head>
-        <title>{t('membership.title', currentLang)} - {currentLang === 'fa' ? 'دیدار' : 'DIDAR'}</title>
+        <title>{t('membership.title', currentLang)} - {currentLang === 'fa' ? 'دیدار' : 'Didar'}</title>
       </Head>
 
       <section className="section" dir={dir}>
@@ -153,7 +153,7 @@ export default function Membership({ currentLang }) {
               <p className="mt-4">
                 {currentLang === 'fa'
                   ? 'با پیوستن به دیدار، بخشی از جامعه‌ای فعال و پویا می‌شوید که علاقمند به فرهنگ و هنر ایرانی است. عضویت شما به ما کمک می‌کند تا رویدادها و برنامه‌های فرهنگی بیشتری سازماندهی کنیم.'
-                  : 'Durch die Mitgliedschaft bei DIDAR werden Sie Teil einer aktiven und dynamischen Gemeinschaft, die sich für iranische Kultur und Kunst interessiert. Ihre Mitgliedschaft hilft uns, mehr kulturelle Veranstaltungen und Programme zu organisieren.'
+                  : 'Durch die Mitgliedschaft bei Didar werden Sie Teil einer aktiven und dynamischen Gemeinschaft, die sich für iranische Kultur und Kunst interessiert. Ihre Mitgliedschaft hilft uns, mehr kulturelle Veranstaltungen und Programme zu organisieren.'
                 }
               </p>
             </div>

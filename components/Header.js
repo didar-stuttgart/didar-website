@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useEffect, useRef, useState } from 'react';
 import { t, languages } from '@/lib/i18n';
-import { SOCIAL_LINKS, InstagramIcon, TelegramIcon } from '@/components/SocialIcons';
 
 export default function Header({ currentLang, onLanguageChange }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -54,18 +53,18 @@ export default function Header({ currentLang, onLanguageChange }) {
             <source srcSet="/images/logo-header.webp" type="image/webp" />
             <img
               src="/images/logo-header.png"
-              alt={currentLang === 'fa' ? 'دیدار' : 'DIDAR'}
+              alt={currentLang === 'fa' ? 'دیدار' : 'Didar'}
               className="logo-image"
-              width="50"
-              height="50"
+              width="40"
+              height="40"
               style={{
-                height: '50px',
+                height: '40px',
                 width: 'auto',
                 objectFit: 'contain',
               }}
             />
           </picture>
-          <span className="logo-text">{currentLang === 'fa' ? 'دیدار' : 'DIDAR'}</span>
+          <span className="logo-text">{currentLang === 'fa' ? 'دیدار' : 'Didar'}</span>
         </Link>
 
         <nav className="nav" aria-label={t('nav.primary', currentLang)}>
@@ -85,31 +84,6 @@ export default function Header({ currentLang, onLanguageChange }) {
         </nav>
 
         <div className="header-end">
-          <ul className="social-links">
-            <li>
-              <a
-                href={SOCIAL_LINKS.instagram}
-                aria-label="Instagram"
-                title="Instagram"
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                <InstagramIcon size={22} />
-              </a>
-            </li>
-            <li>
-              <a
-                href={SOCIAL_LINKS.telegram}
-                aria-label="Telegram"
-                title="Telegram"
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                <TelegramIcon size={22} />
-              </a>
-            </li>
-          </ul>
-
           <ul className="language-switch" aria-label={t('nav.languages', currentLang)}>
             {Object.entries(languages).map(([lang, config]) => (
               <li key={lang}>
@@ -160,15 +134,6 @@ export default function Header({ currentLang, onLanguageChange }) {
               </li>
             ))}
           </ul>
-
-          <div className="mobile-menu-social">
-            <a href={SOCIAL_LINKS.telegram} rel="noopener noreferrer" target="_blank">
-              <TelegramIcon size={18} /> Telegram
-            </a>
-            <a href={SOCIAL_LINKS.instagram} rel="noopener noreferrer" target="_blank">
-              <InstagramIcon size={18} /> Instagram
-            </a>
-          </div>
         </nav>
       )}
     </header>

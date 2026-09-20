@@ -11,7 +11,7 @@ export default function Footer({ currentLang }) {
       <div className="footer-content">
         <div className="footer-grid">
           <div className="footer-section">
-            <h3>{currentLang === 'fa' ? 'دیدار' : 'DIDAR'}</h3>
+            <h3>{currentLang === 'fa' ? 'دیدار' : 'Didar'}</h3>
             <p>
               {currentLang === 'fa'
                 ? 'انجمن فرهنگی هنری دیدار — شتوتگارت'

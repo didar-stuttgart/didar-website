@@ -7,7 +7,7 @@ export default function About({ currentLang }) {
   return (
     <>
       <Head>
-        <title>{t('about.title', currentLang)} - {currentLang === 'fa' ? 'دیدار' : 'DIDAR'}</title>
+        <title>{t('about.title', currentLang)} - {currentLang === 'fa' ? 'دیدار' : 'Didar'}</title>
       </Head>
 
       <section className="section" dir={dir}>
@@ -34,11 +34,11 @@ export default function About({ currentLang }) {
               />
             </div>
             <div className="split-content">
-              <h3>{currentLang === 'fa' ? 'درباره دیدار' : 'Über DIDAR'}</h3>
+              <h3>{currentLang === 'fa' ? 'درباره دیدار' : 'Über Didar'}</h3>
               <p className="mt-4">
                 {currentLang === 'fa'
                   ? 'دیدار یک جامعه فرهنگی و هنری است که به ارتقای تبادل فرهنگی ایرانی در شتوتگارت اختصاص دارد. از طریق رویدادهای فرهنگی، نمایشگاه ها، سخنرانی ها و برنامه های تعاملی، دیدار به ارتباط، درک و تحسین میان فرهنگ ها کمک می کند.'
-                  : 'DIDAR ist eine kulturelle und künstlerische Gemeinschaft, die sich dem Austausch iranischer Kultur in Stuttgart widmet. Durch kulturelle Veranstaltungen, Ausstellungen, Vorträge und interaktive Programme fördert DIDAR den Dialog, das Verständnis und die Wertschätzung zwischen Kulturen.'
+                  : 'Didar ist eine kulturelle und künstlerische Gemeinschaft, die sich dem Austausch iranischer Kultur in Stuttgart widmet. Durch kulturelle Veranstaltungen, Ausstellungen, Vorträge und interaktive Programme fördert Didar den Dialog, das Verständnis und die Wertschätzung zwischen Kulturen.'
                 }
               </p>
             </div>

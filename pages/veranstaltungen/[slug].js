@@ -214,7 +214,7 @@ export default function EventDetail({ event, currentLang }) {
   return (
     <>
       <Head>
-        <title>{title} - {currentLang === 'fa' ? 'دیدار' : 'DIDAR'}</title>
+        <title>{title} - {currentLang === 'fa' ? 'دیدار' : 'Didar'}</title>
       </Head>
 
       <section className="section" dir={dir}>
@@ -223,27 +223,27 @@ export default function EventDetail({ event, currentLang }) {
             {currentLang === 'fa' ? '→' : '←'} {t('event.back_to_events', currentLang)}
           </Link>
 
-          {event.image_url && (
-            <div
-              style={{
-                width: '100%',
-                height: '400px',
-                backgroundImage: `url('${event.image_url}')`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                borderRadius: 'var(--radius-lg)',
-                marginBottom: 'var(--space-8)',
-              }}
-              role="img"
-              aria-label={title}
-            />
+          {event.image_url ? (
+            <div className="event-hero" dir={dir}>
+              <div
+                className="event-hero-image"
+                style={{ backgroundImage: `url('${event.image_url}')` }}
+                role="img"
+                aria-label={title}
+              />
+              <div className="event-hero-overlay">
+                {category && <p className="event-category event-hero-category">{category}</p>}
+                <h1 className="event-hero-title">{title}</h1>
+              </div>
+            </div>
+          ) : (
+            <>
+              {category && <p className="event-category">{category}</p>}
+              <h1>{title}</h1>
+            </>
           )}
 
-          {category && <p className="event-category">{category}</p>}
-
-          <h1>{title}</h1>
-
-          <p className="mt-2" style={{ color: 'var(--color-text-muted)' }}>
+          <p className="mt-4" style={{ color: 'var(--color-text-muted)' }}>
             {isPastEvent
               ? t('events.past_event', currentLang)
               : registrationOpen
@@ -255,15 +255,19 @@ export default function EventDetail({ event, currentLang }) {
 
           <div className="grid grid-2 mt-8 gap-8">
             <div>
-              <h3>{t('event.date', currentLang)}</h3>
-              <p>{formatDate(event.event_date, currentLang)}</p>
+              <div className="event-datetime-row">
+                <div>
+                  <h3>{t('event.date', currentLang)}</h3>
+                  <p>{formatDate(event.event_date, currentLang)}</p>
+                </div>
 
-              {event.event_time && (
-                <>
-                  <h3 className="mt-6">{t('event.time', currentLang)}</h3>
-                  <p>{formatTime(event.event_time, currentLang)}</p>
-                </>
-              )}
+                {event.event_time && (
+                  <div>
+                    <h3>{t('event.time', currentLang)}</h3>
+                    <p>{formatTime(event.event_time, currentLang)}</p>
+                  </div>
+                )}
+              </div>
 
               {location && (
                 <>

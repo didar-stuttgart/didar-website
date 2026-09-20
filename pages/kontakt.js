@@ -91,7 +91,7 @@ export default function Contact({ currentLang }) {
   return (
     <>
       <Head>
-        <title>{t('contact.title', currentLang)} - {currentLang === 'fa' ? 'دیدار' : 'DIDAR'}</title>
+        <title>{t('contact.title', currentLang)} - {currentLang === 'fa' ? 'دیدار' : 'Didar'}</title>
       </Head>
 
       <section className="section" dir={dir}>

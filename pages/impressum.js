@@ -8,7 +8,7 @@ export default function Impressum({ currentLang }) {
   return (
     <>
       <Head>
-        <title>{t('legal.impressum', currentLang)} - {currentLang === 'fa' ? 'دیدار' : 'DIDAR'}</title>
+        <title>{t('legal.impressum', currentLang)} - {currentLang === 'fa' ? 'دیدار' : 'Didar'}</title>
       </Head>
 
       <section className="section" dir={dir}>
@@ -23,7 +23,7 @@ export default function Impressum({ currentLang }) {
             <div className="mt-8">
               <h2 className="mt-12">مسئولان و تماس</h2>
               <p className="mt-4">
-                <strong>DIDAR – Hochschulgruppe an der Universität Stuttgart</strong><br />
+                <strong>Didar – Hochschulgruppe an der Universität Stuttgart</strong><br />
                 Pfaffenwaldring 5c<br />
                 70569 Stuttgart, Deutschland
               </p>
@@ -85,7 +85,7 @@ export default function Impressum({ currentLang }) {
             <div className="mt-8">
               <h2 className="mt-12">Verantwortliche Ansprechpartner</h2>
               <p className="mt-4">
-                <strong>DIDAR – Hochschulgruppe an der Universität Stuttgart</strong><br />
+                <strong>Didar – Hochschulgruppe an der Universität Stuttgart</strong><br />
                 Pfaffenwaldring 5c<br />
                 70569 Stuttgart, Deutschland
               </p>
@@ -97,7 +97,7 @@ export default function Impressum({ currentLang }) {
 
               <h2 className="mt-12">Sprecherinnen und Sprecher</h2>
               <p className="mt-4">
-                DIDAR wird von folgenden Ansprechpartnerinnen und Ansprechpartnern verwaltet:
+                Didar wird von folgenden Ansprechpartnerinnen und Ansprechpartnern verwaltet:
               </p>
               <ul style={{ marginTop: 'var(--space-4)', marginLeft: 'var(--space-6)', listStyle: 'disc' }}>
                 <li>Danial Haghgoo</li>
@@ -106,7 +106,7 @@ export default function Impressum({ currentLang }) {
 
               <h2 className="mt-12">Rechtlicher Hinweis</h2>
               <p className="mt-4">
-                Diese Website wurde von Studierenden der Universität Stuttgart für kulturelle und soziale Zwecke erstellt. DIDAR ist eine offizielle Hochschulgruppe der Universität Stuttgart und keine separate juristische Person oder verein (eingetragener Verein, e.V.).
+                Diese Website wurde von Studierenden der Universität Stuttgart für kulturelle und soziale Zwecke erstellt. Didar ist eine offizielle Hochschulgruppe der Universität Stuttgart und keine separate juristische Person oder verein (eingetragener Verein, e.V.).
               </p>
 
               <h2 className="mt-12">Haftung für Inhalte</h2>
@@ -126,7 +126,7 @@ export default function Impressum({ currentLang }) {
 
               <h2 className="mt-12">Geistiges Eigentum</h2>
               <p className="mt-4">
-                Alle Inhalte, Designs und visuellen Elemente dieser Website (Bilder, Texte, Logos) sind Eigentum von DIDAR oder seiner Lizenzgeber. Eine Vervielfältigung oder Verwendung ohne schriftliche Genehmigung ist untersagt.
+                Alle Inhalte, Designs und visuellen Elemente dieser Website (Bilder, Texte, Logos) sind Eigentum von Didar oder seiner Lizenzgeber. Eine Vervielfältigung oder Verwendung ohne schriftliche Genehmigung ist untersagt.
               </p>
 
               <h2 className="mt-12">Datenschutz</h2>

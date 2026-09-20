@@ -82,8 +82,11 @@ export default function Home({ featuredEvents, currentLang }) {
         </div>
         <div className="hero-copy">
           <h1 className="hero-title">
-            {currentLang === 'fa' ? 'دیدار اشتوتگارت' : 'DIDAR Stuttgart'}
+            {currentLang === 'fa' ? 'دیدار' : 'Didar Stuttgart'}
           </h1>
+          {currentLang === 'fa' && (
+            <p className="hero-subtitle">انجمن فرهنگی هنری اشتوتگارت</p>
+          )}
           <p className="hero-tagline">{t('home.hero_tagline', currentLang)}</p>
           <p className="hero-description">{t('home.hero_description', currentLang)}</p>
           <div className="hero-cta">

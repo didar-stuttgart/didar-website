@@ -541,30 +541,14 @@ img[loading='lazy'] {
   }
 }
 
-/* Social icons move into the mobile menu below 768px so the header never
-   overflows at 320px. The language toggle is small enough to stay visible
-   in the header at every width (see the mobile-only size reduction below),
-   so a direct link's language and the switcher itself are always reachable
-   without opening the menu. */
-.header-end > .social-links {
-  display: none;
-}
-
-@media (min-width: 768px) {
-  .header-end > .social-links {
-    display: flex;
-  }
-}
-
 /* Even more compact on mobile, so it stays a small utility control next to
-   the logo and hamburger button rather than competing with them. */
+   the logo and hamburger button rather than competing with them. Width
+   (not padding) is reduced here since each segment is now a fixed-width
+   button rather than text-hugging padding. */
 @media (max-width: 767px) {
-  .language-switch {
-    padding: 1px;
-  }
-
   .language-switch button {
-    padding: 0.15rem 0.4rem;
+    width: 1.9rem;
+    padding: 0.3rem 0;
     font-size: 0.65rem;
   }
 }
@@ -608,19 +592,6 @@ img[loading='lazy'] {
   color: var(--color-olive);
 }
 
-.mobile-menu-social {
-  display: flex;
-  gap: var(--space-4);
-  flex-wrap: wrap;
-}
-
-.mobile-menu-social a {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--color-olive);
-  font-weight: var(--fw-medium);
-}
 
 /* Visible focus ring for all keyboard users, on every interactive element */
 :focus-visible {
@@ -695,8 +666,19 @@ img[loading='lazy'] {
 }
 
 .hero-copy .hero-title {
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-2);
   font-size: var(--fs-3xl);
+}
+
+/* Persian-only line directly under the brand name ("دیدار"): the
+   organization's full name, subordinate to the brand headline but above
+   the shorter descriptive tagline. No German equivalent exists in the
+   content yet, so this class is simply absent from the German hero. */
+.hero-copy .hero-subtitle {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-medium);
+  color: var(--color-text-dark);
+  margin-bottom: var(--space-3);
 }
 
 .hero-copy .hero-tagline {
@@ -724,9 +706,13 @@ img[loading='lazy'] {
 }
 
 @media (min-width: 1024px) {
+  /* Was a fixed 620px. Now scales with viewport height (60vh) between a
+     420px floor (so it never feels cramped on shorter laptop screens) and
+     a 560px ceiling (so it stays noticeably shorter than before even on
+     tall desktop monitors, rather than growing back to the old height). */
   .hero-section {
     position: relative;
-    min-height: 620px;
+    min-height: clamp(420px, 60vh, 560px);
     display: block;
   }
 
@@ -740,7 +726,7 @@ img[loading='lazy'] {
   .hero-copy {
     position: relative;
     z-index: 1;
-    min-height: 620px;
+    min-height: clamp(420px, 60vh, 560px);
     width: 100%;
     max-width: 480px;
     display: flex;
@@ -780,6 +766,10 @@ img[loading='lazy'] {
     font-size: clamp(3rem, 3.5vw, 3.5rem); /* ~48-56px */
   }
 
+  .hero-copy .hero-subtitle {
+    font-size: 1.25rem; /* ~20px - between the brand name and the tagline */
+  }
+
   .hero-copy .hero-tagline {
     font-size: 1.375rem; /* ~22px - clearly a headline, clearly below the brand name */
   }
@@ -807,4 +797,82 @@ img[loading='lazy'] {
   font-size: var(--fs-sm);
   color: var(--color-text-muted);
   margin-bottom: var(--space-2);
+}
+
+/* ========================================
+   EVENT DETAIL — image hero with title overlay, and a side-by-side
+   date/time row directly below it (public UI consistency pass).
+   ======================================== */
+
+.event-hero {
+  position: relative;
+  width: 100%;
+  min-height: 260px;
+  max-height: 440px;
+  height: 38vw;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: var(--space-8);
+}
+
+.event-hero-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+}
+
+/* Title/category sit on top of the image, anchored to the bottom edge, with
+   a dark-to-transparent scrim behind them so the text stays readable
+   regardless of how light or busy the underlying photo is. Text alignment
+   follows the page's own direction (inherited dir), so it reads from the
+   correct side in both Persian and German without a separate override. */
+.event-hero-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: var(--space-6) var(--space-6) var(--space-5);
+  background-image: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.72) 0%,
+    rgba(0, 0, 0, 0.38) 50%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+.event-hero-category {
+  color: var(--color-beige);
+  margin-bottom: var(--space-2);
+}
+
+.event-hero-title {
+  color: var(--color-white);
+  margin: 0;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+@media (min-width: 768px) {
+  .event-hero {
+    height: 32vw;
+  }
+}
+
+/* Date and time side by side on the same row on desktop; on narrow
+   viewports they wrap onto their own lines instead of overflowing. */
+.event-datetime-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+
+.event-datetime-row > div {
+  min-width: 140px;
+}
+
+.event-datetime-row h3 {
+  margin-top: 0;
 }

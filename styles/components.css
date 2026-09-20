@@ -6,7 +6,10 @@
 .header {
   background-color: var(--color-white);
   border-bottom: 1px solid var(--color-border-light);
-  padding: var(--space-4) 0;
+  /* Slightly more compact than before (was var(--space-4) top/bottom) —
+     the mobile-menu-toggle button keeps its own fixed 44x44px hit area
+     regardless of this padding, so touch-target size is unaffected. */
+  padding: var(--space-3) 0;
   position: sticky;
   top: 0;
   z-index: var(--z-fixed);
@@ -14,6 +17,15 @@
 
 .header-content {
   display: flex;
+  /* Fixed physical LTR order regardless of page reading direction: the
+     header row is [logo] -> [nav] -> [header-end], always laid out
+     left-to-right. This keeps the DIDAR logo mark anchored on the physical
+     left in both Persian (RTL) and German (LTR) — a brand mark should not
+     mirror with reading direction the way body text does. Text and icons
+     *inside* .nav / .header-end still follow the page's own dir via their
+     own rules (see rtl.css), only this container's left-to-right ordering
+     is pinned. */
+  direction: ltr;
   justify-content: space-between;
   align-items: center;
   max-width: 1280px;
@@ -33,7 +45,7 @@
 }
 
 .logo img {
-  height: 48px;
+  height: 40px;
   width: auto;
 }
 
@@ -101,36 +113,44 @@
 }
 
 /* Compact FA | DE language toggle - a small utility control, not a primary
-   nav element. One pill-shaped container with a subtle border; the active
-   language is shown as a filled segment rather than a separate button. */
+   nav element. Two fixed-width, equal-size segments in one pill-shaped
+   container so nothing shifts width when the active language changes; a
+   thin middle divider (not a border/shadow on the buttons themselves)
+   keeps it minimal instead of looking like a generic SaaS switch. */
 .language-switch {
   display: flex;
-  align-items: center;
-  gap: 0;
+  align-items: stretch;
   list-style: none;
-  border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
-  padding: 2px;
   background-color: var(--color-off-white);
+  overflow: hidden;
 }
 
 .language-switch li {
   display: flex;
+  position: relative;
+}
+
+/* Divider between the two segments, drawn once on the second item only so
+   it never appears on an outer edge regardless of DOM/visual order. */
+.language-switch li + li {
+  border-inline-start: 1px solid var(--color-border);
 }
 
 .language-switch button {
   background: transparent;
   border: none;
-  padding: 0.2rem 0.6rem;
+  width: 2.25rem;
+  padding: 0.35rem 0;
   color: var(--color-text-muted);
   cursor: pointer;
   min-height: auto;
-  border-radius: var(--radius-full);
   font-weight: var(--fw-semibold);
   font-size: 0.7rem;
   letter-spacing: 0.02em;
   line-height: 1.4;
-  transition: all var(--transition-base);
+  text-align: center;
+  transition: background-color var(--transition-base), color var(--transition-base);
 }
 
 .language-switch button:hover {

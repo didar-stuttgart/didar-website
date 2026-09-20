@@ -63,7 +63,7 @@ export default function Events({ upcomingEvents, pastEvents, currentLang }) {
   return (
     <>
       <Head>
-        <title>{t('events.title', currentLang)} - {currentLang === 'fa' ? 'دیدار' : 'DIDAR'}</title>
+        <title>{t('events.title', currentLang)} - {currentLang === 'fa' ? 'دیدار' : 'Didar'}</title>
       </Head>
 
       <section className="section" dir={dir}>

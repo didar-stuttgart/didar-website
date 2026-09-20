@@ -8,7 +8,7 @@ export default function Datenschutz({ currentLang }) {
   return (
     <>
       <Head>
-        <title>{t('legal.datenschutz', currentLang)} - {currentLang === 'fa' ? 'دیدار' : 'DIDAR'}</title>
+        <title>{t('legal.datenschutz', currentLang)} - {currentLang === 'fa' ? 'دیدار' : 'Didar'}</title>
       </Head>
 
       <section className="section" dir={dir}>
@@ -27,7 +27,7 @@ export default function Datenschutz({ currentLang }) {
 
               <h2 className="mt-12">۱. معرفی</h2>
               <p className="mt-4">
-                DIDAR – Hochschulgruppe an der Universität Stuttgart (به اختصار &quot;ما&quot; یا &quot;دیدار&quot;) متعهد به حفاظت از حریم خصوصی و امنیت اطلاعات شخصی شما است. این سند توضیح می‌دهد که ما چگونه اطلاعات شما را جمع‌آوری، استفاده و حفاظت می‌کنیم.
+                Didar – Hochschulgruppe an der Universität Stuttgart (به اختصار &quot;ما&quot; یا &quot;دیدار&quot;) متعهد به حفاظت از حریم خصوصی و امنیت اطلاعات شخصی شما است. این سند توضیح می‌دهد که ما چگونه اطلاعات شما را جمع‌آوری، استفاده و حفاظت می‌کنیم.
               </p>
 
               <h2 className="mt-12">۲. اطلاعات جمع‌آوری شده</h2>
@@ -105,7 +105,7 @@ export default function Datenschutz({ currentLang }) {
                 اگر سوالات یا نگرانی‌های خصوصی دارید، یا برای استفاده از حقوق فوق‌الذکر، لطفاً با ما تماس بگیرید:
               </p>
               <p className="mt-4">
-                <strong>DIDAR – Hochschulgruppe an der Universität Stuttgart</strong><br />
+                <strong>Didar – Hochschulgruppe an der Universität Stuttgart</strong><br />
                 Pfaffenwaldring 5c<br />
                 70569 Stuttgart, Deutschland<br />
                 <span dir="ltr">Email: info@didar-stuttgart.com</span><br />
@@ -130,7 +130,7 @@ export default function Datenschutz({ currentLang }) {
 
               <h2 className="mt-12">1. Einleitung</h2>
               <p className="mt-4">
-                DIDAR – Hochschulgruppe an der Universität Stuttgart (im Folgenden &quot;wir&quot; oder &quot;DIDAR&quot;) verpflichtet sich zum Schutz Ihrer Privatsphäre und zur Sicherheit Ihrer persönlichen Daten. Dieses Dokument erklärt, wie wir Ihre Daten erfassen, verwenden und schützen.
+                Didar – Hochschulgruppe an der Universität Stuttgart (im Folgenden &quot;wir&quot; oder &quot;Didar&quot;) verpflichtet sich zum Schutz Ihrer Privatsphäre und zur Sicherheit Ihrer persönlichen Daten. Dieses Dokument erklärt, wie wir Ihre Daten erfassen, verwenden und schützen.
               </p>
 
               <h2 className="mt-12">2. Erfasste Informationen</h2>
@@ -208,7 +208,7 @@ export default function Datenschutz({ currentLang }) {
                 Bei Fragen oder Bedenken zum Datenschutz oder um Ihre Rechte wahrzunehmen, kontaktieren Sie uns bitte:
               </p>
               <p className="mt-4">
-                <strong>DIDAR – Hochschulgruppe an der Universität Stuttgart</strong><br />
+                <strong>Didar – Hochschulgruppe an der Universität Stuttgart</strong><br />
                 Pfaffenwaldring 5c<br />
                 70569 Stuttgart, Deutschland<br />
                 Email: info@didar-stuttgart.com<br />
