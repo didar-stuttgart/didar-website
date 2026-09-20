@@ -57,9 +57,23 @@ html[dir="rtl"] .nav {
 /* Header brand order: the logo must always sit physically on the left with
    the brand name to its right, in BOTH languages — this is a fixed brand
    mark, not something that should mirror with reading direction. So
-   .header-content deliberately does NOT reverse for RTL (unlike .nav and
-   .header-end, which do follow reading direction on their own). See
-   components.css .header-content / .logo for the physical-order rules. */
+   .header-content itself is pinned to direction: ltr in components.css
+   (it does NOT reverse for RTL, unlike the rest of the site). CSS
+   `direction` is inherited, though, so without correction .nav and
+   .header-end would inherit that forced ltr from their parent and lose
+   their own RTL item order/alignment. These two rules restore the page's
+   real reading direction on .nav and .header-end specifically, so nav
+   links and the language toggle still mirror correctly in Persian —
+   only the outer [logo]/[nav]/[header-end] row order stays fixed. */
+html[dir="rtl"] .nav,
+html[dir="rtl"] .header-end {
+  direction: rtl;
+}
+
+html[dir="ltr"] .nav,
+html[dir="ltr"] .header-end {
+  direction: ltr;
+}
 
 html[dir="rtl"] .logo-text {
   margin-right: var(--space-2);
