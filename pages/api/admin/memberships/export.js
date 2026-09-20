@@ -27,7 +27,7 @@ export default async function handler(req, res) {
       mem.phone || '',
       mem.telegram_id || '',
       mem.status || '',
-      new Date(mem.created_at).toLocaleDateString('fa-IR'),
+      new Date(mem.created_at).toLocaleDateString('fa-IR', { calendar: 'gregory' }),
       mem.admin_notes || '',
     ]);
 

@@ -120,7 +120,7 @@ export default function AdminMemberships() {
                     <div>
                       <h3>{member.first_name} {member.last_name}</h3>
                       <div className={styles.regMeta}>
-                        تاریخ درخواست: {new Date(member.created_at).toLocaleDateString('fa-IR')}
+                        تاریخ درخواست: {new Date(member.created_at).toLocaleDateString('fa-IR', { calendar: 'gregory' })}
                       </div>
                     </div>
                     <div className={styles.statusSelect}>

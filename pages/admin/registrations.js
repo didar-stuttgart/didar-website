@@ -140,7 +140,7 @@ export default function AdminRegistrations() {
                         رویداد: {reg.event_title || reg.event}
                       </div>
                       <div className={styles.regMeta}>
-                        تاریخ ثبت‌نام: {new Date(reg.registration_date).toLocaleDateString('fa-IR')}
+                        تاریخ ثبت‌نام: {new Date(reg.registration_date).toLocaleDateString('fa-IR', { calendar: 'gregory' })}
                       </div>
                     </div>
                     <div className={styles.statusSelect}>

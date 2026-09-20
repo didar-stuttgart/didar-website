@@ -28,7 +28,7 @@ export default async function handler(req, res) {
       reg.telegram_id || '',
       reg.event || '',
       reg.status || '',
-      new Date(reg.created_at).toLocaleDateString('fa-IR'),
+      new Date(reg.created_at).toLocaleDateString('fa-IR', { calendar: 'gregory' }),
       reg.admin_notes || '',
     ]);
 
