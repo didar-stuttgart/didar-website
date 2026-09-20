@@ -81,7 +81,7 @@ export default function AdminRegistrations() {
   };
 
   const sortedRegs = [...registrations].sort((a, b) => {
-    if (sortBy === 'date') return new Date(b.registration_date) - new Date(a.registration_date);
+    if (sortBy === 'date') return new Date(b.created_at) - new Date(a.created_at);
     if (sortBy === 'name') return (a.first_name + a.last_name).localeCompare(b.first_name + b.last_name);
     if (sortBy === 'status') return a.status.localeCompare(b.status);
     return 0;
@@ -137,10 +137,10 @@ export default function AdminRegistrations() {
                     <div>
                       <h3>{reg.first_name} {reg.last_name}</h3>
                       <div className={styles.regMeta}>
-                        رویداد: {reg.event_title || reg.event}
+                        رویداد: {reg.event_title}
                       </div>
                       <div className={styles.regMeta}>
-                        تاریخ ثبت‌نام: {new Date(reg.registration_date).toLocaleDateString('fa-IR', { calendar: 'gregory' })}
+                        تاریخ ثبت‌نام: {new Date(reg.created_at).toLocaleDateString('fa-IR', { calendar: 'gregory' })}
                       </div>
                     </div>
                     <div className={styles.statusSelect}>
