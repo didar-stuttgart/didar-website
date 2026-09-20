@@ -91,6 +91,28 @@
   text-decoration: underline;
 }
 
+/* Short, low-emphasis invitation to join the Telegram channel, shown on
+   every event card. Deliberately quieter than .event-link (smaller, muted
+   color, no bold) so it reads as a secondary aside rather than competing
+   with the primary "learn more" call to action. */
+.event-telegram-note {
+  display: block;
+  margin-top: auto;
+  padding-top: var(--space-2);
+  font-size: var(--fs-xs, 0.75rem);
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.event-telegram-note:hover {
+  color: var(--color-olive);
+  text-decoration: underline;
+}
+
+.event-telegram-note + .event-link {
+  margin-top: var(--space-2);
+}
+
 /* ENHANCEMENT 3: SECTION WITH ALTERNATING IMAGE/TEXT LAYOUT */
 .section-with-image {
   padding: var(--space-20) 0;
@@ -800,19 +822,70 @@ img[loading='lazy'] {
 }
 
 /* ========================================
-   EVENT DETAIL — image hero with title overlay, and a side-by-side
-   date/time row directly below it (public UI consistency pass).
+   EVENT DETAIL — two-column layout (events + registration reliability
+   pass). LEFT (.event-detail-main): title, status, description and the
+   registration form. RIGHT (.event-detail-media): sticky cover image with
+   date/time overlaid on top of it. On mobile the two columns stack with
+   the image first, using normal source order (no separate mobile markup).
    ======================================== */
+
+.event-detail-layout {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-8);
+}
+
+.event-detail-main {
+  min-width: 0;
+}
+
+.event-detail-media {
+  width: 100%;
+}
+
+@media (min-width: 900px) {
+  .event-detail-layout {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--space-10, 3rem);
+  }
+
+  .event-detail-main {
+    flex: 1 1 0;
+  }
+
+  .event-detail-media {
+    flex: 0 0 42%;
+    max-width: 42%;
+    position: sticky;
+    top: var(--space-6);
+  }
+}
+
+/* Small label + large value pairs for location/language in the left
+   column, and reused (at larger sizes) for the date/time overlay below. */
+.event-meta-label {
+  margin: 0;
+  font-size: var(--fs-xs, 0.75rem);
+  font-weight: 400;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.event-meta-value {
+  margin: var(--space-1) 0 0;
+  font-size: var(--fs-lg, 1.125rem);
+  font-weight: 600;
+  color: var(--color-text-dark);
+}
 
 .event-hero {
   position: relative;
   width: 100%;
-  min-height: 260px;
-  max-height: 440px;
-  height: 38vw;
+  min-height: 320px;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  margin-bottom: var(--space-8);
 }
 
 .event-hero-image {
@@ -824,55 +897,61 @@ img[loading='lazy'] {
   background-position: center;
 }
 
-/* Title/category sit on top of the image, anchored to the bottom edge, with
-   a dark-to-transparent scrim behind them so the text stays readable
-   regardless of how light or busy the underlying photo is. Text alignment
-   follows the page's own direction (inherited dir), so it reads from the
-   correct side in both Persian and German without a separate override. */
+.event-hero-image-empty {
+  background-color: var(--color-olive-light, #dfe3d0);
+}
+
+/* The date/time overlay sits on top of the image, anchored to the bottom
+   edge, with a dark-to-transparent scrim behind it so the text stays
+   readable regardless of how light or busy the photo is. The *value* is
+   the large, high-contrast line; the *label* underneath is small and
+   secondary — this deliberately inverts the previous hierarchy where the
+   "تاریخ"/"زمان" labels read larger than the actual date/time. */
 .event-hero-overlay {
   position: absolute;
   inset: 0;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  gap: var(--space-3);
   padding: var(--space-6) var(--space-6) var(--space-5);
   background-image: linear-gradient(
     to top,
-    rgba(0, 0, 0, 0.72) 0%,
-    rgba(0, 0, 0, 0.38) 50%,
+    rgba(0, 0, 0, 0.75) 0%,
+    rgba(0, 0, 0, 0.4) 55%,
     rgba(0, 0, 0, 0) 100%
   );
 }
 
-.event-hero-category {
-  color: var(--color-beige);
-  margin-bottom: var(--space-2);
-}
-
-.event-hero-title {
-  color: var(--color-white);
+.event-hero-date-value,
+.event-hero-time-value {
   margin: 0;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  color: var(--color-white);
+  font-family: var(--font-serif, inherit);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  line-height: 1.15;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
-@media (min-width: 768px) {
+.event-hero-date-label,
+.event-hero-time-label {
+  margin: 0 0 0.25rem;
+  color: var(--color-beige);
+  font-size: var(--fs-xs, 0.75rem);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.event-hero-time-label {
+  margin-top: var(--space-2);
+}
+
+@media (min-width: 900px) {
   .event-hero {
-    height: 32vw;
+    min-height: 420px;
+    height: 100%;
   }
-}
-
-/* Date and time side by side on the same row on desktop; on narrow
-   viewports they wrap onto their own lines instead of overflowing. */
-.event-datetime-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-8);
-}
-
-.event-datetime-row > div {
-  min-width: 140px;
-}
-
-.event-datetime-row h3 {
-  margin-top: 0;
 }

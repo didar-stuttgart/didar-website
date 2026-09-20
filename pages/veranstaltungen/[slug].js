@@ -223,72 +223,50 @@ export default function EventDetail({ event, currentLang }) {
             {currentLang === 'fa' ? '→' : '←'} {t('event.back_to_events', currentLang)}
           </Link>
 
-          {event.image_url ? (
-            <div className="event-hero" dir={dir}>
-              <div
-                className="event-hero-image"
-                style={{ backgroundImage: `url('${event.image_url}')` }}
-                role="img"
-                aria-label={title}
-              />
-              <div className="event-hero-overlay">
-                {category && <p className="event-category event-hero-category">{category}</p>}
-                <h1 className="event-hero-title">{title}</h1>
-              </div>
-            </div>
-          ) : (
-            <>
+          {/* Two-zone layout: LEFT carries the title, status, description
+              and registration form; RIGHT is the sticky cover image with the
+              date/time overlaid on it. On mobile these stack (image first,
+              content follows) via .event-detail-layout's own responsive
+              rules rather than a separate mobile-only markup branch. */}
+          <div className="event-detail-layout">
+            <div className="event-detail-main">
               {category && <p className="event-category">{category}</p>}
               <h1>{title}</h1>
-            </>
-          )}
 
-          <p className="mt-4" style={{ color: 'var(--color-text-muted)' }}>
-            {isPastEvent
-              ? t('events.past_event', currentLang)
-              : registrationOpen
-              ? t('events.registration_open', currentLang)
-              : registrationClosed
-              ? t('events.registration_closed', currentLang)
-              : t('events.coming_soon', currentLang)}
-          </p>
+              <p className="mt-4" style={{ color: 'var(--color-text-muted)' }}>
+                {isPastEvent
+                  ? t('events.past_event', currentLang)
+                  : registrationOpen
+                  ? t('events.registration_open', currentLang)
+                  : registrationClosed
+                  ? t('events.registration_closed', currentLang)
+                  : t('events.coming_soon', currentLang)}
+              </p>
 
-          <div className="grid grid-2 mt-8 gap-8">
-            <div>
-              <div className="event-datetime-row">
-                <div>
-                  <h3>{t('event.date', currentLang)}</h3>
-                  <p>{formatDate(event.event_date, currentLang)}</p>
-                </div>
-
-                {event.event_time && (
-                  <div>
-                    <h3>{t('event.time', currentLang)}</h3>
-                    <p>{formatTime(event.event_time, currentLang)}</p>
-                  </div>
-                )}
-              </div>
+              {event.slug === 'book-club' && (
+                <p className="alert alert-info mt-4" role="note">
+                  {t('event.weekly_schedule_note', currentLang)}
+                </p>
+              )}
 
               {location && (
-                <>
-                  <h3 className="mt-6">{t('event.location', currentLang)}</h3>
-                  <p>{location}</p>
-                </>
+                <div className="mt-6">
+                  <p className="event-meta-label">{t('event.location', currentLang)}</p>
+                  <p className="event-meta-value">{location}</p>
+                </div>
               )}
 
               {eventLanguage && (
-                <>
-                  <h3 className="mt-6">{t('event.language', currentLang)}</h3>
-                  <p>{eventLanguage}</p>
-                </>
+                <div className="mt-6">
+                  <p className="event-meta-label">{t('event.language', currentLang)}</p>
+                  <p className="event-meta-value">{eventLanguage}</p>
+                </div>
               )}
-            </div>
 
-            <div>
-              <h3>{t('event.description', currentLang)}</h3>
-              <p>{description}</p>
-            </div>
-          </div>
+              <div className="mt-8">
+                <h3>{t('event.description', currentLang)}</h3>
+                <p>{description}</p>
+              </div>
 
           <div className="mt-12" style={{ maxWidth: '600px' }}>
             {externalRegistrationUrl ? (
@@ -471,6 +449,35 @@ export default function EventDetail({ event, currentLang }) {
                 {t('event.coming_soon_message', currentLang)}
               </div>
             )}
+          </div>
+            </div>
+
+            <div className="event-detail-media">
+              <div className="event-hero" dir={dir}>
+                {event.image_url ? (
+                  <div
+                    className="event-hero-image"
+                    style={{ backgroundImage: `url('${event.image_url}')` }}
+                    role="img"
+                    aria-label={title}
+                  />
+                ) : (
+                  <div className="event-hero-image event-hero-image-empty" aria-hidden="true" />
+                )}
+
+                <div className="event-hero-overlay">
+                  <p className="event-hero-date-value">{formatDate(event.event_date, currentLang)}</p>
+                  <p className="event-hero-date-label">{t('event.date', currentLang)}</p>
+
+                  {event.event_time && (
+                    <>
+                      <p className="event-hero-time-value">{formatTime(event.event_time, currentLang)}</p>
+                      <p className="event-hero-time-label">{t('event.time', currentLang)}</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

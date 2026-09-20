@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { t, formatDate, formatTime } from '@/lib/i18n';
+import { SOCIAL_LINKS } from '@/components/SocialIcons';
 
 // Curated, generic event photos (public/images/event-1.jpg … event-5.jpg)
 // used only as a fallback when an event has no image_url of its own, so
@@ -100,6 +101,16 @@ export default function EventCard({ event, currentLang, isPast = false }) {
               {t('events.language', currentLang)}: {getLanguage()}
             </div>
           )}
+
+          <a
+            href={SOCIAL_LINKS.telegram}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="event-telegram-note"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {t('event.telegram_note', currentLang)}
+          </a>
 
           <a href={`/veranstaltungen/${event.slug}`} className="event-link">
             {t('common.learn_more', currentLang)} {currentLang === 'fa' ? '←' : '→'}

@@ -1,6 +1,22 @@
 -- DIDAR Website Schema
 -- Minimal schema for event registrations, membership applications, and contact submissions
 -- All personal data is minimized and protected with Row Level Security
+--
+-- MIGRATION NOTE (Sept 2026, Events + Registration Reliability phase):
+-- Because every CREATE TABLE below uses IF NOT EXISTS, re-running this file
+-- against an existing database does NOT add new columns to a table that
+-- already exists. This is exactly how the live `events` table drifted:
+-- registration_status (and category/event_language/external_registration_url,
+-- used elsewhere in the app) were added to this schema file and to the app
+-- code, but never actually run as a migration against production, so the
+-- live table silently lacked them. `registration_status` has since been
+-- added directly in production via:
+--   ALTER TABLE events ADD COLUMN IF NOT EXISTS registration_status TEXT
+--     DEFAULT 'not_open' CHECK (registration_status IN ('not_open','open','closed'));
+--   UPDATE events SET registration_status = CASE WHEN registration_open
+--     THEN 'open' ELSE 'not_open' END;
+-- Any future column added here must also be applied to production with an
+-- explicit ALTER TABLE, not assumed to appear from this file alone.
 
 -- Events table
 CREATE TABLE IF NOT EXISTS events (
