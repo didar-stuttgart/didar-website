@@ -70,7 +70,7 @@ export default function AdminEventEdit() {
 
   const handlePreview = () => {
     if (event.slug) {
-      window.open(`/events/${event.slug}`, '_blank');
+      window.open(`/veranstaltungen/${event.slug}`, '_blank');
     }
   };
 

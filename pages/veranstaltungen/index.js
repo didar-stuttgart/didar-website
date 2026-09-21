@@ -8,6 +8,7 @@ import Head from 'next/head';
 import EventCard from '@/components/EventCard';
 import { t } from '@/lib/i18n';
 import { createServerClient } from '@/lib/supabase';
+import { filterPublicEvents } from '@/lib/events-filter';
 
 export async function getStaticProps() {
   try {
@@ -38,10 +39,14 @@ export async function getStaticProps() {
       console.error('Error fetching past events:', pastError);
     }
 
+    // Filter to only public-safe fields, removing admin_notes and other admin-only data
+    const filteredUpcoming = filterPublicEvents(upcomingEvents);
+    const filteredPast = filterPublicEvents(pastEvents);
+
     return {
       props: {
-        upcomingEvents: upcomingEvents || [],
-        pastEvents: pastEvents || [],
+        upcomingEvents: filteredUpcoming,
+        pastEvents: filteredPast,
       },
       revalidate: 3600, // Regenerate every hour
     };
@@ -49,8 +54,8 @@ export async function getStaticProps() {
     console.error('Error fetching events:', error);
     return {
       props: {
-        upcomingEvents: [],
-        pastEvents: [],
+        upcomingEvents: filterPublicEvents([]),
+        pastEvents: filterPublicEvents([]),
       },
       revalidate: 300, // Retry after 5 minutes on error
     };

@@ -1,10 +1,10 @@
 /**
  * Public events API endpoint
  * GET /api/events - Fetch published events from Supabase
- * 
+ *
  * Query parameters:
  * - status: 'upcoming' | 'past' | 'all' (default: 'upcoming')
- * 
+ *
  * Returns:
  * {
  *   success: true,
@@ -14,6 +14,7 @@
  */
 
 import { createServerClient } from '@/lib/supabase';
+import { filterPublicEvents } from '@/lib/events-filter';
 
 async function handler(req, res) {
   // Only allow GET requests
@@ -52,13 +53,16 @@ async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to fetch events' });
     }
 
+    // Filter to only public-safe fields, removing admin_notes and other admin-only data
+    const publicEvents = filterPublicEvents(events);
+
     // Set cache headers: 5 minutes for public data
     res.setHeader('Cache-Control', 'public, max-age=300');
 
     return res.status(200).json({
       success: true,
-      events: events || [],
-      count: (events || []).length,
+      events: publicEvents,
+      count: publicEvents.length,
     });
   } catch (error) {
     console.error('Events API error:', error);

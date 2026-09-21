@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { createServerClient } from '@/lib/supabase';
 import { t, formatDate, formatTime } from '@/lib/i18n';
+import { filterPublicEvent } from '@/lib/events-filter';
 
 export async function getStaticProps({ params }) {
   try {
@@ -29,8 +30,11 @@ export async function getStaticProps({ params }) {
       return { notFound: true };
     }
 
+    // Filter to only public-safe fields, removing admin_notes and other admin-only data
+    const publicEvent = filterPublicEvent(event);
+
     return {
-      props: { event },
+      props: { event: publicEvent },
       revalidate: 3600, // Regenerate every hour
     };
   } catch (error) {
