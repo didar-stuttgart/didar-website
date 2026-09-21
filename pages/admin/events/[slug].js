@@ -237,7 +237,8 @@ export default function AdminEventEdit() {
                   value={event.capacity || ''}
                   onChange={(e) => handleChange('capacity', e.target.value ? parseInt(e.target.value) : null)}
                   placeholder="تعداد شرکت‌کنندگان"
-                  min="0"
+                  min="1"
+                  step="1"
                 />
               </div>
 

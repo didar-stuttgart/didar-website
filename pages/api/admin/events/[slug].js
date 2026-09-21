@@ -42,6 +42,20 @@ async function handleGetEvent(slug, req, res) {
 async function handleUpdateEvent(slug, req, res) {
   try {
     const { event } = req.body;
+
+    // Validate capacity: must be empty or a positive integer
+    if (event.capacity !== null && event.capacity !== undefined && event.capacity !== '') {
+      const cap = Number(event.capacity);
+      if (!Number.isInteger(cap) || cap < 1) {
+        return res.status(400).json({
+          error: 'Capacity must be empty or a positive integer (1 or higher)'
+        });
+      }
+      event.capacity = cap;
+    } else {
+      event.capacity = null;
+    }
+
     const adminClient = createAdminClient();
 
     const { data, error } = await adminClient
@@ -55,7 +69,7 @@ async function handleUpdateEvent(slug, req, res) {
         event_time: event.event_time || null,
         location_fa: event.location_fa || '',
         location_de: event.location_de || '',
-        capacity: event.capacity || null,
+        capacity: event.capacity,
         registration_deadline: event.registration_deadline || null,
         image_url: event.image_url || '',
         status: event.status || 'draft',

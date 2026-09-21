@@ -18,11 +18,12 @@
 ✅ No new dependencies added  
 
 ### What Is NOT Yet True
-❌ Database migration NOT executed in production  
+❌ Database migration NOT verified to exist in production  
 ❌ Production columns (capacity, registration_deadline) NOT verified to exist  
-❌ Code NOT deployed to production  
-❌ Admin login NOT tested at runtime  
 ❌ Event creation NOT tested at runtime  
+❌ Capacity persistence NOT tested at runtime  
+❌ Deadline persistence NOT tested at runtime  
+❌ Admin notes persistence NOT tested at runtime  
 ❌ Event edit NOT tested at runtime  
 ❌ Event publish NOT tested at runtime  
 ❌ Event archive NOT tested at runtime  
@@ -32,16 +33,21 @@
 ❌ Public event rendering NOT tested at runtime  
 ❌ Mobile layout NOT visually inspected  
 ❌ Registration regression NOT tested  
+❌ Capacity validation NOT verified  
 
-### Current Phase 1 Status
+### Current Phase 1 Status — UPDATED 2026-09-21
 
 | Component | Status | Evidence |
 |-----------|--------|----------|
-| **Code Implementation** | COMPLETE | Code inspection: all 5 files present, changes appear correct |
-| **Database Migration** | NOT EXECUTED | SQL commands prepared, NOT yet run against production |
-| **Production Deployment** | NOT DEPLOYED | Code NOT yet pushed to production repository |
-| **Runtime Testing** | NOT PERFORMED | No actual tests have been executed |
-| **Production Verification** | NOT VERIFIED | Migration status unknown, E2E tests not run |
+| **Code Implementation** | COMPLETE | All 5 files present in project folder, changes appear correct |
+| **Code Deployment** | ✅ DEPLOYED | Admin login works, /admin/events page loads with Phase 1 UI |
+| **Admin Login** | ✅ PASS | Successful authentication to https://didar-stuttgart.com/admin/login |
+| **Admin Events List** | ✅ PASS | /admin/events page loads with search box, status filter, event table |
+| **Phase 1 Form Fields** | ✅ DEPLOYED | Capacity, Registration Deadline, Admin Notes fields visible in event form |
+| **Phase 1 Action Buttons** | ✅ DEPLOYED | Preview, Duplicate, Archive buttons present and clickable |
+| **Database Migration** | UNKNOWN | Columns not verified in production database yet |
+| **Runtime E2E Testing** | NOT YET STARTED | Core functionality tests pending |
+| **Production Verification** | IN PROGRESS | Initial deployment verified; E2E tests in progress |
 
 ---
 
@@ -93,16 +99,18 @@ ORDER BY ordinal_position;
 Must show `capacity` and `registration_deadline` present in production.
 
 ### Code Deployment
-**Status: NOT DEPLOYED**
+**Status: ✅ PASS (Verified 2026-09-21)**
 
-Code changes are in the canonical project folder but NOT deployed to production:
-- `data/schema.sql`
-- `pages/admin/events/[slug].js`
-- `pages/admin/events/index.js`
-- `pages/api/admin/events/index.js`
-- `pages/api/admin/events/[slug].js`
+Code changes are deployed to production at https://didar-stuttgart.com/:
+- ✅ Admin authentication works
+- ✅ /admin/events page loads with Phase 1 UI
+- ✅ Capacity field deployed
+- ✅ Registration deadline field deployed
+- ✅ Admin notes field deployed
+- ✅ Preview, Duplicate, Archive buttons deployed
+- ✅ Search and filter controls deployed
 
-These files must be pushed to GitHub `main` branch and deployed via Vercel.
+Verified through Chrome browser automation on canonical production domain.
 
 ### Runtime Verification
 **Status: NOT PERFORMED**
