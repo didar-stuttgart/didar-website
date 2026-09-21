@@ -55,9 +55,12 @@ async function handleUpdateEvent(slug, req, res) {
         event_time: event.event_time || null,
         location_fa: event.location_fa || '',
         location_de: event.location_de || '',
+        capacity: event.capacity || null,
+        registration_deadline: event.registration_deadline || null,
         image_url: event.image_url || '',
         status: event.status || 'draft',
         registration_status: event.registration_status || 'not_open',
+        admin_notes: event.admin_notes || '',
       })
       .eq('slug', slug)
       .select();
@@ -73,15 +76,17 @@ async function handleUpdateEvent(slug, req, res) {
 async function handleDeleteEvent(slug, req, res) {
   try {
     const adminClient = createAdminClient();
-    const { error } = await adminClient
+    // Archive instead of hard delete — soft delete by setting status to 'archived'
+    const { data, error } = await adminClient
       .from('events')
-      .delete()
-      .eq('slug', slug);
+      .update({ status: 'archived' })
+      .eq('slug', slug)
+      .select();
 
     if (error) throw error;
-    return res.status(200).json({ success: true });
+    return res.status(200).json({ success: true, event: data[0] });
   } catch (err) {
-    console.error('Delete event error:', err);
-    return res.status(500).json({ error: 'Failed to delete event' });
+    console.error('Archive event error:', err);
+    return res.status(500).json({ error: 'Failed to archive event' });
   }
 }

@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIDAR Admin Panel - Architecture Diagram</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .header p { font-size: 1.1em; opacity: 0.9; }
+        .content {
+            padding: 40px;
+        }
+        .section {
+            margin-bottom: 50px;
+        }
+        .section h2 {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .diagram {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 30px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        .box {
+            display: inline-block;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 10px;
+            min-width: 150px;
+            text-align: center;
+            font-weight: 500;
+            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.1);
+        }
+        .box.auth { border-color: #ff6b6b; background: #fff5f5; }
+        .box.session { border-color: #4ecdc4; background: #f0fffe; }
+        .box.admin { border-color: #95e1d3; background: #f0fef8; }
+        .box.database { border-color: #ffd93d; background: #fffef0; }
+        .box.middleware { border-color: #a8e6cf; background: #f5fef9; }
+        .arrow {
+            display: inline-block;
+            margin: 0 10px;
+            color: #667eea;
+            font-size: 1.5em;
+        }
+        .flow {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+        .flow strong { color: #667eea; }
+        .flow .success { color: #51cf66; }
+        .flow .error { color: #ff6b6b; }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .table th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        .table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .table tr:hover {
+            background: #f8f9fa;
+        }
+        .layer {
+            background: #f8f9fa;
+            border-left: 5px solid #667eea;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        .layer h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .layer-content {
+            color: #555;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+        .code {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        .key { color: #f92672; }
+        .string { color: #e6db74; }
+        .number { color: #ae81ff; }
+        .comment { color: #75715e; }
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        .checklist li {
+            padding: 10px 15px;
+            background: #f8f9fa;
+            margin: 8px 0;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+        }
+        .checklist li:before {
+            content: "✓ ";
+            color: #51cf66;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .footer {
+            background: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid #e9ecef;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .card h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .card p {
+            color: #666;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>DIDAR Admin Panel</h1>
+            <p>Complete Architecture Overview — Post-Phase A6</p>
+        </div>
+
+        <div class="content">
+            <!-- Overview Diagram -->
+            <div class="section">
+                <h2>System Architecture Overview</h2>
+                <div class="diagram">
+                    <div style="text-align: center; line-height: 2;">
+                        <div class="box">🌐 Frontend<br>pages/admin/*</div>
+                        <div class="arrow">↔</div>
+                        <div class="box middleware">🔧 Middleware<br>requireAdminSession()</div>
+                        <div class="arrow">↔</div>
+                        <div class="box auth">🔐 Auth API<br>/api/auth/*</div>
+                    </div>
+                    <div style="text-align: center; line-height: 2; margin-top: 20px;">
+                        <div class="box admin">⚙️ Admin API<br>/api/admin/*</div>
+                        <div class="arrow">↔</div>
+                        <div class="box session">📦 Session Store<br>lib/session-store.js</div>
+                        <div class="arrow">↔</div>
+                        <div class="box database">🗄️ Supabase<br>PostgreSQL</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Authentication Flow -->
+            <div class="section">
+                <h2>Authentication Flow</h2>
+                <div class="flow">
+                    <strong>LOGIN FLOW</strong><br><br>
+                    1. User navigates to /admin/login<br>
+                    2. Enters password, submits form<br>
+                    3. Frontend: POST /api/auth/login { password }<br>
+                    4. <span class="success">✓ Backend verifies against ADMIN_PASSWORD_HASH</span><br>
+                    5. <span class="success">✓ Generates token: crypto.randomBytes(32) → 64 hex chars</span><br>
+                    6. <span class="success">✓ createSession(token) → stored in lib/session-store.js Map</span><br>
+                    7. <span class="success">✓ Set-Cookie: session_token={token}; HttpOnly; SameSite=Lax; Max-Age=86400</span><br>
+                    8. Frontend receives 200, redirected to /admin<br>
+                    9. Dashboard loads, calls POST /api/auth/verify<br>
+                    10. <span class="success">✓ Session valid → loads stats via /api/admin/stats</span><br>
+                </div>
+
+                <div class="flow">
+                    <strong>LOGOUT FLOW</strong><br><br>
+                    1. User clicks "خروج" (Logout)<br>
+                    2. Frontend: POST /api/auth/logout<br>
+                    3. <span class="success">✓ Backend extracts session_token from cookie</span><br>
+                    4. <span class="success">✓ deleteSession(token) → removes from Map</span><br>
+                    5. <span class="success">✓ Set-Cookie: session_token=; Max-Age=0</span><br>
+                    6. Frontend redirected to /admin/login<br>
+                </div>
+
+                <div class="flow">
+                    <strong>SESSION VALIDATION ON EVERY ADMIN REQUEST</strong><br><br>
+                    1. User makes request to /api/admin/* (e.g., GET /api/admin/stats)<br>
+                    2. <span class="success">✓ requireAdminSession() extracts session_token from cookie</span><br>
+                    3. <span class="success">✓ validateSession(token) checks if in session-store.js</span><br>
+                    4. <span class="success">✓ Checks if token is NOT expired (now &lt; expiresAt)</span><br>
+                    5. <span class="error">✗ If invalid → returns false, endpoint returns 401 Unauthorized</span><br>
+                    6. <span class="success">✓ If valid → endpoint continues, queries Supabase via admin key</span><br>
+                </div>
+            </div>
+
+            <!-- Key Components -->
+            <div class="section">
+                <h2>Key Components & Their Roles</h2>
+
+                <div class="layer">
+                    <h3>🔑 Session Store (Single Source of Truth)</h3>
+                    <div class="layer-content">
+                        <strong>File:</strong> lib/session-store.js<br><br>
+                        <strong>Data Structure:</strong> Map of {token → {createdAt, expiresAt}}<br><br>
+                        <strong>Functions:</strong>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li><code>createSession(token, expiresAt)</code> — creates 24h session</li>
+                            <li><code>validateSession(token)</code> — checks exists & not expired</li>
+                            <li><code>deleteSession(token)</code> — removes on logout</li>
+                            <li><code>getSessionCount()</code> — returns count of active sessions</li>
+                        </ul>
+                        <br><strong>Note:</strong> This is the ONLY place where sessions are tracked. All authentication checks (login, verify, admin endpoints) use this store.
+                    </div>
+                </div>
+
+                <div class="layer">
+                    <h3>🔐 Password Security</h3>
+                    <div class="layer-content">
+                        <strong>File:</strong> lib/admin-auth.js<br><br>
+                        <strong>Algorithm:</strong> PBKDF2-SHA256
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>16-byte random salt (hex-encoded)</li>
+                            <li>10,000 iterations</li>
+                            <li>64-byte hash output</li>
+                            <li>Format: "salt:hash"</li>
+                        </ul>
+                        <br><strong>Password Requirements:</strong>
+                        <ul style="margin-left: 20px;">
+                            <li>Min 12 characters</li>
+                            <li>At least 1 lowercase letter</li>
+                            <li>At least 1 uppercase letter</li>
+                            <li>At least 1 digit (0-9)</li>
+                            <li>At least 1 special character (!@#$%^&*)</li>
+                        </ul>
+                        <br><strong>Setup:</strong> Run scripts/setup-admin.js to generate password hash
+                    </div>
+                </div>
+
+                <div class="layer">
+                    <h3>🔧 Middleware</h3>
+                    <div class="layer-content">
+                        <strong>File:</strong> lib/api-middleware.js<br><br>
+                        <strong>Function:</strong> requireAdminSession(req, res)<br>
+                        <strong>Usage:</strong> Called at the start of every /api/admin/* endpoint<br>
+                        <strong>Returns:</strong> true if session valid, false otherwise<br>
+                        <strong>If false:</strong> Endpoint returns 401 Unauthorized<br><br>
+                        <strong>How it works:</strong>
+                        <ol style="margin-left: 20px;">
+                            <li>Parses cookies from request header</li>
+                            <li>Extracts session_token</li>
+                            <li>Calls validateSession() from session-store.js</li>
+                            <li>Returns boolean result</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="layer">
+                    <h3>💾 Supabase & Database Access</h3>
+                    <div class="layer-content">
+                        <strong>File:</strong> lib/supabase.js<br><br>
+                        <strong>Public Client (Limited by RLS):</strong>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>Used for: Public reads, form submissions</li>
+                            <li>Uses: NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</li>
+                            <li>Can: SELECT published events, INSERT registrations</li>
+                            <li>Cannot: Read/modify private data</li>
+                        </ul>
+                        <br><strong>Admin Client (Full Access):</strong>
+                        <ul style="margin-left: 20px;">
+                            <li>Used in: Every /api/admin/* endpoint</li>
+                            <li>Uses: SUPABASE_SECRET_KEY (server-side only)</li>
+                            <li>Can: Full database access (bypasses RLS)</li>
+                            <li>Never exposed to: Browser or frontend code</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API Endpoints Reference -->
+            <div class="section">
+                <h2>API Endpoints Reference</h2>
+
+                <h3 style="margin-top: 20px; color: #667eea;">Authentication Endpoints</h3>
+                <table class="table">
+                    <tr>
+                        <th>Endpoint</th>
+                        <th>Method</th>
+                        <th>Body</th>
+                        <th>Response</th>
+                        <th>Sets Cookie</th>
+                    </tr>
+                    <tr>
+                        <td><code>/api/auth/login</code></td>
+                        <td>POST</td>
+                        <td>{password}</td>
+                        <td>{success: true}</td>
+                        <td>session_token</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/auth/logout</code></td>
+                        <td>POST</td>
+                        <td>(empty)</td>
+                        <td>{success: true}</td>
+                        <td>Clears</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/auth/verify</code></td>
+                        <td>POST</td>
+                        <td>(empty)</td>
+                        <td>{valid: true}</td>
+                        <td>Reads</td>
+                    </tr>
+                </table>
+
+                <h3 style="margin-top: 30px; color: #667eea;">Admin Data Endpoints (all require valid session)</h3>
+                <table class="table">
+                    <tr>
+                        <th>Endpoint</th>
+                        <th>Method</th>
+                        <th>Purpose</th>
+                        <th>Response Type</th>
+                    </tr>
+                    <tr>
+                        <td><code>/api/admin/stats</code></td>
+                        <td>GET</td>
+                        <td>Dashboard numbers</td>
+                        <td>JSON: {upcomingEvents, newRegistrations, newMemberships}</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/admin/events</code></td>
+                        <td>GET/POST</td>
+                        <td>List/create events</td>
+                        <td>JSON: {events: [...]}</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/admin/events/[slug]</code></td>
+                        <td>GET/PATCH/DELETE</td>
+                        <td>Individual event CRUD</td>
+                        <td>JSON: {event: {...}} or {success: true}</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/admin/registrations</code></td>
+                        <td>GET</td>
+                        <td>List all registrations</td>
+                        <td>JSON: {registrations: [...]}</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/admin/registrations/[id]</code></td>
+                        <td>PATCH</td>
+                        <td>Update registration status</td>
+                        <td>JSON: {success: true}</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/admin/registrations/export</code></td>
+                        <td>GET</td>
+                        <td>Download CSV</td>
+                        <td>CSV file (text/csv)</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/admin/memberships</code></td>
+                        <td>GET</td>
+                        <td>List memberships</td>
+                        <td>JSON: {memberships: [...]}</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/admin/content</code></td>
+                        <td>GET/POST</td>
+                        <td>Edit page content</td>
+                        <td>JSON: {pages: {...}}</td>
+                    </tr>
+                    <tr>
+                        <td><code>/api/admin/settings</code></td>
+                        <td>GET/POST</td>
+                        <td>Edit settings</td>
+                        <td>JSON: {email, phone, social_media, ...}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Security -->
+            <div class="section">
+                <h2>Security Features</h2>
+
+                <div class="grid">
+                    <div class="card">
+                        <h4>✓ Strong Tokens</h4>
+                        <p>32 random bytes (256-bit entropy), impossible to brute-force</p>
+                    </div>
+                    <div class="card">
+                        <h4>✓ HttpOnly Cookies</h4>
+                        <p>JavaScript cannot access session token, protects against XSS</p>
+                    </div>
+                    <div class="card">
+                        <h4>✓ SameSite Protection</h4>
+                        <p>Cross-site forms cannot submit to admin endpoints, protects against CSRF</p>
+                    </div>
+                    <div class="card">
+                        <h4>✓ Password Hashing</h4>
+                        <p>PBKDF2-SHA256 with random salt, never plaintext in code</p>
+                    </div>
+                    <div class="card">
+                        <h4>✓ Row Level Security</h4>
+                        <p>Database enforces access control at schema level, second line of defense</p>
+                    </div>
+                    <div class="card">
+                        <h4>✓ Secret Key Isolation</h4>
+                        <p>Admin key never sent to browser, only used server-side</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Testing -->
+            <div class="section">
+                <h2>Testing Checklist</h2>
+                <ul class="checklist">
+                    <li>Login with correct password → redirects to /admin and shows dashboard</li>
+                    <li>Login with wrong password → shows error message (رمز عبور نادرست است)</li>
+                    <li>Dashboard loads → displays stats (upcomingEvents, newRegistrations, newMemberships)</li>
+                    <li>Navigate to "رویدادها" → events page loads and shows all events</li>
+                    <li>Navigate to "ثبت‌نام‌ها" → registrations page loads</li>
+                    <li>Create new event → appears in list and in database</li>
+                    <li>Edit event → changes persist to database</li>
+                    <li>Delete event → removed from list and database</li>
+                    <li>Export registrations → CSV file downloads with correct data</li>
+                    <li>Click "خروج" → logged out, redirected to login page</li>
+                    <li>Try accessing /admin after logout → redirected to login</li>
+                    <li>Try accessing /api/admin/* after logout → returns 401 Unauthorized</li>
+                    <li>Restart server or wait 24h → session expires, next action redirects to login</li>
+                    <li>Access /admin with modified/invalid cookie → redirected to login</li>
+                    <li>Try CSRF attack → protected by SameSite=Lax cookie</li>
+                </ul>
+            </div>
+
+            <!-- File Structure -->
+            <div class="section">
+                <h2>Complete File Structure</h2>
+                <div class="code">
+<span class="key">pages/admin/</span>
+  ├── <span class="string">login.js</span>              <span class="comment">← Login page</span>
+  ├── <span class="string">index.js</span>              <span class="comment">← Dashboard</span>
+  ├── <span class="string">registrations.js</span>      <span class="comment">← Registrations</span>
+  ├── <span class="string">memberships.js</span>        <span class="comment">← Memberships</span>
+  ├── <span class="string">content.js</span>            <span class="comment">← Content editor</span>
+  ├── <span class="string">settings.js</span>           <span class="comment">← Settings</span>
+  └── <span class="string">events/</span>               <span class="comment">← Event pages</span>
+
+<span class="key">pages/api/auth/</span>
+  ├── <span class="string">login.js</span>              <span class="comment">← Password verification, session creation</span>
+  ├── <span class="string">logout.js</span>             <span class="comment">← Session deletion</span>
+  └── <span class="string">verify.js</span>             <span class="comment">← Session validation</span>
+
+<span class="key">pages/api/admin/</span>
+  ├── <span class="string">stats.js</span>              <span class="comment">← Dashboard stats</span>
+  ├── <span class="string">events/</span>               <span class="comment">← Event CRUD</span>
+  ├── <span class="string">registrations/</span>       <span class="comment">← Registration management</span>
+  ├── <span class="string">memberships/</span>         <span class="comment">← Membership management</span>
+  ├── <span class="string">content/</span>             <span class="comment">← Content management</span>
+  └── <span class="string">settings/</span>            <span class="comment">← Settings management</span>
+
+<span class="key">lib/</span>
+  ├── <span class="string">session-store.js</span>      <span class="comment">← ⭐ SINGLE SOURCE OF TRUTH for sessions</span>
+  ├── <span class="string">admin-auth.js</span>         <span class="comment">← Password hashing & verification</span>
+  ├── <span class="string">api-middleware.js</span>     <span class="comment">← requireAdminSession()</span>
+  ├── <span class="string">middleware.js</span>         <span class="comment">← Unused (can delete)</span>
+  └── <span class="string">supabase.js</span>          <span class="comment">← Database clients</span>
+
+<span class="key">styles/</span>
+  └── <span class="string">admin.module.css</span>      <span class="comment">← All admin panel styling</span>
+
+<span class="key">scripts/</span>
+  └── <span class="string">setup-admin.js</span>        <span class="comment">← Password setup wizard</span>
+                </div>
+            </div>
+
+            <!-- Environment Variables -->
+            <div class="section">
+                <h2>Environment Variables</h2>
+                <div class="code">
+<span class="comment"># REQUIRED: Admin password hash (generated by scripts/setup-admin.js)</span>
+<span class="key">ADMIN_PASSWORD_HASH</span>=<span class="string">"salt:hash"</span>
+
+<span class="comment"># REQUIRED: Supabase configuration</span>
+<span class="key">NEXT_PUBLIC_SUPABASE_URL</span>=<span class="string">"https://..."</span>
+<span class="key">NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</span>=<span class="string">"eyJ..."</span>
+<span class="key">SUPABASE_SECRET_KEY</span>=<span class="string">"eyJ..."</span> <span class="comment">← Server-side only! Never to browser!</span>
+
+<span class="comment"># OPTIONAL: Rate limiting configuration</span>
+<span class="key">RATE_LIMIT_REQUESTS</span>=<span class="string">10</span>
+<span class="key">RATE_LIMIT_WINDOW_MS</span>=<span class="string">60000</span>
+                </div>
+            </div>
+
+            <!-- Common Issues -->
+            <div class="section">
+                <h2>Troubleshooting Guide</h2>
+
+                <div style="background: #fff5f5; border-left: 4px solid #ff6b6b; padding: 20px; margin: 20px 0; border-radius: 4px;">
+                    <strong style="color: #ff6b6b;">⚠ "Unauthorized" on dashboard after login</strong><br>
+                    <span style="color: #555;">Check: ADMIN_PASSWORD_HASH is set in environment, session-store.js is being used, requireAdminSession() is called in admin routes, cookie is sent with credentials: 'include'</span>
+                </div>
+
+                <div style="background: #fff5f5; border-left: 4px solid #ff6b6b; padding: 20px; margin: 20px 0; border-radius: 4px;">
+                    <strong style="color: #ff6b6b;">⚠ Password doesn't work despite being correct</strong><br>
+                    <span style="color: #555;">Fix: Run scripts/setup-admin.js to re-hash password, verify format is "salt:hash", ensure password meets complexity requirements</span>
+                </div>
+
+                <div style="background: #fff5f5; border-left: 4px solid #ff6b6b; padding: 20px; margin: 20px 0; border-radius: 4px;">
+                    <strong style="color: #ff6b6b;">⚠ Session expires immediately</strong><br>
+                    <span style="color: #555;">Check: Session creation sets expiresAt to 24h from now, cookie Max-Age is 86400 (24 hours in seconds), validateSession() checks date comparison correctly</span>
+                </div>
+
+                <div style="background: #fff5f5; border-left: 4px solid #ff6b6b; padding: 20px; margin: 20px 0; border-radius: 4px;">
+                    <strong style="color: #ff6b6b;">⚠ Can't export registrations as CSV</strong><br>
+                    <span style="color: #555;">Check: /api/admin/registrations/export endpoint exists, content-type header is set to 'text/csv', session is valid when export is requested</span>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="footer">
+            <p><strong>DIDAR Admin Panel Architecture Guide</strong></p>
+            <p>Generated: 2026-09-21 | Status: Post-Phase A6 (Fully Functional)</p>
+            <p>For complete details, see: <code>claude/19_ADMIN_PANEL_COMPLETE_ARCHITECTURE.md</code></p>
+        </div>
+    </div>
+</body>
+</html>

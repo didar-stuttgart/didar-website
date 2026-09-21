@@ -54,9 +54,12 @@ async function handleCreateEvent(req, res) {
           event_time: event.event_time || null,
           location_fa: event.location_fa || '',
           location_de: event.location_de || '',
+          capacity: event.capacity || null,
+          registration_deadline: event.registration_deadline || null,
           image_url: event.image_url || '',
           status: event.status || 'draft',
           registration_status: event.registration_status || 'not_open',
+          admin_notes: event.admin_notes || '',
         },
       ])
       .select();

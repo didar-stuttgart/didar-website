@@ -9,6 +9,8 @@ export default function AdminEvents() {
   const [sessionValid, setSessionValid] = useState(false);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     const checkSession = async () => {
@@ -42,21 +44,40 @@ export default function AdminEvents() {
     }
   };
 
-  const handleDelete = async (slug) => {
-    if (!confirm('آیا از حذف این رویداد اطمینان دارید؟')) return;
+  const handleArchive = async (slug) => {
+    if (!confirm('آیا می‌خواهید این رویداد را بایگانی کنید؟')) return;
 
     try {
-      const res = await fetch(`/api/admin/events/${slug}`, { method: 'DELETE' });
+      const res = await fetch(`/api/admin/events/${slug}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
       if (res.ok) {
-        setEvents(events.filter((e) => e.slug !== slug));
+        // Update the event status to archived instead of removing it
+        setEvents(events.map((e) =>
+          e.slug === slug ? { ...e, status: 'archived' } : e
+        ));
       } else {
-        alert('خطا در حذف رویداد');
+        alert('خطا در بایگانی رویداد');
       }
     } catch (err) {
-      console.error('Failed to delete event:', err);
-      alert('خطا در حذف رویداد');
+      console.error('Failed to archive event:', err);
+      alert('خطا در بایگانی رویداد');
     }
   };
+
+  // Filter events based on search and status
+  const filteredEvents = events.filter((event) => {
+    const matchesSearch =
+      event.title_fa.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.title_de.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === 'all' || event.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
 
   if (!sessionValid || loading) {
     return <div className={styles.loading}>درحال بارگذاری...</div>;
@@ -84,10 +105,47 @@ export default function AdminEvents() {
             </Link>
           </div>
 
+          {events.length > 0 && (
+            <div style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
+              <input
+                type="text"
+                placeholder="جستجو بر اساس عنوان..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontFamily: 'inherit',
+                }}
+              />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <option value="all">تمام وضعیت‌ها</option>
+                <option value="draft">پیش‌نویس</option>
+                <option value="published">منتشر شده</option>
+                <option value="archived">بایگانی شده</option>
+              </select>
+            </div>
+          )}
+
           {events.length === 0 ? (
             <div className={styles.emptyState}>
               <p>هیچ رویدادی وجود ندارد</p>
               <Link href="/admin/events/new">ایجاد رویداد اول</Link>
+            </div>
+          ) : filteredEvents.length === 0 ? (
+            <div className={styles.emptyState}>
+              <p>نتیجه‌ای برای جستجو یافت نشد</p>
             </div>
           ) : (
             <table className={styles.table}>
@@ -101,7 +159,7 @@ export default function AdminEvents() {
                 </tr>
               </thead>
               <tbody>
-                {events.map((event) => (
+                {filteredEvents.map((event) => (
                   <tr key={event.slug}>
                     <td>{event.title_fa || event.title_de}</td>
                     <td>{event.event_date}</td>
@@ -110,10 +168,16 @@ export default function AdminEvents() {
                         className={
                           event.status === 'published'
                             ? styles.statusPublished
+                            : event.status === 'archived'
+                            ? styles.statusArchived
                             : styles.statusDraft
                         }
                       >
-                        {event.status === 'published' ? 'منتشر شده' : 'پیش‌نویس'}
+                        {event.status === 'published'
+                          ? 'منتشر شده'
+                          : event.status === 'archived'
+                          ? 'بایگانی شده'
+                          : 'پیش‌نویس'}
                       </span>
                     </td>
                     <td>
@@ -138,12 +202,24 @@ export default function AdminEvents() {
                       >
                         ویرایش
                       </Link>
-                      <button
-                        onClick={() => handleDelete(event.slug)}
-                        className={styles.deleteButton}
-                      >
-                        حذف
-                      </button>
+                      {event.status === 'published' && (
+                        <a
+                          href={`/events/${event.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={styles.previewButton}
+                        >
+                          پیش‌نمایش
+                        </a>
+                      )}
+                      {event.status !== 'archived' && (
+                        <button
+                          onClick={() => handleArchive(event.slug)}
+                          className={styles.deleteButton}
+                        >
+                          بایگانی
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

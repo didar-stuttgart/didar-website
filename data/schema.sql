@@ -17,6 +17,12 @@
 --     THEN 'open' ELSE 'not_open' END;
 -- Any future column added here must also be applied to production with an
 -- explicit ALTER TABLE, not assumed to appear from this file alone.
+--
+-- PHASE 1 NEW COLUMNS (Event management enhancement):
+-- Phase 1 adds `capacity INT` and `registration_deadline DATE` to events table.
+-- These must be applied to production via:
+--   ALTER TABLE events ADD COLUMN IF NOT EXISTS capacity INT;
+--   ALTER TABLE events ADD COLUMN IF NOT EXISTS registration_deadline DATE;
 
 -- Events table
 CREATE TABLE IF NOT EXISTS events (
@@ -36,6 +42,8 @@ CREATE TABLE IF NOT EXISTS events (
   event_time TIME,
   location_fa TEXT,
   location_de TEXT,
+  capacity INT,
+  registration_deadline DATE,
 
   -- Status management
   status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),

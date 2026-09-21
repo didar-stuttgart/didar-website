@@ -30,9 +30,12 @@ export default function AdminEventEdit() {
               event_time: '',
               location_fa: '',
               location_de: '',
+              capacity: null,
+              registration_deadline: '',
               image_url: '',
               status: 'draft',
               registration_status: 'not_open',
+              admin_notes: '',
             });
             setLoading(false);
           }
@@ -65,6 +68,73 @@ export default function AdminEventEdit() {
     setEvent((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handlePreview = () => {
+    if (event.slug) {
+      window.open(`/events/${event.slug}`, '_blank');
+    }
+  };
+
+  const handleDuplicate = async () => {
+    try {
+      const newEvent = { ...event };
+      delete newEvent.id;
+      delete newEvent.slug;
+      delete newEvent.created_at;
+      delete newEvent.updated_at;
+      newEvent.title_fa = `${newEvent.title_fa} (کپی)`;
+      newEvent.title_de = `${newEvent.title_de} (Kopie)`;
+      newEvent.status = 'draft';
+
+      setSaving(true);
+      const res = await fetch('/api/admin/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ event: newEvent }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        alert('رویداد با موفقیت تکرار شد');
+        router.push(`/admin/events/${data.event.slug}`);
+      } else {
+        alert('خطا در تکرار رویداد');
+      }
+    } catch (err) {
+      console.error('Failed to duplicate event:', err);
+      alert('خطا در تکرار رویداد');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!confirm('آیا می‌خواهید این رویداد را بایگانی کنید؟')) {
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const res = await fetch(`/api/admin/events/${slug}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      if (res.ok) {
+        alert('رویداد با موفقیت بایگانی شد');
+        router.push('/admin/events');
+      } else {
+        alert('خطا در بایگانی رویداد');
+      }
+    } catch (err) {
+      console.error('Failed to archive event:', err);
+      alert('خطا در بایگانی رویداد');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -74,6 +144,7 @@ export default function AdminEventEdit() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ event }),
       });
 
@@ -158,6 +229,26 @@ export default function AdminEventEdit() {
                   onChange={(e) => handleChange('event_time', e.target.value)}
                 />
               </div>
+
+              <div className={styles.formGroup}>
+                <label>ظرفیت (اختیاری)</label>
+                <input
+                  type="number"
+                  value={event.capacity || ''}
+                  onChange={(e) => handleChange('capacity', e.target.value ? parseInt(e.target.value) : null)}
+                  placeholder="تعداد شرکت‌کنندگان"
+                  min="0"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>آخرین مهلت ثبت‌نام (اختیاری)</label>
+                <input
+                  type="date"
+                  value={event.registration_deadline || ''}
+                  onChange={(e) => handleChange('registration_deadline', e.target.value)}
+                />
+              </div>
             </section>
 
             <section className={styles.formSection}>
@@ -222,6 +313,16 @@ export default function AdminEventEdit() {
               </div>
 
               <div className={styles.formGroup}>
+                <label>یادداشت‌های مدیر (اختیاری)</label>
+                <textarea
+                  value={event.admin_notes || ''}
+                  onChange={(e) => handleChange('admin_notes', e.target.value)}
+                  placeholder="یادداشت‌های داخلی برای مدیران"
+                  rows="3"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
                 <label>وضعیت ثبت‌نام</label>
                 <select
                   value={event.registration_status || 'not_open'}
@@ -254,6 +355,33 @@ export default function AdminEventEdit() {
               >
                 {saving ? 'درحال ذخیره...' : 'ذخیره رویداد'}
               </button>
+              {slug !== 'new' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handlePreview()}
+                    className={styles.secondaryButton}
+                  >
+                    پیش‌نمایش
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDuplicate()}
+                    className={styles.secondaryButton}
+                  >
+                    تکرار رویداد
+                  </button>
+                  {event.status !== 'archived' && (
+                    <button
+                      type="button"
+                      onClick={() => handleArchive()}
+                      className={styles.dangerButton}
+                    >
+                      بایگانی
+                    </button>
+                  )}
+                </>
+              )}
               <Link href="/admin/events" className={styles.backLink}>
                 انصراف
               </Link>
