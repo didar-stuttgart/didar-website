@@ -4,12 +4,17 @@
  * Rate limited to prevent spam
  * Server-side validation required
  * 
- * Modified for Phase 3A4: Added event existence and published status check
+ * Modified for event registration verification:
+ * - Creates registration with status='pending'
+ * - Generates verification token
+ * - Sends verification email
  */
 
 import { createServerClient } from '@/lib/supabase';
 import { validateEventRegistration } from '@/lib/validation';
 import { withRateLimit } from '@/lib/middleware';
+import { generateToken, hashToken, getTokenExpiration } from '@/lib/verification';
+import { sendVerificationEmail } from '@/lib/email';
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -17,7 +22,7 @@ async function handler(req, res) {
   }
 
   try {
-    const { eventId, firstName, lastName, email, phone, telegramId, comment } = req.body;
+    const { eventId, firstName, lastName, email, phone, telegramId, comment, language = 'de' } = req.body;
 
     // Validate required eventId
     if (!eventId || typeof eventId !== 'number') {
@@ -29,7 +34,7 @@ async function handler(req, res) {
     
     const { data: event, error: eventError } = await supabase
       .from('events')
-      .select('id, status, registration_status')
+      .select('id, status, registration_status, title_fa, title_de')
       .eq('id', eventId)
       .eq('status', 'published')
       .single();
@@ -59,8 +64,13 @@ async function handler(req, res) {
       });
     }
 
-    // Submit registration to Supabase
-    const { error } = await supabase
+    // Generate verification token
+    const rawToken = generateToken();
+    const tokenHash = hashToken(rawToken);
+    const tokenExpiration = getTokenExpiration();
+
+    // Submit registration to Supabase with pending status
+    const { data: registration, error: insertError } = await supabase
       .from('event_registrations')
       .insert([
         {
@@ -71,25 +81,46 @@ async function handler(req, res) {
           phone: phone?.trim() || null,
           telegram_id: telegramId?.trim() || null,
           comment: comment?.trim() || null,
-          status: 'new',
+          status: 'pending',
+          verification_token_hash: tokenHash,
+          verification_token_expires_at: tokenExpiration,
         },
-      ]);
+      ])
+      .select('id')
+      .single();
 
-    if (error) {
+    if (insertError) {
       // Handle duplicate email for this event
-      if (error.code === '23505') {
+      if (insertError.code === '23505') {
         return res.status(409).json({
           error: 'You have already registered for this event with this email',
         });
       }
 
-      console.error('Supabase error:', error);
+      console.error('Supabase insert error:', insertError);
       return res.status(500).json({ error: 'Failed to submit registration' });
+    }
+
+    // Send verification email
+    try {
+      const userName = `${firstName} ${lastName}`;
+      await sendVerificationEmail(
+        email.trim().toLowerCase(),
+        userName,
+        registration.id,
+        rawToken,
+        language
+      );
+    } catch (emailError) {
+      console.error('Email sending error:', emailError);
+      // Don't fail the registration if email fails
+      // The user can request a resend if needed (future feature)
     }
 
     return res.status(201).json({
       success: true,
-      message: 'Registration submitted successfully',
+      message: 'Registration submitted. Please check your email to verify your registration.',
+      registrationId: registration.id,
     });
   } catch (error) {
     console.error('Registration submission error:', error);
