@@ -69,25 +69,21 @@ async function handler(req, res) {
     const tokenHash = hashToken(rawToken);
     const tokenExpiration = getTokenExpiration();
 
-    // Submit registration to Supabase with pending status
-    const { data: registration, error: insertError } = await supabase
-      .from('event_registrations')
-      .insert([
-        {
-          event_id: eventId,
-          first_name: firstName.trim(),
-          last_name: lastName.trim(),
-          email: email.trim().toLowerCase(),
-          phone: phone?.trim() || null,
-          telegram_id: telegramId?.trim() || null,
-          comment: comment?.trim() || null,
-          status: 'pending',
-          verification_token_hash: tokenHash,
-          verification_token_expires_at: tokenExpiration,
-        },
-      ])
-      .select('id')
-      .single();
+    // Submit registration to Supabase using RPC function
+    // The insert_event_registration RPC function is a SECURITY DEFINER function
+    // that safely inserts the registration and returns only the new ID
+    const { data: registrationResult, error: insertError } = await supabase
+      .rpc('insert_event_registration', {
+        event_id_param: eventId,
+        first_name_param: firstName.trim(),
+        last_name_param: lastName.trim(),
+        email_param: email.trim().toLowerCase(),
+        phone_param: phone?.trim() || null,
+        telegram_id_param: telegramId?.trim() || null,
+        comment_param: comment?.trim() || null,
+        verification_token_hash_param: tokenHash,
+        verification_token_expires_at_param: tokenExpiration,
+      });
 
     if (insertError) {
       // Handle duplicate email for this event
@@ -97,7 +93,17 @@ async function handler(req, res) {
         });
       }
 
-      console.error('Supabase insert error:', insertError);
+      console.error('Supabase RPC error:', insertError);
+      return res.status(500).json({ error: 'Failed to submit registration' });
+    }
+
+    // Extract registration ID from RPC result
+    const registration = {
+      id: registrationResult?.[0]?.registration_id,
+    };
+
+    if (!registration.id) {
+      console.error('RPC returned no registration ID');
       return res.status(500).json({ error: 'Failed to submit registration' });
     }
 
