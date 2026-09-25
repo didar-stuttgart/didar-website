@@ -9,7 +9,7 @@
 
 import Head from 'next/head';
 import Link from 'next/link';
-import { useState } from 'react';
+himport { useState, useEffect } from 'react';
 import { createServerClient } from '@/lib/supabase';
 import { t, formatDate, formatTime } from '@/lib/i18n';
 import { filterPublicEvent } from '@/lib/events-filter';
