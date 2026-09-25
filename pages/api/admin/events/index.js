@@ -71,7 +71,7 @@ async function handleCreateEvent(req, res) {
           registration_deadline: event.registration_deadline || null,
           image_url: event.image_url || '',
           status: event.status || 'draft',
-          registration_status: event.registration_status || 'not_open',
+          registration_status: event.registration_status || (event.status === 'published' ? 'open' : 'not_open'),
           admin_notes: event.admin_notes || '',
         },
       ])

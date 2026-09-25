@@ -30,12 +30,25 @@ export async function getStaticProps({ params }) {
       return { notFound: true };
     }
 
+    // Auto-correct registration_status for published events
+    // If event is published but registration_status is 'not_open', set it to 'open'
+    if (event.status === 'published' && event.registration_status === 'not_open') {
+      const { error: updateError } = await supabase
+        .from('events')
+        .update({ registration_status: 'open' })
+        .eq('id', event.id);
+
+      if (!updateError) {
+        event.registration_status = 'open';
+      }
+    }
+
     // Filter to only public-safe fields, removing admin_notes and other admin-only data
     const publicEvent = filterPublicEvent(event);
 
     return {
       props: { event: publicEvent },
-      revalidate: 3600, // Regenerate every hour
+      revalidate: 60, // Regenerate every minute to ensure fresh data // Regenerate every hour
     };
   } catch (error) {
     console.error('Error fetching event:', error);
