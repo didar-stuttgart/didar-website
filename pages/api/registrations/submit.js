@@ -31,10 +31,10 @@ async function handler(req, res) {
 
     // Verify event exists and is published with registration open
     const supabase = createServerClient();
-    
+
     const { data: event, error: eventError } = await supabase
       .from('events')
-      .select('id, status, registration_status, title_fa, title_de')
+      .select('id, status, registration_status, capacity, title_fa, title_de')
       .eq('id', eventId)
       .eq('status', 'published')
       .single();
@@ -44,7 +44,27 @@ async function handler(req, res) {
     }
 
     if (event.registration_status !== 'open') {
-      return res.status(400).json({ error: 'Registration is not open for this event' });
+      return res.status(409).json({
+        error: 'Registration is not open for this event',
+        errorType: 'registration_closed',
+      });
+    }
+
+    // Check current capacity if event has a limit
+    if (event.capacity && typeof event.capacity === 'number') {
+      // Count verified registrations (those that consume capacity)
+      const { count, error: countError } = await supabase
+        .from('event_registrations')
+        .select('id', { count: 'exact', head: true })
+        .eq('event_id', eventId)
+        .eq('status', 'verified');
+
+      if (!countError && count !== null && count >= event.capacity) {
+        return res.status(409).json({
+          error: 'Event capacity is full',
+          errorType: 'capacity_full',
+        });
+      }
     }
 
     // Validate all form fields
@@ -90,6 +110,15 @@ async function handler(req, res) {
       if (insertError.code === '23505') {
         return res.status(409).json({
           error: 'You have already registered for this event with this email',
+          errorType: 'duplicate_email',
+        });
+      }
+
+      // Handle capacity full errors
+      if (insertError.message && insertError.message.includes('capacity')) {
+        return res.status(409).json({
+          error: 'Event capacity is full',
+          errorType: 'capacity_full',
         });
       }
 

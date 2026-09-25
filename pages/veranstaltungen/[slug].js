@@ -295,7 +295,7 @@ export default function EventDetail({ event, currentLang }) {
               >
                 {t('event.external_registration', currentLang)}
               </a>
-            ) : registrationOpen ? (
+            ) : registrationOpen && (!capacityStatus || !capacityStatus.is_full) ? (
               <>
                 <h2>{t('event.register', currentLang)}</h2>
 
@@ -453,6 +453,12 @@ export default function EventDetail({ event, currentLang }) {
                   </button>
                 </form>
               </>
+            ) : capacityStatus && capacityStatus.is_full ? (
+              <div className="alert alert-warning" role="status">
+                {currentLang === 'fa'
+                  ? 'ظرفیت ثبت‌نام تکمیل شده است.'
+                  : 'Die Anmeldung ist bereits voll.'}
+              </div>
             ) : isPastEvent ? (
               <div className="alert alert-warning" role="status">
                 {t('event.past_event', currentLang)}

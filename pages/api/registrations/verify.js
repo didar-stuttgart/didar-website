@@ -36,107 +36,169 @@ export default async function handler(req, res) {
     // Hash the provided token for comparison
     const tokenHash = hashToken(token);
 
-    // Use admin client to call the RPC function (bypasses RLS)
+    // Use admin client for all database operations
     const supabase = createAdminClient();
 
-    // Call the verify_registration_atomic RPC function
-    const { data: result, error: rpcError } = await supabase
-      .rpc('verify_registration_atomic', {
-        registration_id_param: registrationId,
-        token_hash_param: tokenHash,
-      });
+    // 1. Fetch the registration to verify token
+    const { data: registration, error: regError } = await supabase
+      .from('event_registrations')
+      .select('id, status, event_id, verification_token_hash, verification_token_expires_at')
+      .eq('id', registrationId)
+      .single();
 
-    if (rpcError) {
-      console.error('RPC error:', rpcError);
-      return res.status(500).json({ error: 'Verification failed' });
-    }
-
-    // The RPC returns an array with one object
-    // Structure: [{ status_code: string, capacity_status: string }]
-    if (!result || result.length === 0) {
-      return res.status(500).json({ error: 'Verification failed' });
-    }
-
-    const { status_code, capacity_status } = result[0];
-
-    // Handle different status codes and map to HTTP responses
-    switch (status_code) {
-      case 'not_found':
+    // Handle errors
+    if (regError) {
+      if (regError.code === 'PGRST116') {
         return res.status(404).json({
           error: 'Registration not found',
           success: false,
         });
-
-      case 'already_verified':
-        return res.status(410).json({
-          error: 'This registration has already been verified',
-          success: false,
-        });
-
-      case 'invalid_token':
-        return res.status(410).json({
-          error: 'Invalid or expired verification link',
-          success: false,
-        });
-
-      case 'verified':
-        // Verification succeeded - fetch registration and event details for confirmation email
-        try {
-          const { data: regData } = await supabase
-            .from('event_registrations')
-            .select('first_name, last_name, email, event_id')
-            .eq('id', registrationId)
-            .single();
-
-          if (regData) {
-            // Fetch event details
-            const { data: eventData } = await supabase
-              .from('events')
-              .select('title_fa, title_de')
-              .eq('id', regData.event_id)
-              .single();
-
-            // Send confirmation email
-            if (eventData && regData.email) {
-              try {
-                const userName = `${regData.first_name} ${regData.last_name}`;
-                const eventTitle = eventData.title_de || eventData.title_fa || 'Event';
-                // Determine language (default to German if not specified)
-                const language = 'de'; // Can be enhanced to detect from registration preferences
-                
-                await sendConfirmationEmail(
-                  regData.email,
-                  userName,
-                  eventTitle,
-                  language
-                );
-              } catch (emailError) {
-                console.error('Confirmation email error:', emailError);
-                // Don't fail the verification if confirmation email fails
-              }
-            }
-          }
-        } catch (fetchError) {
-          console.error('Error fetching registration/event for confirmation:', fetchError);
-          // Don't fail the verification if we can't send confirmation email
-        }
-
-        return res.status(200).json({
-          success: true,
-          message: 'Registration verified successfully',
-          capacityStatus: capacity_status,
-        });
-
-      case 'capacity_full':
-        return res.status(409).json({
-          error: 'Event registration is full',
-          success: false,
-        });
-
-      default:
-        console.error('Unexpected status code from RPC:', status_code);
-        return res.status(500).json({ error: 'Unexpected response from verification' });
+      }
+      console.error('Fetch registration error:', regError);
+      return res.status(500).json({ error: 'Verification failed' });
     }
+
+    // 2. Check registration status and token validity
+    if (registration.status !== 'pending') {
+      return res.status(410).json({
+        error: 'This registration has already been verified',
+        success: false,
+      });
+    }
+
+    // 3. Validate token and expiration
+    if (registration.verification_token_hash !== tokenHash) {
+      return res.status(410).json({
+        error: 'Invalid or expired verification link',
+        success: false,
+      });
+    }
+
+    if (new Date(registration.verification_token_expires_at) < new Date()) {
+      return res.status(410).json({
+        error: 'Verification link has expired',
+        success: false,
+      });
+    }
+
+    // 4. Fetch event to check capacity
+    const { data: event, error: eventError } = await supabase
+      .from('events')
+      .select('id, capacity, registration_status')
+      .eq('id', registration.event_id)
+      .single();
+
+    if (eventError || !event) {
+      console.error('Event fetch error:', eventError);
+      return res.status(500).json({ error: 'Event not found' });
+    }
+
+    // 5. Count currently verified registrations
+    const { count: verifiedCount, error: countError } = await supabase
+      .from('event_registrations')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', registration.event_id)
+      .eq('status', 'verified');
+
+    if (countError) {
+      console.error('Count verified error:', countError);
+      return res.status(500).json({ error: 'Failed to check capacity' });
+    }
+
+    const currentVerifiedCount = verifiedCount || 0;
+
+    // 6. Update registration status to verified
+    const { error: updateRegError } = await supabase
+      .from('event_registrations')
+      .update({
+        status: 'verified',
+        verified_at: new Date().toISOString(),
+        verification_token_hash: null,
+        verification_token_expires_at: null,
+      })
+      .eq('id', registrationId);
+
+    if (updateRegError) {
+      console.error('Update registration error:', updateRegError);
+      return res.status(500).json({ error: 'Failed to verify registration' });
+    }
+
+    // 7. Check if this verification reaches or exceeds capacity
+    // After verification, this registration now counts, so new count is currentVerifiedCount + 1
+    const verifiedAfter = currentVerifiedCount + 1;
+    let capacityStatus = 'ok';
+    let shouldCloseEvent = false;
+
+    if (event.capacity && typeof event.capacity === 'number') {
+      if (verifiedAfter >= event.capacity) {
+        capacityStatus = 'at_capacity';
+        shouldCloseEvent = true;
+      }
+    }
+
+    // 8. Close event if capacity reached
+    if (shouldCloseEvent && event.registration_status !== 'closed') {
+      const { error: closeError } = await supabase
+        .from('events')
+        .update({ registration_status: 'closed' })
+        .eq('id', registration.event_id);
+
+      if (closeError) {
+        console.error('Error closing event:', closeError);
+        // Don't fail the verification if we can't close the event
+      }
+    }
+
+    // Map to status_code for backward compatibility
+    const status_code = 'success';
+
+    // 9. Send confirmation email
+    try {
+      const { data: regData } = await supabase
+        .from('event_registrations')
+        .select('first_name, last_name, email')
+        .eq('id', registrationId)
+        .single();
+
+      if (regData) {
+        // Fetch event details
+        const { data: eventData } = await supabase
+          .from('events')
+          .select('title_fa, title_de')
+          .eq('id', registration.event_id)
+          .single();
+
+        // Send confirmation email
+        if (eventData && regData.email) {
+          try {
+            const userName = `${regData.first_name} ${regData.last_name}`;
+            const eventTitle = eventData.title_de || eventData.title_fa || 'Event';
+            const language = 'de'; // Can be enhanced to detect from registration preferences
+
+            await sendConfirmationEmail(
+              regData.email,
+              userName,
+              eventTitle,
+              language
+            );
+          } catch (emailError) {
+            console.error('Confirmation email error:', emailError);
+            // Don't fail the verification if confirmation email fails
+          }
+        }
+      }
+    } catch (fetchError) {
+      console.error('Error fetching registration/event for confirmation:', fetchError);
+      // Don't fail the verification if we can't send confirmation email
+    }
+
+    // 10. Return success response with capacity status
+    return res.status(200).json({
+      success: true,
+      message: 'Registration verified successfully',
+      capacityStatus: capacityStatus,
+      eventClosed: shouldCloseEvent,
+    });
   } catch (error) {
     console.error('Verification endpoint error:', error);
     return res.status(500).json({ error: 'Internal server error' });
