@@ -79,7 +79,7 @@ export default async function handler(req, res) {
           success: false,
         });
 
-      case 'success':
+      case 'verified':
         // Verification succeeded - fetch registration and event details for confirmation email
         try {
           const { data: regData } = await supabase
@@ -125,6 +125,12 @@ export default async function handler(req, res) {
           success: true,
           message: 'Registration verified successfully',
           capacityStatus: capacity_status,
+        });
+
+      case 'capacity_full':
+        return res.status(409).json({
+          error: 'Event registration is full',
+          success: false,
         });
 
       default:
