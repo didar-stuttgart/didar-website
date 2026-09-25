@@ -9,7 +9,7 @@
 
 import Head from 'next/head';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createServerClient } from '@/lib/supabase';
 import { t, formatDate, formatTime } from '@/lib/i18n';
 import { filterPublicEvent } from '@/lib/events-filter';
@@ -48,7 +48,7 @@ export async function getStaticProps({ params }) {
 
     return {
       props: { event: publicEvent },
-      revalidate: 60, // Regenerate every minute to ensure fresh data // Regenerate every hour
+      revalidate: 60, // Regenerate every minute to ensure fresh data
     };
   } catch (error) {
     console.error('Error fetching event:', error);
@@ -99,10 +99,37 @@ export default function EventDetail({ event, currentLang }) {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [capacityStatus, setCapacityStatus] = useState(null);
+  const [loadingCapacity, setLoadingCapacity] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   if (!event) {
     return <div className="container py-8"><h1>{t('common.error', currentLang)}</h1></div>;
   }
+
+  // Fetch capacity status on mount and whenever event.id changes
+  useEffect(() => {
+    const fetchCapacityStatus = async () => {
+      if (!event.id) return;
+      setLoadingCapacity(true);
+      try {
+        const response = await fetch(`/api/events/${event.id}/capacity-status`);
+        if (response.ok) {
+          const data = await response.json();
+          setCapacityStatus(data);
+        }
+      } catch (err) {
+        console.error('Error fetching capacity status:', err);
+      } finally {
+        setLoadingCapacity(false);
+      }
+    };
+
+    fetchCapacityStatus();
+    // Refetch capacity every 10 seconds to stay updated
+    const interval = setInterval(fetchCapacityStatus, 10000);
+    return () => clearInterval(interval);
+  }, [event.id]);
 
   // Select bilingual content based on current language
   const title = event[`title_${currentLang}`] || event.title_de;
@@ -175,6 +202,15 @@ export default function EventDetail({ event, currentLang }) {
     setSuccess(false);
     setIsSubmitting(true);
 
+    // Check if capacity is full before submitting
+    if (capacityStatus && capacityStatus.is_full) {
+      setError(currentLang === 'fa'
+        ? 'ظرفیت رویداد تکمیل شده است'
+        : 'Die Veranstaltung ist ausgebucht');
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const response = await fetch('/api/registrations/submit', {
         method: 'POST',
@@ -189,13 +225,30 @@ export default function EventDetail({ event, currentLang }) {
           phone: formData.phone || undefined,
           telegramId: formData.telegramId || undefined,
           comment: formData.comment || undefined,
+          language: currentLang,
         }),
       });
       const data = await response.json();
 
       if (!response.ok) {
         if (response.status === 409) {
-          setError(t('event.duplicate_registration', currentLang));
+          if (data.errorType === 'capacity_full') {
+            // Capacity full - show bilingual message and refresh capacity
+            setError(currentLang === 'fa'
+              ? 'ظرفیت رویداد تکمیل شده است'
+              : 'Die Veranstaltung ist ausgebucht');
+            // Refresh capacity status
+            if (event.id) {
+              const capacityResponse = await fetch(`/api/events/${event.id}/capacity-status`);
+              if (capacityResponse.ok) {
+                const capacityData = await capacityResponse.json();
+                setCapacityStatus(capacityData);
+              }
+            }
+          } else {
+            // Duplicate email
+            setError(t('event.duplicate_registration', currentLang));
+          }
         } else if (Array.isArray(data.details)) {
           const errors = getValidationErrors(data.details);
 
@@ -211,7 +264,7 @@ export default function EventDetail({ event, currentLang }) {
         return;
       }
 
-      setSuccess(true);
+      setShowSuccessModal(true);
       setFormData({
         firstName: '',
         lastName: '',
@@ -220,6 +273,15 @@ export default function EventDetail({ event, currentLang }) {
         telegramId: '',
         comment: '',
       });
+
+      // Refresh capacity after successful registration
+      if (event.id) {
+        const capacityResponse = await fetch(`/api/events/${event.id}/capacity-status`);
+        if (capacityResponse.ok) {
+          const capacityData = await capacityResponse.json();
+          setCapacityStatus(capacityData);
+        }
+      }
     } catch (submitError) {
       console.error('Event registration form error:', submitError);
       setError(t('form.error', currentLang));
@@ -299,15 +361,31 @@ export default function EventDetail({ event, currentLang }) {
               <>
                 <h2>{t('event.register', currentLang)}</h2>
 
-                {success && (
-                  <div className="alert alert-success mt-4" role="status">
-                    {t('form.success', currentLang)}
-                  </div>
-                )}
-
                 {error && !Object.keys(fieldErrors).length && (
                   <div className="alert alert-error mt-4" role="alert">
                     {error}
+                  </div>
+                )}
+
+                {capacityStatus && (
+                  <div className="mt-6" style={{
+                    padding: '1rem',
+                    backgroundColor: 'var(--color-bg-secondary)',
+                    borderRadius: '0.5rem',
+                    textAlign: currentLang === 'fa' ? 'right' : 'left'
+                  }}>
+                    <p style={{ margin: 0, fontWeight: 'bold' }}>
+                      {currentLang === 'fa' ? 'حضور:' : 'Anmeldungen:'} {capacityStatus.verified_count}/{capacityStatus.capacity}
+                    </p>
+                    {capacityStatus.is_full && (
+                      <p style={{
+                        margin: '0.5rem 0 0 0',
+                        color: 'var(--color-error)',
+                        fontWeight: 'bold'
+                      }}>
+                        {currentLang === 'fa' ? '❌ رویداد تکمیل شده است' : '❌ Veranstaltung ist ausgebucht'}
+                      </p>
+                    )}
                   </div>
                 )}
                 <div className="alert alert-info mt-6" role="region" aria-label="Privacy notice">
@@ -325,7 +403,15 @@ export default function EventDetail({ event, currentLang }) {
                 </div>
 
 
-                <form className="mt-8" onSubmit={handleSubmit} noValidate>
+                <form
+                  className="mt-8"
+                  onSubmit={handleSubmit}
+                  noValidate
+                  style={{
+                    opacity: capacityStatus?.is_full ? 0.6 : 1,
+                    pointerEvents: capacityStatus?.is_full ? 'none' : 'auto'
+                  }}
+                >
                   <div className="form-group">
                     <label className="form-label" htmlFor="firstName">
                       {t('form.first_name', currentLang)}
@@ -337,7 +423,7 @@ export default function EventDetail({ event, currentLang }) {
                       placeholder={t('form.first_name', currentLang)}
                       value={formData.firstName}
                       onChange={handleChange}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || capacityStatus?.is_full}
                       maxLength={100}
                       required
                       aria-invalid={Boolean(fieldErrors.firstName)}
@@ -358,7 +444,7 @@ export default function EventDetail({ event, currentLang }) {
                       placeholder={t('form.last_name', currentLang)}
                       value={formData.lastName}
                       onChange={handleChange}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || capacityStatus?.is_full}
                       maxLength={100}
                       required
                       aria-invalid={Boolean(fieldErrors.lastName)}
@@ -379,7 +465,7 @@ export default function EventDetail({ event, currentLang }) {
                       placeholder={t('form.email', currentLang)}
                       value={formData.email}
                       onChange={handleChange}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || capacityStatus?.is_full}
                       maxLength={254}
                       required
                       aria-invalid={Boolean(fieldErrors.email)}
@@ -400,7 +486,7 @@ export default function EventDetail({ event, currentLang }) {
                       placeholder={t('form.phone', currentLang)}
                       value={formData.phone}
                       onChange={handleChange}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || capacityStatus?.is_full}
                       maxLength={20}
                       aria-invalid={Boolean(fieldErrors.phone)}
                     />
@@ -420,7 +506,7 @@ export default function EventDetail({ event, currentLang }) {
                       placeholder={t('form.telegram', currentLang)}
                       value={formData.telegramId}
                       onChange={handleChange}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || capacityStatus?.is_full}
                       maxLength={32}
                       aria-invalid={Boolean(fieldErrors.telegramId)}
                     />
@@ -439,7 +525,7 @@ export default function EventDetail({ event, currentLang }) {
                       placeholder={t('form.message', currentLang)}
                       value={formData.comment}
                       onChange={handleChange}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || capacityStatus?.is_full}
                       maxLength={1000}
                       aria-invalid={Boolean(fieldErrors.comment)}
                     />
@@ -448,7 +534,11 @@ export default function EventDetail({ event, currentLang }) {
                     )}
                   </div>
 
-                  <button className="btn btn-primary" type="submit" disabled={isSubmitting}>
+                  <button
+                    className="btn btn-primary"
+                    type="submit"
+                    disabled={isSubmitting || capacityStatus?.is_full}
+                  >
                     {isSubmitting ? t('common.loading', currentLang) : t('event.register', currentLang)}
                   </button>
                 </form>
@@ -510,6 +600,93 @@ export default function EventDetail({ event, currentLang }) {
           </div>
         </div>
       </section>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px',
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: '40px',
+            maxWidth: '500px',
+            width: '100%',
+            textAlign: currentLang === 'fa' ? 'right' : 'left',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+            animation: 'slideUp 0.3s ease-out',
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <div style={{
+                fontSize: '48px',
+                marginBottom: '15px',
+              }}>✓</div>
+              <h2 style={{ margin: '0 0 15px 0', color: '#27ae60' }}>
+                {currentLang === 'fa' ? 'ثبت‌نام موفق' : 'Anmeldung erfolgreich'}
+              </h2>
+            </div>
+
+            <p style={{ margin: '15px 0', fontSize: '16px', lineHeight: '1.6' }}>
+              {currentLang === 'fa'
+                ? 'ثبت‌نام شما با موفقیت ثبت شد. یک ایمیل تأیید برای شما ارسال شده است.'
+                : 'Ihre Anmeldung war erfolgreich. Eine Bestätigungsmail wurde an Sie gesendet.'}
+            </p>
+
+            <p style={{ margin: '15px 0', fontSize: '16px', lineHeight: '1.6', fontWeight: 'bold' }}>
+              {currentLang === 'fa'
+                ? '📧 لطفاً صندوق ورودی خود را بررسی کنید و روی لینک تأیید کلیک کنید.'
+                : '📧 Bitte überprüfen Sie Ihren Posteingang und klicken Sie auf den Bestätigungslink.'}
+            </p>
+
+            <p style={{ margin: '15px 0', fontSize: '14px', color: '#7f8c8d' }}>
+              {currentLang === 'fa'
+                ? 'اگر ایمیل را دریافت نکردید، لطفاً پوشهٔ هرزنامه را بررسی کنید.'
+                : 'Falls Sie keine E-Mail erhalten, überprüfen Sie bitte Ihren Spam-Ordner.'}
+            </p>
+
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              style={{
+                width: '100%',
+                padding: '12px',
+                backgroundColor: '#27ae60',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                marginTop: '20px',
+              }}
+            >
+              {currentLang === 'fa' ? 'بستن' : 'Schließen'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </>
   );
 }
