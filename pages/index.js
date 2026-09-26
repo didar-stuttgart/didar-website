@@ -11,6 +11,7 @@ import Link from 'next/link';
 import EventCard from '@/components/EventCard';
 import { t } from '@/lib/i18n';
 import { createServerClient } from '@/lib/supabase';
+import { getCMSContent } from '@/lib/cms-client';
 
 export async function getStaticProps() {
   try {
@@ -30,6 +31,9 @@ export async function getStaticProps() {
       return {
         props: {
           featuredEvents: [],
+          heroTitle_fa: null,
+          heroTitle_de: null,
+          heroSubtitle_fa: null,
         },
         revalidate: 300,
       };
@@ -38,9 +42,29 @@ export async function getStaticProps() {
     // Show up to 3 upcoming events on the homepage
     const featuredEvents = (events || []).slice(0, 3);
 
+    // Fetch CMS content for hero section
+    const heroTitle_fa = await getCMSContent(
+      'homepage.hero.title',
+      'fa',
+      'home.page_title'
+    );
+    const heroTitle_de = await getCMSContent(
+      'homepage.hero.title',
+      'de',
+      'home.page_title'
+    );
+    const heroSubtitle_fa = await getCMSContent(
+      'homepage.hero.subtitle',
+      'fa',
+      'home.subtitle'
+    );
+
     return {
       props: {
         featuredEvents,
+        heroTitle_fa,
+        heroTitle_de,
+        heroSubtitle_fa,
       },
       revalidate: 3600, // Regenerate every hour
     };
@@ -49,14 +73,42 @@ export async function getStaticProps() {
     return {
       props: {
         featuredEvents: [],
+        heroTitle_fa: null,
+        heroTitle_de: null,
+        heroSubtitle_fa: null,
       },
       revalidate: 300, // Retry after 5 minutes on error
     };
   }
 }
 
-export default function Home({ featuredEvents, currentLang }) {
+export default function Home({
+  featuredEvents,
+  currentLang,
+  heroTitle_fa,
+  heroTitle_de,
+  heroSubtitle_fa,
+}) {
   const dir = currentLang === 'fa' ? 'rtl' : 'ltr';
+
+  // Helper: check if value is a CMS placeholder and use fallback if so
+  const getHeroTitle = () => {
+    const cmsValue = currentLang === 'fa' ? heroTitle_fa : heroTitle_de;
+    const isPlaceholder = cmsValue && cmsValue.startsWith('[');
+    if (!isPlaceholder && cmsValue) {
+      return cmsValue;
+    }
+    // Fallback to original hardcoded value
+    return currentLang === 'fa' ? 'دیدار' : 'Didar Stuttgart';
+  };
+
+  const getHeroSubtitle = () => {
+    if (!heroSubtitle_fa || heroSubtitle_fa.startsWith('[')) {
+      // Fallback to original hardcoded value
+      return 'انجمن فرهنگی هنری اشتوتگارت';
+    }
+    return heroSubtitle_fa;
+  };
 
   return (
     <>
@@ -82,10 +134,10 @@ export default function Home({ featuredEvents, currentLang }) {
         </div>
         <div className="hero-copy">
           <h1 className="hero-title">
-            {currentLang === 'fa' ? 'دیدار' : 'Didar Stuttgart'}
+            {getHeroTitle()}
           </h1>
           {currentLang === 'fa' && (
-            <p className="hero-subtitle">انجمن فرهنگی هنری اشتوتگارت</p>
+            <p className="hero-subtitle">{getHeroSubtitle()}</p>
           )}
           <div className="hero-cta">
             <Link href="/veranstaltungen" className="btn btn-primary">
