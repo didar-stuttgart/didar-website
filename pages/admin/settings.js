@@ -160,6 +160,25 @@ function SettingsEditor({ item, onSave, onCancel, saving }) {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleManagerChange = (index, field, value) => {
+    const managers = formData.value_json || [];
+    managers[index] = { ...managers[index], [field]: value };
+    handleChange('value_json', [...managers]);
+  };
+
+  const handleAddManager = () => {
+    const managers = formData.value_json || [];
+    const newId = `mgr_${Date.now()}`;
+    managers.push({ id: newId, name: '', role: '', email: '' });
+    handleChange('value_json', [...managers]);
+  };
+
+  const handleRemoveManager = (index) => {
+    const managers = formData.value_json || [];
+    managers.splice(index, 1);
+    handleChange('value_json', [...managers]);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onSave(formData);
@@ -175,37 +194,108 @@ function SettingsEditor({ item, onSave, onCancel, saving }) {
       </div>
 
       {isManager ? (
-        // Managers structured editor
+        // Managers structured editor with form fields
         <div style={{ marginBottom: '1rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-            اعضای تیم (فرمت JSON)
+          <label style={{ display: 'block', marginBottom: '1rem', fontWeight: 'bold' }}>
+            اعضای تیم
           </label>
-          <textarea
-            value={JSON.stringify(formData.value_json || [], null, 2)}
-            onChange={(e) => {
-              try {
-                const parsed = JSON.parse(e.target.value);
-                handleChange('value_json', parsed);
-              } catch {
-                // Keep user input even if invalid JSON for now
-              }
-            }}
+          <div style={{ border: '1px solid #ddd', borderRadius: '4px', padding: '1rem', marginBottom: '1rem', background: '#f9f9f9' }}>
+            {(!formData.value_json || formData.value_json.length === 0) ? (
+              <p style={{ color: '#666', margin: '0 0 1rem 0', fontSize: '0.9rem' }}>
+                هیچ عضوی اضافه نشده است
+              </p>
+            ) : (
+              formData.value_json.map((manager, index) => (
+                <div key={manager.id} style={{ marginBottom: '1rem', padding: '1rem', background: 'white', border: '1px solid #e0e0e0', borderRadius: '4px' }}>
+                  <div style={{ marginBottom: '0.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: '600', color: '#333' }}>
+                      نام
+                    </label>
+                    <input
+                      type="text"
+                      value={manager.name || ''}
+                      onChange={(e) => handleManagerChange(index, 'name', e.target.value)}
+                      placeholder="نام و نام‌خانوادگی"
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        borderRadius: '4px',
+                        border: '1px solid #ddd',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: '0.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: '600', color: '#333' }}>
+                      نقش
+                    </label>
+                    <input
+                      type="text"
+                      value={manager.role || ''}
+                      onChange={(e) => handleManagerChange(index, 'role', e.target.value)}
+                      placeholder="مثال: مدیر، بنیانگذار"
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        borderRadius: '4px',
+                        border: '1px solid #ddd',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: '0.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: '600', color: '#333' }}>
+                      ایمیل
+                    </label>
+                    <input
+                      type="email"
+                      value={manager.email || ''}
+                      onChange={(e) => handleManagerChange(index, 'email', e.target.value)}
+                      placeholder="email@example.com"
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        borderRadius: '4px',
+                        border: '1px solid #ddd',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveManager(index)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: '#dc3545',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem'
+                    }}
+                  >
+                    حذف
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={handleAddManager}
             style={{
-              width: '100%',
-              minHeight: '300px',
-              padding: '0.5rem',
+              padding: '0.5rem 1rem',
+              background: '#28a745',
+              color: 'white',
+              border: 'none',
               borderRadius: '4px',
-              border: '1px solid #ddd',
-              fontFamily: 'monospace',
-              fontSize: '0.9rem'
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              marginBottom: '1rem'
             }}
-            placeholder={JSON.stringify([
-              { id: 'mgr_1', name: 'نام', role: 'نقش', email: 'email@example.com' }
-            ], null, 2)}
-          />
-          <p style={{ color: '#666', fontSize: '0.85rem', marginTop: '0.5rem' }}>
-            Expected format: [{'{'}id, name, role, email{'}'}]
-          </p>
+          >
+            + افزودن عضو جدید
+          </button>
         </div>
       ) : formData.is_bilingual ? (
         // Bilingual scalar
