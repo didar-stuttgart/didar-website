@@ -103,14 +103,10 @@ export default function EventDetail({ event, currentLang }) {
   const [loadingCapacity, setLoadingCapacity] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  if (!event) {
-    return <div className="container py-8"><h1>{t('common.error', currentLang)}</h1></div>;
-  }
-
   // Fetch capacity status on mount and whenever event.id changes
   useEffect(() => {
     const fetchCapacityStatus = async () => {
-      if (!event.id) return;
+      if (!event || !event.id) return;
       setLoadingCapacity(true);
       try {
         const response = await fetch(`/api/events/${event.id}/capacity-status`);
@@ -129,7 +125,11 @@ export default function EventDetail({ event, currentLang }) {
     // Refetch capacity every 10 seconds to stay updated
     const interval = setInterval(fetchCapacityStatus, 10000);
     return () => clearInterval(interval);
-  }, [event.id]);
+  }, [event?.id]);
+
+  if (!event) {
+    return <div className="container py-8"><h1>{t('common.error', currentLang)}</h1></div>;
+  }
 
   // Select bilingual content based on current language
   const title = event[`title_${currentLang}`] || event.title_de;
