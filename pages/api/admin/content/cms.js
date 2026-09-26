@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase';
 
 export default async function handler(req, res) {
   // Verify admin session
-  if (!requireAdminSession(req, res)) {
+  if (!(await requireAdminSession(req, res))) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

@@ -1,5 +1,5 @@
 import { verifyPassword, generateSessionToken } from '@/lib/admin-auth';
-import { createSession } from '@/lib/session-store';
+import { createSession } from '@/lib/session-store-db';
 import { validateRequired } from '@/lib/validation';
 
 const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH;
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     }
 
     const token = generateSessionToken();
-    createSession(token);
+    await createSession(token);
 
     console.log('✅ LOGIN SUCCESS');
     console.log('🍪 Setting cookie: session_token');

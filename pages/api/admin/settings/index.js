@@ -1,4 +1,4 @@
-import { requireAdminSession } from '../../../../lib/api-middleware.js';
+﻿import { requireAdminSession } from '../../../../lib/api-middleware.js';
 
 // In-memory storage for settings
 let settingsStore = {
@@ -8,8 +8,8 @@ let settingsStore = {
   instagram_url: 'https://instagram.com/didar',
 };
 
-export default function handler(req, res) {
-  if (!requireAdminSession(req, res)) {
+export default async function handler(req, res) {
+  if (!(await requireAdminSession(req, res))) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -36,3 +36,4 @@ function handleSaveSettings(req, res) {
     res.status(500).json({ error: 'Failed to save settings' });
   }
 }
+

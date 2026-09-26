@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Emergency fix endpoint - updates registration_status to 'open' for e2e-capacity-test event
  * Only accessible to authenticated admins
  */
@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   }
 
   // Require admin authentication
-  if (!requireAdminSession(req, res)) {
+  if (!(await requireAdminSession(req, res))) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -56,3 +56,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Internal server error', details: err.message });
   }
 }
+

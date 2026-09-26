@@ -1,4 +1,4 @@
-import { deleteSession } from '@/lib/session-store';
+import { deleteSession } from '@/lib/session-store-db';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -19,7 +19,7 @@ export default async function handler(req, res) {
 
     if (sessionToken) {
       console.log('\n📨 LOGOUT REQUEST');
-      deleteSession(sessionToken);
+      await deleteSession(sessionToken);
       console.log('🔓 Session cleared\n');
     }
 

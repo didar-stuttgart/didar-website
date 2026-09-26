@@ -1,6 +1,6 @@
-import { validateSession } from '../../../lib/session-store.js';
+import { validateSession } from '../../../lib/session-store-db.js';
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -30,7 +30,7 @@ export default function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized - no token' });
   }
 
-  if (!validateSession(sessionToken)) {
+  if (!(await validateSession(sessionToken))) {
     console.log('❌ VERIFY FAILED: Invalid or expired session\n');
     return res.status(401).json({ error: 'Unauthorized - invalid token' });
   }

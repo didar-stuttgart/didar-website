@@ -1,8 +1,8 @@
-import { requireAdminSession } from '../../../../lib/api-middleware.js';
+﻿import { requireAdminSession } from '../../../../lib/api-middleware.js';
 import { createAdminClient } from '../../../../lib/supabase.js';
 
 export default async function handler(req, res) {
-  if (!requireAdminSession(req, res)) {
+  if (!(await requireAdminSession(req, res))) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     if (error) throw error;
 
     // CSV header
-    const headers = ['نام', 'ایمیل', 'تلفن', 'تلگرام', 'وضعیت', 'تاریخ', 'یادداشت'];
+    const headers = ['Ù†Ø§Ù…', 'Ø§ÛŒÙ…ÛŒÙ„', 'ØªÙ„ÙÙ†', 'ØªÙ„Ú¯Ø±Ø§Ù…', 'ÙˆØ¶Ø¹ÛŒØª', 'ØªØ§Ø±ÛŒØ®', 'ÛŒØ§Ø¯Ø¯Ø§Ø´Øª'];
     const rows = (memberships || []).map((mem) => [
       `${mem.first_name} ${mem.last_name}`,
       mem.email,
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     ]);
 
     // Build CSV with BOM for Excel
-    const bom = '﻿';
+    const bom = 'ï»¿';
     const csv = bom + [headers, ...rows].map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
@@ -43,3 +43,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to export memberships' });
   }
 }
+

@@ -1,8 +1,8 @@
-import { requireAdminSession } from '../../../../lib/api-middleware.js';
+﻿import { requireAdminSession } from '../../../../lib/api-middleware.js';
 import { createAdminClient } from '../../../../lib/supabase.js';
 
 export default async function handler(req, res) {
-  if (!requireAdminSession(req, res)) {
+  if (!(await requireAdminSession(req, res))) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -54,3 +54,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to load registrations' });
   }
 }
+
