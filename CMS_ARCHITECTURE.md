@@ -695,14 +695,15 @@ function PrivacyPolicy({ cms, currentLang }) {
     ? cms['privacy_policy.section_1.content']
     : cms['privacy_policy.section_1.content'];
   
+  // Define heading component mappings (Map # to h2, ## to h3, etc.)
+  const componentOverrides = {
+    h1: (props) => <h2 {...props} />,
+    h2: (props) => <h3 {...props} />,
+  };
+  
   return (
     <div className="privacy-section">
-      <ReactMarkdown
-        components={{
-          h1: (props) => <h2 {...props} />,  // Map # to h2
-          h2: (props) => <h3 {...props} />,
-        }}
-      >
+      <ReactMarkdown components={componentOverrides}>
         {markdown}
       </ReactMarkdown>
     </div>
