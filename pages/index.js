@@ -34,6 +34,8 @@ export async function getStaticProps() {
           heroTitle_fa: null,
           heroTitle_de: null,
           heroSubtitle_fa: null,
+          aboutDesc_fa: null,
+          aboutDesc_de: null,
         },
         revalidate: 300,
       };
@@ -59,12 +61,26 @@ export async function getStaticProps() {
       'home.subtitle'
     );
 
+    // Fetch CMS content for about card section
+    const aboutDesc_fa = await getCMSContent(
+      'homepage.about.description',
+      'fa',
+      'home.about_text'
+    );
+    const aboutDesc_de = await getCMSContent(
+      'homepage.about.description',
+      'de',
+      'home.about_text'
+    );
+
     return {
       props: {
         featuredEvents,
         heroTitle_fa,
         heroTitle_de,
         heroSubtitle_fa,
+        aboutDesc_fa,
+        aboutDesc_de,
       },
       revalidate: 3600, // Regenerate every hour
     };
@@ -76,6 +92,8 @@ export async function getStaticProps() {
         heroTitle_fa: null,
         heroTitle_de: null,
         heroSubtitle_fa: null,
+        aboutDesc_fa: null,
+        aboutDesc_de: null,
       },
       revalidate: 300, // Retry after 5 minutes on error
     };
@@ -88,6 +106,8 @@ export default function Home({
   heroTitle_fa,
   heroTitle_de,
   heroSubtitle_fa,
+  aboutDesc_fa,
+  aboutDesc_de,
 }) {
   const dir = currentLang === 'fa' ? 'rtl' : 'ltr';
 
@@ -108,6 +128,16 @@ export default function Home({
       return 'انجمن فرهنگی هنری اشتوتگارت';
     }
     return heroSubtitle_fa;
+  };
+
+  const getAboutDescription = () => {
+    const cmsValue = currentLang === 'fa' ? aboutDesc_fa : aboutDesc_de;
+    const isPlaceholder = cmsValue && cmsValue.startsWith('[');
+    if (!isPlaceholder && cmsValue) {
+      return cmsValue;
+    }
+    // Fallback to i18n value
+    return t('home.about_text', currentLang);
   };
 
   return (
@@ -193,7 +223,7 @@ export default function Home({
               />
               <div className="info-card-body">
                 <h2>{t('home.about_section', currentLang)}</h2>
-                <p>{t('home.about_text', currentLang)}</p>
+                <p>{getAboutDescription()}</p>
                 <Link href="/ueber-uns" className="btn btn-tertiary">
                   {t('common.learn_more', currentLang)}
                 </Link>
