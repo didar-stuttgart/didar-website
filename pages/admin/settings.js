@@ -7,9 +7,11 @@ import styles from '../../styles/admin.module.css';
 export default function AdminSettings() {
   const router = useRouter();
   const [sessionValid, setSessionValid] = useState(false);
-  const [settings, setSettings] = useState(null);
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState(null);
+  const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -30,50 +32,51 @@ export default function AdminSettings() {
   }, [router]);
 
   const loadSettings = async () => {
+    setLoading(true);
     try {
-      const res = await fetch('/api/admin/settings', { credentials: 'include' });
+      const res = await fetch('/api/admin/settings/organization', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        setSettings(data.settings);
+        setItems(data.items || []);
+      } else {
+        setMessage({ type: 'error', text: 'خطا در بارگذاری تنظیمات' });
       }
-      setLoading(false);
     } catch (err) {
       console.error('Failed to load settings:', err);
+      setMessage({ type: 'error', text: 'خطا در بارگذاری تنظیمات' });
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (field, value) => {
-    setSettings((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSave = async () => {
+  const handleSaveItem = async (item) => {
     setSaving(true);
+    setMessage(null);
     try {
-      const res = await fetch('/api/admin/settings', {
+      const res = await fetch('/api/admin/settings/organization', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ settings }),
+        body: JSON.stringify(item),
       });
 
+      const data = await res.json();
       if (res.ok) {
-        alert('تنظیمات با موفقیت ذخیره شدند');
+        setMessage({ type: 'success', text: 'تنظیمات با موفقیت ذخیره شدند' });
+        setEditingId(null);
+        loadSettings();
       } else {
-        alert('خطا در ذخیره تنظیمات');
+        setMessage({ type: 'error', text: data.error || 'خطا در ذخیره تنظیمات' });
       }
     } catch (err) {
       console.error('Failed to save settings:', err);
-      alert('خطا در ذخیره تنظیمات');
+      setMessage({ type: 'error', text: 'خطا در ذخیره تنظیمات' });
     } finally {
       setSaving(false);
     }
   };
 
   if (!sessionValid || loading) {
-    return <div className={styles.loading}>درحال بارگذاری...</div>;
-  }
-  if (!settings) {
     return <div className={styles.loading}>درحال بارگذاری...</div>;
   }
 
@@ -88,73 +91,209 @@ export default function AdminSettings() {
         <header className={styles.adminHeader}>
           <div>
             <Link href="/admin" className={styles.backLink}>← بازگشت</Link>
-            <h1>تنظیمات</h1>
+            <h1>تنظیمات سازمان</h1>
           </div>
         </header>
 
+        {message && (
+          <div className={`alert alert-${message.type}`} style={{ margin: '1rem', padding: '1rem', borderRadius: '4px' }}>
+            {message.text}
+          </div>
+        )}
+
         <div className={styles.contentArea}>
-          <form className={styles.contentForm}>
-            <section className={styles.formSection}>
-              <h2>اطلاعات تماس</h2>
-
-              <div className={styles.formGroup}>
-                <label>ایمیل تماس</label>
-                <input
-                  type="email"
-                  value={settings.contact_email || ''}
-                  onChange={(e) => handleChange('contact_email', e.target.value)}
-                  placeholder="info@example.com"
-                />
+          {editingId ? (
+            <SettingsEditor
+              item={items.find(i => i.id === editingId)}
+              onSave={handleSaveItem}
+              onCancel={() => setEditingId(null)}
+              saving={saving}
+            />
+          ) : (
+            <div>
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                {items.map(item => (
+                  <div
+                    key={item.id}
+                    style={{
+                      padding: '1rem',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      background: item.key?.includes('[TEST]') ? '#fff3cd' : 'white'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
+                      <div>
+                        <h4>{item.admin_label}</h4>
+                        {item.key?.includes('[TEST]') && <span style={{ color: '#856404', fontSize: '0.85rem' }}>🧪 TEST</span>}
+                      </div>
+                      <button
+                        onClick={() => setEditingId(item.id)}
+                        style={{ padding: '0.5rem 1rem', background: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                      >
+                        ویرایش
+                      </button>
+                    </div>
+                    <p style={{ color: '#666', fontSize: '0.9rem', margin: '0.5rem 0 0 0' }}>
+                      {item.admin_help}
+                    </p>
+                    {item.value_text && (
+                      <p style={{ color: '#333', fontSize: '0.9rem', margin: '0.5rem 0 0 0' }}>
+                        <strong>مقدار:</strong> {item.value_text}
+                      </p>
+                    )}
+                  </div>
+                ))}
               </div>
-            </section>
-
-            <section className={styles.formSection}>
-              <h2>شبکه‌های اجتماعی</h2>
-
-              <div className={styles.formGroup}>
-                <label>کانال تلگرام</label>
-                <input
-                  type="text"
-                  value={settings.telegram_channel || ''}
-                  onChange={(e) => handleChange('telegram_channel', e.target.value)}
-                  placeholder="@channel_name"
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label>تماس تلگرام</label>
-                <input
-                  type="text"
-                  value={settings.telegram_contact || ''}
-                  onChange={(e) => handleChange('telegram_contact', e.target.value)}
-                  placeholder="@username"
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label>اینستاگرام</label>
-                <input
-                  type="url"
-                  value={settings.instagram_url || ''}
-                  onChange={(e) => handleChange('instagram_url', e.target.value)}
-                  placeholder="https://instagram.com/username"
-                />
-              </div>
-            </section>
-
-            <div className={styles.formActions}>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving}
-                className={styles.primaryButton}
-              >
-                {saving ? 'درحال ذخیره...' : 'ذخیره تغییرات'}
-              </button>
             </div>
-          </form>
+          )}
         </div>
       </div>
     </>
+  );
+}
+
+function SettingsEditor({ item, onSave, onCancel, saving }) {
+  const [formData, setFormData] = useState(item);
+
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  const isManager = item.key === 'organization_managers';
+
+  return (
+    <form onSubmit={handleSubmit} style={{ maxWidth: '600px' }}>
+      <div style={{ marginBottom: '1rem' }}>
+        <h3>{formData.admin_label}</h3>
+        <p style={{ color: '#666', fontSize: '0.9rem' }}>{formData.admin_help}</p>
+      </div>
+
+      {isManager ? (
+        // Managers structured editor
+        <div style={{ marginBottom: '1rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+            اعضای تیم (فرمت JSON)
+          </label>
+          <textarea
+            value={JSON.stringify(formData.value_json || [], null, 2)}
+            onChange={(e) => {
+              try {
+                const parsed = JSON.parse(e.target.value);
+                handleChange('value_json', parsed);
+              } catch {
+                // Keep user input even if invalid JSON for now
+              }
+            }}
+            style={{
+              width: '100%',
+              minHeight: '300px',
+              padding: '0.5rem',
+              borderRadius: '4px',
+              border: '1px solid #ddd',
+              fontFamily: 'monospace',
+              fontSize: '0.9rem'
+            }}
+            placeholder={JSON.stringify([
+              { id: 'mgr_1', name: 'نام', role: 'نقش', email: 'email@example.com' }
+            ], null, 2)}
+          />
+          <p style={{ color: '#666', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+            Expected format: [{'{'}id, name, role, email{'}'}]
+          </p>
+        </div>
+      ) : formData.is_bilingual ? (
+        // Bilingual scalar
+        <>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+              فارسی
+            </label>
+            <input
+              type="text"
+              value={formData.value_text_fa || ''}
+              onChange={(e) => handleChange('value_text_fa', e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.5rem',
+                borderRadius: '4px',
+                border: '1px solid #ddd'
+              }}
+            />
+          </div>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+              Deutsch
+            </label>
+            <input
+              type="text"
+              value={formData.value_text_de || ''}
+              onChange={(e) => handleChange('value_text_de', e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.5rem',
+                borderRadius: '4px',
+                border: '1px solid #ddd'
+              }}
+            />
+          </div>
+        </>
+      ) : (
+        // Scalar
+        <div style={{ marginBottom: '1rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+            مقدار
+          </label>
+          <input
+            type="text"
+            value={formData.value_text || ''}
+            onChange={(e) => handleChange('value_text', e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              borderRadius: '4px',
+              border: '1px solid #ddd'
+            }}
+          />
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: '1rem' }}>
+        <button
+          type="submit"
+          disabled={saving}
+          style={{
+            padding: '0.5rem 1rem',
+            background: '#28a745',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            opacity: saving ? 0.6 : 1
+          }}
+        >
+          {saving ? 'درحال ذخیره...' : 'ذخیره'}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          style={{
+            padding: '0.5rem 1rem',
+            background: '#6c757d',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          لغو
+        </button>
+      </div>
+    </form>
   );
 }
