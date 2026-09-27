@@ -1,455 +1,561 @@
-# Security & Privacy Architecture — Phase 1
+# Security Documentation
+
+**Last Updated:** September 27, 2026
 
 ## Overview
 
-DIDAR Phase 1 implements security-first principles:
-
-- **Data minimization**: Only collect what's necessary
-- **No automatic emails**: Manual admin workflow
-- **Server-side validation**: All input validated on the server
-- **Rate limiting**: Protection against spam/abuse
-- **Secure authentication**: Strong password hashing
-- **Protected secrets**: Environment variables, not committed to Git
-- **Row Level Security**: Database-level access control
-
-## Authentication & Authorization
-
-### Admin Authentication (Session-Based)
-
-1. **Password Storage**
-   - Stored as PBKDF2-SHA256 hash in `.env.local`
-   - Never stored in Git
-   - Password requirements: 12+ characters, mixed case, numbers, symbols
-
-2. **Login Flow**
-   ```
-   POST /api/auth/login
-   → Verify password against hash
-   → Generate session token
-   → Set HTTP-only cookie (24h expiry)
-   ```
-
-3. **Protected Routes**
-   - Admin routes check session cookie
-   - Expired sessions automatically rejected
-   - Logout clears session
-
-### Why Session-Based Auth?
-
-- Simple, no external service required
-- Sufficient for single admin
-- Standard HTTP cookie security
-- Future migration to proper JWT easy
-
-## Data Security
-
-### What Data is Collected
-
-| Table | Data | Visibility | Retention |
-|-------|------|------------|-----------|
-| Registrations | First name, last name, email, phone, Telegram, comment | Admin only | Manual review & deletion |
-| Memberships | First name, last name, email, phone, Telegram, info | Admin only | Manual review & deletion |
-| Contact | Name, email, message | Admin only | Manual review & deletion |
-| Events | Title, description, date, time, location, status | Public | Until deletion |
-
-### Row Level Security (RLS)
-
-Database enforces access control:
-
-```sql
--- Public can INSERT but not SELECT registrations
-CREATE POLICY "public_insert_registrations" ON event_registrations
-  FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "public_no_read_registrations" ON event_registrations
-  FOR SELECT USING (false);
-
--- Admin can do everything (enforced at app layer in Phase 1)
-```
-
-This means:
-- Users cannot read back their own submissions
-- Users cannot modify submissions
-- Only admin can view data
-- Database prevents unauthorized access as a second layer
-
-### Data in Transit
-
-- All traffic uses HTTPS (enforced by Vercel/Supabase)
-- No sensitive data in URLs (all in POST body)
-- Cookies are `Secure`, `HttpOnly`, `SameSite=Strict`
-
-### Personal Data Storage
-
-All personal data is stored only in Supabase PostgreSQL database:
-- No third-party services
-- No analytics tracking
-- No email logs
-- No automatic archival
-
-## Form Security
-
-### Server-Side Validation
-
-Every form submission is validated on the server:
-
-```javascript
-// Validate format
-- Email: RFC standard
-- Phone: 5-20 chars
-- Name: 1-100 chars
-- Message: 10-2000 chars
-
-// Sanitization
-- Whitespace trimmed
-- Email lowercased
-- No special characters allowed
-- Max field lengths enforced
-```
-
-Why server-side only?
-- Client-side validation is for UX
-- Server-side validation is for security
-- Attackers can bypass client-side checks
-- Server always validates
-
-### Rate Limiting
-
-Prevents spam and abuse:
-
-```
-10 requests per minute per IP
-Enforced on public forms (registrations, memberships, contact)
-Uses IP address as identifier
-Cleanup runs every 5 minutes
-```
-
-Response on rate limit:
-```
-HTTP 429 Too Many Requests
-Retry-After header included
-```
-
-Implementation:
-- In-memory map (Phase 1)
-- Consider Redis for multi-instance deployments (Phase 3+)
-
-### CSRF Protection
-
-Not implemented in Phase 1 because:
-- Forms are POST-only from verified API routes
-- No sensitive state changes (admin actions require auth)
-- Can be added in Phase 6 if needed
-
-## Secret Management
-
-### Environment Variables
-
-**Safe to expose (NEXT_PUBLIC_):**
-- `NEXT_PUBLIC_SUPABASE_URL` → browser needs it to query
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` → safe, limited by RLS
-
-**Secret (server-only):**
-- `ADMIN_PASSWORD_HASH` → only used in login route
-- `SUPABASE_SECRET_KEY` → only used in admin routes (Phase 3+)
-- Never sent to browser
-
-### Files Never Committed to Git
-
-`.gitignore` prevents:
-```
-.env
-.env.local
-.env.*.local
-node_modules/
-.next/
-data/exports/
-```
-
-Verification:
-```bash
-git check-ignore .env.local  # Should return .env.local
-git ls-files | grep ".env"   # Should only show .env.example
-```
-
-### Vercel Deployment
-
-Environment variables are:
-1. Stored in Vercel Project Settings (encrypted)
-2. Injected at build/runtime
-3. Never visible in logs
-4. Available in /api routes only (not browser)
-
-## API Security
-
-### HTTP Methods
-
-- `GET /api/health` - Public, no data
-- `POST /api/auth/login` - Public, password-protected
-- `POST /api/auth/logout` - Auth required
-- `POST /api/*/submit` - Public, rate-limited, validated
-
-Rejects other methods:
-```javascript
-if (req.method !== 'POST') {
-  return res.status(405).json({ error: 'Method not allowed' });
-}
-```
-
-### Input Validation
-
-Every API route:
-1. Checks request method
-2. Validates content-type (JSON)
-3. Checks required fields exist
-4. Validates field format
-5. Enforces max lengths
-6. Trims whitespace
-
-Example validation errors:
-```json
-{
-  "error": "Validation failed",
-  "details": [
-    "Email is invalid",
-    "Name is too long (max 100 characters)"
-  ]
-}
-```
-
-### Error Messages
-
-Errors are intentionally generic to prevent information leaks:
-
-```javascript
-// ✗ WRONG - reveals too much
-return res.status(401).json({
-  error: 'Password hash does not match stored hash for admin user'
-});
-
-// ✓ CORRECT - doesn't reveal system details
-return res.status(401).json({
-  error: 'Authentication failed'
-});
-```
-
-## Network Security
-
-### HTTP Headers
-
-Configured in `next.config.js`:
-
-| Header | Value | Purpose |
-|--------|-------|---------|
-| X-Content-Type-Options | nosniff | Prevent MIME type sniffing |
-| X-Frame-Options | DENY | Prevent clickjacking |
-| X-XSS-Protection | 1; mode=block | Legacy XSS protection |
-| Referrer-Policy | strict-origin-when-cross-origin | Control referrer info |
-
-### HTTPS
-
-- Vercel enforces HTTPS by default
-- No HTTP fallback
-- HSTS headers recommended (Phase 6)
-
-### CORS
-
-Not configured in Phase 1 because:
-- All requests come from same-origin (your website)
-- Admin endpoints use session cookies (not CORS-dependent)
-- Can be added if needed for Phase 3 admin dashboard
-
-## Third-Party Services
-
-### Services Used
-
-1. **Supabase** (Database)
-   - Handles data storage
-   - Data region: EU (configurable)
-   - Free tier: 500 MB database, plenty for Phase 1
-
-2. **Vercel** (Deployment)
-   - Hosts the application
-   - Manages HTTPS certificates
-   - Environment variables encrypted
-
-3. **GitHub** (Source Control)
-   - Repository hosted
-   - No personal data stored
-
-### Services NOT Used
-
-- No email service (manual admin process)
-- No analytics (privacy-first)
-- No tracking pixels
-- No CDNs beyond Vercel's default
-- No external authentication
-
-## Data Deletion & Privacy
-
-### How Users Can Request Deletion
-
-In Phase 1, there is no automated data deletion. Process:
-
-1. User contacts DIDAR
-2. Admin reviews request
-3. Admin deletes from Supabase dashboard
-
-Detailed process to be added in Phase 6 (Privacy/Security Hardening).
-
-### How Registrations Are Managed
-
-- Admin reviews submission
-- Sends email manually
-- Updates status in database (new → contacted/confirmed/declined)
-- Deletes after event/decision
-
-### Data Retention Baseline
-
-- No automated deletion
-- No archival
-- Manual review required
-- To be formalized in privacy policy (Phase 6)
-
-## Development Security
-
-### Git Practices
-
-```bash
-# Never do this
-git add .env.local
-git commit -m "Add secrets"
-git push
-
-# Always do this
-git add .
-git status  # Verify .env.local NOT listed
-git commit
-git push
-```
-
-### Code Review
-
-When adding new features:
-1. Check for hardcoded secrets
-2. Verify validation on all inputs
-3. Ensure errors don't leak information
-4. Test with invalid data
-5. Check .gitignore before committing
-
-### Dependency Security
-
-```bash
-# Check for vulnerabilities
-npm audit
-
-# Update dependencies
-npm update
-npm audit fix
-```
-
-## Testing Security
-
-### Manual Testing
-
-```bash
-# Health check (should work)
-curl https://your-vercel-url.vercel.app/api/health
-
-# Rate limiting (send 11 requests, 11th fails)
-for i in {1..11}; do
-  curl -X POST \
-    -H "Content-Type: application/json" \
-    -d '{"email":"test@example.com","name":"Test"}' \
-    https://your-vercel-url.vercel.app/api/contact/submit
-done
-
-# Invalid input (should fail)
-curl -X POST \
-  -H "Content-Type: application/json" \
-  -d '{"email":"not-an-email"}' \
-  https://your-vercel-url.vercel.app/api/contact/submit
-
-# Should get 400 with validation errors
-```
-
-### Checklist Before Launch
-
-- [ ] No `.env.local` in Git history
-- [ ] All `.env` files in `.gitignore`
-- [ ] Passwords meet requirements (12+ chars, mixed case, numbers, symbols)
-- [ ] Health check works
-- [ ] Rate limiting blocks after limit
-- [ ] Invalid input returns 400 with validation errors
-- [ ] Admin login requires correct password
-- [ ] Logged-out users cannot access admin routes
-- [ ] Supabase RLS blocks unauthorized access
-- [ ] No personal data in error messages
-
-## Known Limitations (Phase 1)
-
-1. **Sessions are in-memory** - lost on server restart
-   - Fix in Phase 3+: Use Redis or database for sessions
-
-2. **No email verification** - intentional
-   - Users can enter fake emails
-   - Fix: None (by design - emails are manually verified)
-
-3. **No password reset** - intentional for single admin
-   - If password forgotten: Generate new hash with `scripts/setup-admin.js`
-
-4. **No activity logging** - intentional for simplicity
-   - Add in Phase 6+: Log admin actions for audit
-
-5. **No two-factor authentication** - not needed for Phase 1
-   - Single admin, simple deployment
-   - Can add MFA support in Phase 3+
-
-## Future Security Improvements (Phase 3+)
-
-- [ ] Session persistence (Redis/Database)
-- [ ] Activity logging
-- [ ] IP whitelisting for admin
-- [ ] Rate limiting by endpoint
-- [ ] Intrusion detection
-- [ ] Automated backups
-- [ ] Encryption at rest
-- [ ] API key rotation
-- [ ] Security headers (CSP, etc.)
-
-## Incident Response
-
-### If Secrets Are Leaked
-
-1. Stop using the leaked secret immediately
-2. Rotate (generate new password, API key, etc.)
-3. Revoke old secrets in services
-4. Update `.env` files
-5. Re-deploy
-6. Monitor for misuse
-
-### If Data Breach Suspected
-
-1. Immediately notify users (Datenschutzerklärung must include this)
-2. Revoke compromised credentials
-3. Enable audit logging
-4. Restore from backup if needed
-5. Notify Supabase support
-
-### If Application Is Compromised
-
-1. Take site offline
-2. Review Git logs for unauthorized commits
-3. Rotate all secrets
-4. Rebuild from clean repo
-5. Deploy fresh instance
-6. Verify with security review
-
-## Contact
-
-Security questions or concerns: [To be filled in Phase 6 with legal/contact details]
+DIDAR implements security best practices for protecting user data, admin credentials, and application integrity. This document describes authentication mechanisms, data protection, access control, and incident response procedures.
 
 ---
 
-**Last Updated**: Phase 1 (2026-09-16)  
-**Next Security Review**: Phase 6 (Privacy/Security Hardening)
+## 1. Admin Authentication
+
+### Password Hashing
+
+Admin passwords are hashed using PBKDF2 (Password-Based Key Derivation Function 2) with the following configuration:
+
+```javascript
+// From lib/password.js
+const hashPassword = (password) => {
+  const salt = crypto.randomBytes(32).toString('hex');
+  const hash = crypto.pbkdf2Sync(
+    password,
+    salt,
+    100000,  // iterations
+    64,      // keylen
+    'sha256'
+  ).toString('hex');
+  return `${salt}:${hash}`;
+};
+```
+
+**Key parameters:**
+- **Algorithm:** PBKDF2-SHA256
+- **Iterations:** 100,000 (increases computational cost for brute-force attacks)
+- **Key Length:** 64 bytes (512 bits)
+- **Salt:** 32 random bytes per password
+
+**Important:** Never store plaintext passwords. Always use `hashPassword()` when creating or updating admin accounts.
+
+### Session Management
+
+Admin sessions are stored in the `admin_sessions` table with database-backed authentication:
+
+```sql
+CREATE TABLE admin_sessions (
+  id BIGSERIAL PRIMARY KEY,
+  admin_id BIGINT NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+```
+
+**Session lifecycle:**
+1. Admin submits username and password on `/admin/login`
+2. Server validates credentials against `admins` table using PBKDF2 comparison
+3. Server generates random 64-character session token and stores hash in `admin_sessions`
+4. Token returned to client as HTTP-only secure cookie `session_token`
+5. Client sends cookie with each admin API request
+6. Server validates token hash against `admin_sessions` table before processing request
+7. Session expires after 24 hours (configurable via `ADMIN_SESSION_DURATION_MS`)
+
+**Security properties:**
+- **HTTP-Only Cookie:** Browser JavaScript cannot access the token (prevents XSS token theft)
+- **Secure Flag:** Cookie only transmitted over HTTPS
+- **Database-Backed:** Sessions stored server-side; clients cannot forge valid sessions
+- **Token Hashing:** Server never stores plaintext tokens; only hashes are saved
+- **Automatic Expiration:** Expired sessions become invalid; logout clears cookie
+
+### Admin Credentials Initialization
+
+For first-time admin setup:
+
+```bash
+# Generate password hash locally (never store plaintext)
+node -e "
+const crypto = require('crypto');
+const password = 'your-secure-password';
+const salt = crypto.randomBytes(32).toString('hex');
+const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha256').toString('hex');
+console.log('Hash:', salt + ':' + hash);
+"
+```
+
+Then insert into the `admins` table via Supabase dashboard or SQL:
+
+```sql
+INSERT INTO admins (username, password_hash)
+VALUES ('admin', 'salt:hash');
+```
+
+---
+
+## 2. Row-Level Security (RLS)
+
+All data tables implement Row-Level Security policies to restrict access based on user role:
+
+### Public Tables (No RLS — User-Facing Data)
+
+These tables have RLS enabled but allow public SELECT access for frontend data needs:
+
+- **events:** Public SELECT; admin INSERT/UPDATE/DELETE
+- **cms_content:** Public SELECT; admin INSERT/UPDATE/DELETE
+
+### Restricted Tables (RLS — Protected Data)
+
+These tables restrict access to admin role via SECURITY DEFINER functions:
+
+- **event_registrations:** Public cannot read/write directly; only via SECURITY DEFINER RPC
+- **membership_applications:** Public cannot read/write directly; only via SECURITY DEFINER RPC
+- **contact_submissions:** Public cannot read/write directly; only via SECURITY DEFINER RPC
+- **admin_sessions:** Admin only; used for session validation
+
+### SECURITY DEFINER Procedures
+
+All public form submissions use SECURITY DEFINER procedures that execute with elevated privileges:
+
+```sql
+CREATE FUNCTION insert_event_registration_manual(
+  p_event_id BIGINT,
+  p_first_name TEXT,
+  p_last_name TEXT,
+  p_email TEXT,
+  p_phone TEXT,
+  p_telegram_id TEXT,
+  p_comment TEXT
+) RETURNS BIGINT
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_registration_id BIGINT;
+BEGIN
+  INSERT INTO event_registrations (
+    event_id, first_name, last_name, email, phone, telegram_id, comment, status
+  ) VALUES (
+    p_event_id, p_first_name, p_last_name, p_email, p_phone, p_telegram_id, p_comment, 'new'
+  )
+  RETURNING id INTO v_registration_id;
+  
+  RETURN v_registration_id;
+END;
+$$;
+
+-- Grant execution to anon/authenticated roles
+GRANT EXECUTE ON FUNCTION insert_event_registration_manual(...) TO anon, authenticated;
+```
+
+**Benefits:**
+- Public cannot directly INSERT/UPDATE rows (only via RPC)
+- RPC executes with `postgres` role privileges, bypassing RLS
+- Backend validates input before calling RPC
+- Prevents direct SQL injection into table structure
+
+---
+
+## 3. Data Privacy
+
+### User Data Collection
+
+DIDAR collects only necessary information for event registration and membership:
+
+**Event Registration:**
+- First name, last name, email, phone (optional), Telegram ID (optional), comment (optional)
+
+**Membership Application:**
+- First name, last name, email, phone (optional), Telegram ID (optional), additional info (optional)
+
+**Contact Form:**
+- Name, email, message
+
+**No automated email addresses, IP addresses, or personal browsing data are stored.**
+
+### Data Retention
+
+- **Event registrations:** Retained indefinitely (admin can manually delete if needed)
+- **Membership applications:** Retained indefinitely (admin can manually delete)
+- **Contact submissions:** Retained indefinitely (admin can manually delete)
+- **Admin sessions:** Automatically expire after 24 hours; expired records can be cleaned up
+
+### Data Export
+
+Admins can export registrations and memberships to CSV via:
+- `/admin/registrations` → "Export CSV" button
+- `/admin/memberships` → "Export CSV" button
+
+Exported files contain only the submission data; no system metadata is included.
+
+### Deleting User Data
+
+To delete a specific registration or membership:
+
+1. Admin logs in to `/admin`
+2. Navigate to Registrations or Memberships
+3. Click the registration/membership to open details
+4. Click "Delete" button (if available)
+5. Confirm deletion
+
+**Note:** Deletion is permanent; there is no undo.
+
+---
+
+## 4. Transport Security
+
+### HTTPS Enforcement
+
+All production deployments must use HTTPS:
+
+- **Vercel:** HTTPS enabled by default; automatic HTTPS redirect
+- **Self-hosted:** Configure nginx reverse proxy with SSL certificate
+
+```nginx
+server {
+  listen 443 ssl http2;
+  server_name your-domain.com;
+  
+  ssl_certificate /etc/ssl/certs/your-cert.crt;
+  ssl_certificate_key /etc/ssl/private/your-key.key;
+  
+  location / {
+    proxy_pass http://localhost:3000;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Forwarded-Proto https;
+  }
+}
+```
+
+### Secure Cookies
+
+Admin session cookies are configured as:
+
+```javascript
+// From pages/api/auth/login.js
+res.setHeader('Set-Cookie', [
+  `session_token=${sessionToken}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=86400`
+]);
+```
+
+- **HttpOnly:** JavaScript cannot access the cookie
+- **Secure:** Only transmitted over HTTPS (browser enforces this)
+- **SameSite=Strict:** Prevents CSRF attacks (cookie only sent in same-site requests)
+- **Max-Age=86400:** 24-hour expiration
+
+---
+
+## 5. Rate Limiting
+
+All public forms are protected by rate limiting to prevent spam and brute-force attacks:
+
+**Implementation:**
+- **Location:** `lib/rate-limit.js` and applied via `withRateLimit()` middleware
+- **Mechanism:** Per-IP in-memory counter with sliding window
+- **Default Limit:** 10 requests per 60 seconds per IP
+- **Configuration:**
+  - `RATE_LIMIT_REQUESTS=10` (number of requests allowed)
+  - `RATE_LIMIT_WINDOW_MS=60000` (time window in milliseconds)
+
+**Protected endpoints:**
+- `POST /api/contact/submit` — Contact form
+- `POST /api/memberships/submit` — Membership application
+- `POST /api/registrations/submit` — Event registration
+
+**Rate limit error response:**
+
+```json
+HTTP 429 Too Many Requests
+{
+  "error": "Too many requests. Please try again later.",
+  "retryAfter": 42
+}
+
+Response Header: Retry-After: 42
+```
+
+**Client behavior:** Browsers should wait the specified `retryAfter` seconds before retrying.
+
+### Adjusting Rate Limits
+
+To change rate limiting for production:
+
+```bash
+# .env.production
+RATE_LIMIT_REQUESTS=20        # Allow 20 requests
+RATE_LIMIT_WINDOW_MS=120000   # Per 2 minutes
+```
+
+**Note:** Changes require redeployment (cannot be modified at runtime without restart).
+
+---
+
+## 6. Input Validation
+
+All user inputs are validated server-side before processing or storage:
+
+### Contact Form Validation
+
+```javascript
+// lib/validation.js
+export function validateContactForm(data) {
+  const errors = [];
+  
+  if (!validateRequired(data.name, 1, 100))
+    errors.push('Name is required (1-100 characters)');
+  
+  if (!validateEmail(data.email))
+    errors.push('A valid email address is required');
+  
+  if (!validateRequired(data.message, 10, 2000))
+    errors.push('Message is required (10-2000 characters)');
+  
+  return { valid: errors.length === 0, errors };
+}
+```
+
+### Event Registration Validation
+
+```javascript
+export function validateEventRegistration(data) {
+  const errors = [];
+  
+  if (!validateRequired(data.firstName, 1, 100))
+    errors.push('First name is required (1-100 characters)');
+  
+  if (!validateRequired(data.lastName, 1, 100))
+    errors.push('Last name is required (1-100 characters)');
+  
+  if (!validateEmail(data.email))
+    errors.push('A valid email address is required');
+  
+  if (data.phone && !validatePhone(data.phone))
+    errors.push('Phone number is invalid');
+  
+  if (data.telegramId && !validateTelegram(data.telegramId))
+    errors.push('Telegram ID is invalid');
+  
+  return { valid: errors.length === 0, errors };
+}
+```
+
+### Validation Rules
+
+- **Names:** 1-100 characters, required
+- **Email:** Valid format (basic regex), max 254 characters, required
+- **Phone:** 5-20 characters, optional
+- **Telegram:** Starts with @ (2-32 chars) or numeric ID, optional
+- **Message/Comment:** Text length limits (10-2000 for messages, max 1000 for comments)
+
+**All validation happens server-side; client-side validation is for UX only.**
+
+---
+
+## 7. SQL Injection Prevention
+
+DIDAR uses parameterized queries (prepared statements) throughout:
+
+```javascript
+// Example: Never concatenate strings into SQL queries
+
+// ❌ VULNERABLE:
+const query = `SELECT * FROM events WHERE id = ${eventId}`;
+
+// ✅ SECURE (using Supabase client):
+const { data, error } = await supabase
+  .from('events')
+  .select('*')
+  .eq('id', eventId);
+```
+
+The Supabase JavaScript client handles all parameterization automatically. Values are never interpolated into SQL strings.
+
+---
+
+## 8. XSS (Cross-Site Scripting) Prevention
+
+DIDAR uses Next.js and React with built-in XSS protection:
+
+- **React escaping:** All user data rendered via React is HTML-escaped automatically
+- **No innerHTML:** User data is never inserted via `innerHTML` or `dangerouslySetInnerHTML`
+- **Content Security Policy:** (Optional) Can be configured in `next.config.js` for additional protection
+
+Example:
+
+```javascript
+// ✅ SAFE - React auto-escapes:
+<p>{userSubmittedText}</p>
+
+// ❌ UNSAFE - Never do this with user input:
+<p dangerouslySetInnerHTML={{ __html: userSubmittedText }} />
+```
+
+---
+
+## 9. CSRF (Cross-Site Request Forgery) Prevention
+
+DIDAR uses SameSite cookies for CSRF protection:
+
+```javascript
+// From lib/middleware.js
+res.setHeader('Set-Cookie', [
+  `session_token=${sessionToken}; HttpOnly; Secure; SameSite=Strict; Path=/`
+]);
+```
+
+**SameSite=Strict** ensures cookies are only sent to same-site requests, preventing cross-origin form submissions from stealing session tokens.
+
+---
+
+## 10. Dependency Security
+
+### Regular Updates
+
+Keep dependencies current to patch security vulnerabilities:
+
+```bash
+npm outdated          # Check for outdated packages
+npm audit             # Check for known vulnerabilities
+npm update            # Update to latest minor/patch versions
+```
+
+### Critical Dependencies
+
+Key security-related dependencies:
+
+- **next:** Framework security updates
+- **react:** Framework updates
+- **@supabase/supabase-js:** Database client security fixes
+- **crypto:** Node.js built-in (no external dependency)
+
+Monitor these packages for security advisories via:
+- GitHub Security Alerts (if repo is on GitHub)
+- npm audit regularly
+- Dependabot (GitHub) or similar service
+
+---
+
+## 11. Incident Response
+
+### Security Incident Types
+
+#### Unauthorized Admin Access
+
+**Signs:**
+- Unexpected changes to events or admin settings
+- Admin dashboard access logs (if implemented) show unknown activity
+- Users report seeing old event data
+
+**Response:**
+1. Immediately change all admin passwords via `pages/api/auth/change-password` (if endpoint exists) or via Supabase dashboard
+2. Revoke all active sessions by clearing the `admin_sessions` table (all existing tokens become invalid)
+3. Review recent admin API logs for unauthorized actions
+4. If data was modified, determine scope of changes and recover from backup if needed
+
+```sql
+-- Emergency: Invalidate all sessions
+DELETE FROM admin_sessions WHERE expires_at > now();
+```
+
+#### Data Breach (User Submissions)
+
+**Signs:**
+- Registrations/memberships accessible to unauthorized users
+- Contact submissions visible to non-admins
+- Evidence of unauthorized database access
+
+**Response:**
+1. Verify RLS policies on affected tables are still enabled and correct
+2. Review Supabase access logs for unusual database activity
+3. Check that SECURITY DEFINER functions have correct permissions
+4. Notify affected users if personal data was exposed
+5. Consider rotating database credentials
+
+```sql
+-- Verify RLS is enabled on protected tables
+SELECT tablename, rowsecurity FROM pg_tables
+WHERE tablename IN ('event_registrations', 'membership_applications', 'contact_submissions');
+```
+
+#### DDoS or Rate Limit Bypass
+
+**Signs:**
+- Spike in requests from specific IP or geographic location
+- Rate limiting not working as expected
+- Server performance degradation
+
+**Response:**
+1. Increase `RATE_LIMIT_REQUESTS` or decrease `RATE_LIMIT_WINDOW_MS` to tighten limits
+2. Deploy rate-limiting reverse proxy (nginx, CloudFlare) if self-hosted
+3. Monitor request logs for patterns
+4. Temporarily block IPs if severe (at nginx or firewall level)
+5. Verify middleware is still applied to endpoints
+
+#### Compromised Secrets (.env)
+
+**Signs:**
+- Evidence that `.env` file (with API keys) was exposed
+- Unauthorized API usage on Supabase or external services
+
+**Response:**
+1. Immediately rotate all secrets:
+   - Supabase API keys → generate new ones in Supabase dashboard
+   - JWT secret → rotate in Supabase settings
+2. Redeploy application with new `.env` values
+3. Review audit logs in Supabase for unauthorized access
+4. Never commit `.env` files to version control
+
+---
+
+## 12. Best Practices Checklist
+
+### Development
+
+- [ ] Never commit `.env` files or secrets to version control
+- [ ] Use `.env.example` to document required environment variables (with placeholder values)
+- [ ] Validate all user inputs server-side (not just client-side)
+- [ ] Use parameterized queries (Supabase client does this automatically)
+- [ ] Keep dependencies updated with `npm audit`
+- [ ] Enable HTTPS in production
+
+### Deployment
+
+- [ ] Set `NODE_ENV=production`
+- [ ] Configure secure cookies (HttpOnly, Secure, SameSite)
+- [ ] Enable database RLS policies
+- [ ] Verify SECURITY DEFINER functions have correct permissions
+- [ ] Set appropriate rate limiting values
+- [ ] Enable HTTPS with valid SSL certificate
+- [ ] Configure CORS if needed (currently open for local development)
+
+### Operations
+
+- [ ] Monitor admin login activity
+- [ ] Regularly review database backups (Supabase automatic backups)
+- [ ] Keep admin passwords strong (minimum 12 characters, mixed case, numbers, symbols)
+- [ ] Rotate admin credentials periodically
+- [ ] Monitor application logs for errors or suspicious activity
+- [ ] Review rate-limit metrics to detect attacks
+
+### Incident Response
+
+- [ ] Have a plan to revoke all admin sessions if needed
+- [ ] Know how to rotate database credentials
+- [ ] Have contact info for Supabase support
+- [ ] Document procedures for restoring from backups
+- [ ] Test incident response procedures annually
+
+---
+
+## 13. Security Contacts
+
+For security concerns or to report vulnerabilities:
+
+**Note:** DIDAR is currently a demonstration project. For a production deployment, establish a security contact and disclosure policy.
+
+---
+
+## Related Documentation
+
+- **DATABASE.md** — RLS policies, table permissions
+- **DEPLOYMENT.md** — Environment variable setup, production configuration
+- **ADMIN_GUIDE.md** — Admin session management, password policies
+

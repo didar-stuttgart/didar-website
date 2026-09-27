@@ -1,122 +1,474 @@
-# DIDAR Website — Architecture Reference
+# ARCHITECTURE
 
-This is the technical companion to `ONBOARDING.md`. Read that first if you're new. This document goes into implementation detail: every route, the database schema, and how the pieces actually connect.
+This document describes the technical architecture of the DIDAR website.
 
-## 1. Request flow, end to end
+## Overview
 
-**A public page (e.g. the homepage):**
-`Browser requests /` → Next.js runs `getStaticProps()` in `pages/index.js` at build time (and again on a schedule, see below) → that function calls Supabase directly (server-side, no API round trip needed) → returns pre-rendered HTML → the browser never has to wait on the database.
+The DIDAR website is a Next.js 15 application with a React 18 frontend and Node.js backend, using Supabase PostgreSQL for data storage. It implements a bilingual interface (Persian/German) with RTL/LTR support, manual form submission workflow, and a password-protected admin dashboard.
 
-**A form submission (e.g. event registration):**
-`Browser submits the form` → `fetch('/api/registrations/submit', { method: 'POST', ... })` → the API route validates the input (`lib/validation.js`), checks the request isn't rate-limited (`lib/rate-limit.js`), inserts a row into Supabase using the public key → returns success/error JSON → the form shows a confirmation or error message. The browser never talks to Supabase directly for writes.
+---
 
-**An admin action (e.g. viewing registrations):**
-`Browser (already logged in) requests /admin/registrations` → the page checks its session via `POST /api/auth/verify` → if valid, it calls `/api/admin/registrations` → that endpoint checks the session again server-side, then queries Supabase using the **secret/admin key** (which bypasses Row Level Security) → returns the data. See section 4 for a caveat on this flow.
+## Technology Stack
 
-## 2. Rendering strategy: Incremental Static Regeneration (ISR)
+| Layer | Technology | Version |
+|-------|-----------|---------|
+| Frontend Framework | Next.js | 15 |
+| UI Library | React | 18 |
+| Backend | Node.js (Next.js API routes) | 18+ |
+| Database | Supabase PostgreSQL | Latest |
+| Authentication | PBKDF2 + Database Sessions | N/A |
+| Styling | CSS Modules + Global CSS | N/A |
+| Internationalization | Custom lib/i18n.js | N/A |
+| Hosting | Vercel (or any Node.js platform) | N/A |
 
-Pages that show event data (`pages/index.js`, `pages/veranstaltungen/index.js`, `pages/veranstaltungen/[slug].js`) use Next.js's `getStaticProps` with `revalidate: 3600` (1 hour). This means:
+---
 
-- The page is built once (or first-visited) as static HTML — fast, no database call on every visitor.
-- Next.js automatically rebuilds that page in the background at most once per hour if it's requested again.
-- If you publish a new event in the admin panel and want it live immediately rather than waiting up to an hour, redeploying (pushing to `main`) forces a fresh build.
+## Project Structure
 
-This is a deliberate trade-off: much faster and cheaper than querying the database on every page view, at the cost of events not appearing *instantly* the moment they're added.
+### Pages Directory
 
-## 3. Database schema (Supabase / PostgreSQL)
+**Public Pages:**
+```
+pages/
+├── index.js                     # Homepage (hero, about preview, events)
+├── kontakt.js                   # Contact form page
+├── mitglied-werden.js           # Membership application page
+├── ueber-uns.js                 # About DIDAR page
+├── impressum.js                 # Legal/Imprint page
+├── datenschutz.js               # Privacy policy page
+├── veranstaltungen/
+│   ├── index.js                 # Event listing page
+│   └── [slug].js                # Event detail page + registration form
+└── registrations/
+    └── verify.js                # Disabled (returns 404)
+```
 
-The authoritative schema lives in `data/schema.sql`. Four tables:
+**Admin Pages:**
+```
+pages/admin/
+├── login.js                     # Admin login page
+├── index.js                     # Admin dashboard
+├── registrations.js             # Registration management page
+├── memberships.js               # Membership application management page
+├── content.js                   # CMS editor page
+├── settings.js                  # Settings page
+└── events/
+    ├── index.js                 # Event management list
+    └── [slug].js                # Event detail editor
+```
 
-**`events`** — one row per event. Bilingual fields (`title_fa`/`title_de`, `description_fa`/`description_de`, `location_fa`/`location_de`) so each event has both languages side by side rather than two separate rows. Key fields:
-- `status`: `draft` | `published` | `archived` — only `published` events are visible to the public.
-- `registration_status`: `not_open` | `open` | `closed` — the current source of truth for whether visitors can register (see below).
-- `registration_open` (boolean) — an older field, no longer read anywhere in the app, kept only so nothing breaks if something still references it. Safe to drop later once confirmed unused.
-- `slug` — used in the URL (`/veranstaltungen/[slug]`), must be unique.
+### API Routes
 
-**`event_registrations`** — one row per person who registers for an event. Minimal personal data only (name, email, optional phone/Telegram/comment). A person can only register once per event (`UNIQUE (event_id, email)`).
+**Public Endpoints:**
+```
+pages/api/
+├── auth/
+│   ├── login.js                 # POST: Admin login
+│   ├── logout.js                # POST: Admin logout
+│   └── verify.js                # GET: Verify session
+├── contact/
+│   └── submit.js                # POST: Contact form submission (rate-limited)
+├── events/
+│   ├── index.js                 # GET: All events
+│   └── [eventId]/
+│       └── capacity-status.js   # GET: Event capacity info
+├── memberships/
+│   └── submit.js                # POST: Membership application (rate-limited)
+├── registrations/
+│   ├── submit.js                # POST: Event registration (rate-limited)
+│   └── verify.js                # GET: Disabled (returns 404)
+└── health.js                    # GET: Health check
+```
 
-**`membership_applications`** — one row per membership application. Similar shape to registrations. Email must be unique across the whole table (only one application per email address).
+**Admin Endpoints:**
+```
+pages/api/admin/
+├── stats.js                     # GET: Dashboard statistics
+├── registrations/
+│   ├── index.js                 # GET: List registrations
+│   ├── [id].js                  # GET/POST: Get/update registration
+│   └── export.js                # POST: Export registrations to CSV
+├── memberships/
+│   ├── index.js                 # GET: List membership applications
+│   ├── [id].js                  # GET/POST: Get/update application
+│   └── export.js                # POST: Export applications to CSV
+├── events/
+│   ├── index.js                 # GET/POST: List/create events
+│   └── [slug].js                # GET/POST/DELETE: Event operations
+├── content/
+│   ├── index.js                 # GET: Get CMS content
+│   └── cms.js                   # POST: Update CMS content
+├── settings/
+│   ├── index.js                 # GET: Get settings
+│   └── organization.js          # POST: Update organization settings
+└── fix-event-status.js          # POST: Fix event registration status
+```
 
-**`contact_submissions`** — one row per contact form message.
+### Library Directory
 
-### Row Level Security (RLS)
+```
+lib/
+├── i18n.js                      # Internationalization (150+ strings)
+├── supabase.js                  # Supabase client initialization
+├── session-store.js             # Admin session management
+├── api-middleware.js            # Admin API middleware
+├── middleware.js                # Public API middleware
+├── rate-limit.js                # Rate limiting implementation
+├── validation.js                # Form validation rules
+└── [other utilities]
+```
 
-RLS is PostgreSQL's own permission system, enforced by the database itself regardless of what the application code does — a second line of defense beyond the API code. The rules, per table:
+### Styling
 
-- `events`: the public can `SELECT` only rows where `status = 'published'`. Nothing else is allowed for the public.
-- `event_registrations`, `membership_applications`, `contact_submissions`: the public can `INSERT` only — no reading, updating, or deleting. This means even if someone found the public API key, they could not read anyone else's registration, application, or message.
+```
+styles/
+├── globals.css                  # Global CSS (reset, variables, defaults)
+├── index.module.css             # Homepage styles
+├── layout.module.css            # Layout and navigation
+├── kontakt.module.css           # Contact form styles
+├── mitglied-werden.module.css   # Membership form styles
+├── admin.module.css             # Admin dashboard styles
+└── [page-specific modules]
+```
 
-The admin panel bypasses RLS entirely by using a separate **secret/service key** (`SUPABASE_SECRET_KEY` in the environment) that has full database access. This key must never be exposed to the browser — it's only ever used inside API routes running on the server (see `lib/supabase.js`'s `createServerClient()` vs. the public client).
+### Data Directory
 
-## 4. Authentication — how the admin panel is protected, and its current bug
+```
+data/
+├── schema.sql                   # Complete database schema
+├── migration_001_*.sql          # Schema and RLS foundation
+├── migration_002_*.sql          # Admin sessions table
+├── migration_003_*.sql          # Supabase grants
+├── migration_004_*.sql          # CMS content table
+├── migration_005_*.sql          # Manual registration RPC
+├── migration_006_*.sql          # RPC error handling
+├── migration_007_*.sql          # Membership application RPC
+├── migration_008_*.sql          # Contact submission RPC
+└── migration_009_*.sql          # Service role grants
+```
 
-There is exactly one admin account, protected by a single password (its hash is stored in the `ADMIN_PASSWORD_HASH` environment variable — never the plaintext password itself). Login uses a session cookie, not a username/password sent with every request.
+---
 
-**The flow as currently wired:**
+## Routing
 
-| Step | File | Session store it uses |
-|---|---|---|
-| Login | `pages/api/auth/login.js` | `lib/session-store.js` |
-| Logout | `pages/api/auth/logout.js` | `lib/session-store.js` |
-| Verify (used by the dashboard on page load) | `pages/api/auth/verify.js` | `lib/session-store.js` |
-| Every admin data endpoint (`/api/admin/stats`, `/events`, `/registrations`, `/memberships`, `/content`, `/settings`) | via `requireAdminSession()` in `lib/api-middleware.js` | `lib/admin-auth.js` |
+### Language Routing
 
-**The bug:** `lib/session-store.js` and `lib/admin-auth.js` each keep their own independent in-memory list of valid sessions (both literally called `activeSessions`, but they are two different objects in two different files). A session created by logging in is stored in `session-store.js`'s list. But every admin data endpoint checks `admin-auth.js`'s list instead — which never received that session. The practical effect: logging in appears to succeed (the login/verify calls only ever look at `session-store.js`, so they agree with each other), but the moment the dashboard tries to load actual data from `/api/admin/stats` or any other admin data endpoint, that check fails against the *other* store and returns `401 Unauthorized`.
+The site supports two languages via URL-based routing:
 
-There's also a second, smaller duplication worth knowing about: `lib/middleware.js` exports a `requireAdmin()` wrapper that also uses `admin-auth.js`'s store, but nothing currently imports `lib/middleware.js` — only `lib/api-middleware.js`'s `requireAdminSession()` is actually used by routes. So there are effectively three near-identical pieces of session-checking code (`session-store.js`, `admin-auth.js`, and the unused wrapper in `middleware.js`) where the project only needs one.
+- `/` or `/de/...` — German (default)
+- `/fa/...` — Persian
 
-**To fix this** (not done as part of this audit — flagged for a deliberate decision, since it's a real code change): pick one session store (most likely `lib/session-store.js`, since it's simpler and already used for login/logout/verify), point every admin API route's `requireAdminSession` at it instead of `admin-auth.js`, and then delete the now-unused duplicate code in `admin-auth.js`'s session functions and the unused `lib/middleware.js` file. `admin-auth.js` should keep its password-hashing functions (`hashPassword`, `verifyPassword`, `validatePassword`) — only the session-tracking part of it is duplicated.
+Language is detected from URL pathname and passed through context to all pages and components. No localStorage-based language persistence; URL is the source of truth.
 
-Beyond this bug, the auth design itself is intentionally simple for a single-admin site: sessions are stored **in memory**, meaning they're wiped whenever the server restarts or redeploys (the admin would just need to log in again — not a security problem, just a minor inconvenience). This is a documented, deliberate trade-off from Phase 1 (see `PROJECT_STATE.md`), not something to "fix" by adding Redis or a database-backed session store unless the project's needs actually grow past a single admin.
+### Dynamic Routes
 
-## 5. API route reference
+- `/veranstaltungen/[slug]` — Event-specific pages (slug from database)
+- `/admin/events/[slug]` — Event editor (slug from database)
+- `/api/events/[eventId]/...` — Event-specific APIs
+- `/api/admin/registrations/[id]` — Registration-specific APIs
+- `/api/admin/memberships/[id]` — Membership-specific APIs
 
-**Public form submissions** (all: validate input → rate-limit by IP → insert into Supabase → return JSON):
-- `POST /api/registrations/submit` — event registration
-- `POST /api/memberships/submit` — membership application
-- `POST /api/contact/submit` — contact message
+---
 
-**Public read-only:**
-- `GET /api/events` — published events, optional `?status=upcoming|past|all`
-- `GET /api/health` — deployment health check (used to confirm the site + Supabase connection are working after a deploy)
+## API Design
 
-**Authentication:**
-- `POST /api/auth/login` — password → session cookie
-- `POST /api/auth/logout` — clears the session
-- `POST /api/auth/verify` — checks if the current session cookie is still valid
+### Request/Response Pattern
 
-**Admin (all require a valid admin session — subject to the bug in section 4):**
-- `/api/admin/stats` — dashboard summary numbers
-- `/api/admin/events`, `/api/admin/events/[slug]` — create/edit events
-- `/api/admin/registrations`, `/api/admin/registrations/[id]`, `/api/admin/registrations/export` — manage and export event registrations
-- `/api/admin/memberships`, `/api/admin/memberships/[id]`, `/api/admin/memberships/export` — manage and export membership applications
-- `/api/admin/content` — edit page content
-- `/api/admin/settings` — contact info and social links
+All API endpoints follow a consistent pattern:
 
-## 6. Styling
+**Success Response (200-201):**
+```json
+{
+  "success": true,
+  "message": "Operation description",
+  "data": { "key": "value" }
+}
+```
 
-Plain CSS, no framework (no Tailwind, no CSS-in-JS library) and no CSS modules except for the admin panel (`styles/admin.module.css`, scoped so its class names can't accidentally clash with the public site's). Public-site styles are split by purpose, all loaded globally via `pages/_app.js`, in this load order (order matters — later files can override earlier ones):
+**Error Response (400-500):**
+```json
+{
+  "error": "Error message",
+  "details": ["Validation error 1", "Validation error 2"]
+}
+```
 
-1. `globals.css` — CSS custom properties (design tokens: colors, spacing, font sizes), resets
-2. `layout.css` — page-level layout structures
-3. `components.css` — reusable component styles (buttons, cards, forms)
-4. `rtl.css` — right-to-left overrides for Persian
-5. `enhancements.css` — later refinements and fixes layered on top (loads last, so it wins any conflicts with the files above — this is why Phase 11's duplicate `.form-group` cleanup kept the copy here and removed the one in `components.css`)
+### Authentication
 
-## 7. Environment variables
+Admin routes verify session via `requireAdminSession()` middleware from `lib/api-middleware.js`:
+- Check `session_token` cookie
+- Validate token in `admin_sessions` table
+- Reject if invalid or expired (24-hour TTL)
 
-Defined in `.env.example` (template) and `.env.local` (real values, never committed):
+### Rate Limiting
 
-- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — public, safe to expose to the browser; limited by RLS.
-- `SUPABASE_SECRET_KEY` — full database access, server-side only, must never reach the browser.
-- `ADMIN_PASSWORD_HASH` — the one admin account's password, hashed (PBKDF2-SHA256). Generated by `scripts/setup-admin.js`.
-- `RATE_LIMIT_REQUESTS`, `RATE_LIMIT_WINDOW_MS` — public form rate limiting (default: 10 requests per 60 seconds per IP).
-- `NODE_ENV`, `VERCEL_ENV` — set automatically by Vercel in deployed environments.
+Public form endpoints wrapped with `withRateLimit()` middleware:
+- Identifies client by IP address
+- Default: 10 requests per 60 seconds per IP
+- Returns 429 with Retry-After header when exceeded
+- Applies to: /api/contact/submit, /api/memberships/submit, /api/registrations/submit
 
-## 8. Known technical debt / things a maintainer should be aware of
+---
 
-- **The session-store duplication bug** — see section 4. This is the most important one.
-- `data/mockEvents.json` was removed during the cleanup pass that produced this document — it was leftover placeholder data from before Supabase was wired in, and nothing imported it anymore.
-- The old `registration_open` boolean column still exists in the `events` table for backward compatibility but is unused by the app. Safe to drop once confirmed nothing external depends on it.
-- Rate limiting and admin sessions are both in-memory (see section 4) — fine for this project's actual scale (single admin, low traffic), but worth knowing if traffic or team size ever grows meaningfully.
-- This document and `ONBOARDING.md` were generated by reading the code as of September 2026. Treat `PROJECT_STATE.md` as the more current, chronological source of truth for what's changed since — update these two files if the architecture changes significantly (a new page type, a new service, a different auth system, etc.), the same way `PROJECT_STATE.md` gets updated after each phase.
+## Database Layer
+
+### Schema Overview
+
+**9 Tables:**
+1. `events` — Event definitions with bilingual content
+2. `event_registrations` — User event registrations
+3. `membership_applications` — Membership application submissions
+4. `contact_submissions` — Contact form submissions
+5. `admin_sessions` — Admin session tokens
+6. `cms_content` — CMS-editable content
+7. [Additional system tables created by Supabase]
+
+### Row-Level Security (RLS)
+
+All tables have RLS policies:
+
+- **events:** Public read, admin-only write
+- **event_registrations:** Public insert via RPC, admin-only read/update
+- **membership_applications:** Public insert via RPC, admin-only read/update
+- **contact_submissions:** Public insert via RPC, no update
+- **admin_sessions:** Admin-only access, public deny
+
+### SECURITY DEFINER RPCs
+
+Public forms use SECURITY DEFINER stored procedures to bypass table RLS:
+
+- `insert_contact_submission_manual()` — Insert contact submission
+- `insert_event_registration()` — Insert event registration
+- `insert_membership_application()` — Insert membership application
+
+These run with Supabase service role permissions to write to protected tables.
+
+---
+
+## Authentication & Sessions
+
+### Admin Authentication Flow
+
+1. User submits password on `/admin/login`
+2. Backend hashes submitted password with PBKDF2
+3. Compares hash to stored `ADMIN_PASSWORD_HASH`
+4. If match: Generate session token
+5. Store token in `admin_sessions` table (24-hour TTL)
+6. Send token in HTTP-only, secure cookie (`session_token`)
+7. Browser sends cookie with subsequent requests
+8. Backend validates token on protected routes
+
+### Session Storage
+
+Sessions stored in `admin_sessions` table with columns:
+- `token_hash` — Hashed session token (unique)
+- `user_id` — Admin user ID (fixed value)
+- `expires_at` — Expiration timestamp (24 hours from creation)
+- `created_at` — Creation timestamp
+- `updated_at` — Last access timestamp
+
+Expired sessions are not automatically cleaned; admin/application should handle expiration.
+
+---
+
+## Bilingual Support
+
+### Internationalization (i18n)
+
+Custom i18n system in `lib/i18n.js` with:
+- 150+ translation strings
+- English, Persian, German support
+- Fallback to English for missing translations
+- All UI labels, form placeholders, validation messages
+
+### RTL/LTR Support
+
+- German (LTR) — Left-to-right text flow, standard flexbox
+- Persian (RTL) — Right-to-left text flow, mirrored layouts
+- CSS uses logical properties where possible
+- Hero section has separate LTR and RTL layouts
+- Form inputs, buttons adapt to text direction
+
+### URL-Based Language Selection
+
+Language determined by URL:
+- `/de/...` or `/` — German
+- `/fa/...` — Persian
+
+No language switcher UI; users share links with language embedded in URL.
+
+---
+
+## Form Submission Workflow (Manual Model)
+
+### Event Registration
+
+1. User fills form on `/veranstaltungen/[slug]`
+2. Frontend validates (required fields, formats)
+3. POST to `/api/registrations/submit` with form data
+4. Backend validates (server-side validation is authoritative)
+5. RPC `insert_event_registration()` saves to database
+6. User sees success message
+7. Admin sees new registration in `/admin/registrations`
+8. Admin manually updates status and contacts user
+
+### Membership Application
+
+1. User fills form on `/mitglied-werden`
+2. Frontend validates
+3. POST to `/api/memberships/submit`
+4. Backend validates
+5. RPC `insert_membership_application()` saves to database
+6. User sees success message
+7. Admin sees new application in `/admin/memberships`
+8. Admin manually updates status and contacts user
+
+### Contact Form
+
+1. User fills form on `/kontakt`
+2. Frontend validates
+3. POST to `/api/contact/submit`
+4. Backend validates
+5. RPC `insert_contact_submission_manual()` saves to database
+6. User sees success message
+7. Admin can view submission (not yet in admin UI)
+8. Admin manually sends reply
+
+**No automated emails at any stage.**
+
+---
+
+## CMS Integration
+
+### Dynamic Content
+
+The `cms_content` table stores editable content:
+- Keyed by unique identifier (e.g., "homepage.hero.title")
+- Organized by page/section/item_type
+- Admin can edit via `/admin/content` page
+- Public pages read content at request time
+
+### Supported Content Types
+
+- Text fields (titles, descriptions)
+- Long-form content (body, bio)
+- Structured data (JSON)
+
+---
+
+## Performance Considerations
+
+### Static Generation
+
+- Events can be pre-rendered as static HTML
+- Homepage can be cached (1-hour ISR revalidation)
+- Legal pages (Impressum, Datenschutz) are static
+
+### Optimization
+
+- Images lazy-loaded with shimmer animation
+- CSS bundled and minified by Next.js
+- Minimal JavaScript on public pages
+- Form validation runs client-side first (faster feedback)
+
+### Rate Limiting
+
+In-memory rate limiter sufficient for single instance. For multi-instance deployment, consider Redis or similar shared store.
+
+---
+
+## Error Handling
+
+### Validation Errors
+
+- Caught by backend validator
+- Returned as 400 with `details` array
+- Each error describes specific field and requirement
+
+### Server Errors
+
+- Caught by try-catch in API routes
+- Logged to console
+- Returned as 500 with generic message (no sensitive info to client)
+
+### Networking
+
+- Client implements exponential backoff on 5xx
+- Rate limiting returns 429 with Retry-After header
+- Session expiration returns 401 to admin routes
+
+---
+
+## Deployment Architecture
+
+### Development
+
+- Local Next.js dev server on port 3000
+- Local Supabase instance or cloud Supabase project
+- Environment variables from `.env.local`
+
+### Production (Vercel)
+
+- Auto-deploys on git push to main
+- Environment variables configured in Vercel dashboard
+- Supabase cloud project (same as development)
+- Vercel serverless functions handle API routes
+- Static content cached globally via CDN
+
+### Environment-Specific Behavior
+
+- `NODE_ENV=production` — Minified builds, production logging
+- `VERCEL_ENV=production` — Production deployment tracking
+
+---
+
+## Security Architecture
+
+### Data Privacy
+
+- No personal data in Git
+- Secrets stored in `.env.local` (local) or environment variables (Vercel)
+- All data sent over HTTPS
+- Supabase connection encrypted in transit
+
+### Database Security
+
+- Row-Level Security (RLS) on all tables
+- Admin-only tables deny public access
+- Public form submissions via trusted SECURITY DEFINER RPCs
+- Service role used only for RPC execution
+
+### Admin Route Protection
+
+- All admin routes require valid session
+- Session token verified on every request
+- HTTP-only, secure cookies prevent XSS token theft
+- 24-hour session expiration forces periodic re-login
+
+### Form Protection
+
+- Rate limiting prevents brute-force spam
+- Server-side validation (frontend validation is UX only)
+- Email validation to reduce invalid submissions
+- Duplicate prevention for memberships and registrations
+
+---
+
+## Future Architectural Considerations
+
+- **Multi-instance deployment:** Implement Redis rate limiting and session store
+- **Email delivery:** Add transactional email service (Brevo, SendGrid, etc.) if auto-emails needed
+- **File uploads:** Add object storage (AWS S3, Supabase Storage) for admin image uploads
+- **Advanced CMS:** Migration to headless CMS if content becomes more complex
+- **Analytics:** Add event tracking or analytics integration
+- **Real-time updates:** Consider Supabase Realtime for live admin dashboard updates
+
+---
+
+## Related Documentation
+
+- **DATABASE.md** — Detailed schema, tables, RLS policies
+- **FORMS.md** — Form validation, API endpoints, rate limiting
+- **ADMIN_GUIDE.md** — Admin UI walkthrough
+- **DEPLOYMENT.md** — Build and deploy steps
+- **SECURITY.md** — Security best practices
