@@ -1,7 +1,13 @@
 /**
- * Contact form submission endpoint
+ * Contact form submission endpoint — MANUAL MODEL
  * Public endpoint - no authentication required
  * Rate limited to prevent spam
+ *
+ * Manual contact flow:
+ * - User fills out and submits form
+ * - Submission saved immediately
+ * - No automatic emails sent
+ * - Admin reviews and manually responds
  */
 
 import { createServerClient } from '@/lib/supabase';
@@ -30,29 +36,25 @@ async function handler(req, res) {
       });
     }
 
-    // Submit to Supabase
+    // Submit via SECURITY DEFINER RPC to bypass table access restrictions
+    // RPC: insert_contact_submission_manual()
     const supabase = createServerClient();
 
-    const { data, error } = await supabase
-      .from('contact_submissions')
-      .insert([
-        {
-          name: name.trim(),
-          email: email.trim().toLowerCase(),
-          message: message.trim(),
-        },
-      ])
-      .select('id');
+    const { data: submissionId, error } = await supabase.rpc('insert_contact_submission_manual', {
+      name_param: name.trim(),
+      email_param: email.trim().toLowerCase(),
+      message_param: message.trim(),
+    });
 
     if (error) {
-      console.error('Supabase error:', error);
+      console.error('Supabase RPC error:', error);
       return res.status(500).json({ error: 'Failed to submit contact message' });
     }
 
     return res.status(201).json({
       success: true,
       message: 'Contact message submitted successfully',
-      id: data[0]?.id,
+      id: submissionId,
     });
   } catch (error) {
     console.error('Contact submission error:', error);

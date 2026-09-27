@@ -1,20 +1,21 @@
 /**
- * Event registration submission endpoint
+ * Event registration submission endpoint — MANUAL MODEL
  * Public endpoint - no authentication required
  * Rate limited to prevent spam
  * Server-side validation required
  * 
- * Modified for event registration verification:
- * - Creates registration with status='pending'
- * - Generates verification token
- * - Sends verification email
+ * Manual registration flow:
+ * - User fills out and submits form
+ * - Registration saved immediately with status='new' via SECURITY DEFINER RPC
+ * - No verification email sent
+ * - No verification token generated
+ * - User sees confirmation message that request will be reviewed manually
+ * - Admin reviews in admin panel and manually contacts participant
  */
 
 import { createServerClient } from '@/lib/supabase';
 import { validateEventRegistration } from '@/lib/validation';
 import { withRateLimit } from '@/lib/middleware';
-import { generateToken, hashToken, getTokenExpiration } from '@/lib/verification';
-import { sendVerificationEmail } from '@/lib/email';
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -34,7 +35,7 @@ async function handler(req, res) {
 
     const { data: event, error: eventError } = await supabase
       .from('events')
-      .select('id, status, registration_status, capacity, title_fa, title_de')
+      .select('id, status, registration_status, title_fa, title_de')
       .eq('id', eventId)
       .eq('status', 'published')
       .single();
@@ -48,23 +49,6 @@ async function handler(req, res) {
         error: 'Registration is not open for this event',
         errorType: 'registration_closed',
       });
-    }
-
-    // Check current capacity if event has a limit
-    if (event.capacity && typeof event.capacity === 'number') {
-      // Count verified registrations (those that consume capacity)
-      const { count, error: countError } = await supabase
-        .from('event_registrations')
-        .select('id', { count: 'exact', head: true })
-        .eq('event_id', eventId)
-        .eq('status', 'verified');
-
-      if (!countError && count !== null && count >= event.capacity) {
-        return res.status(409).json({
-          error: 'Event capacity is full',
-          errorType: 'capacity_full',
-        });
-      }
     }
 
     // Validate all form fields
@@ -84,16 +68,10 @@ async function handler(req, res) {
       });
     }
 
-    // Generate verification token
-    const rawToken = generateToken();
-    const tokenHash = hashToken(rawToken);
-    const tokenExpiration = getTokenExpiration();
-
-    // Submit registration to Supabase using RPC function
-    // The insert_event_registration RPC function is a SECURITY DEFINER function
-    // that safely inserts the registration and returns only the new ID
-    const { data: registrationResult, error: insertError } = await supabase
-      .rpc('insert_event_registration', {
+    // Call SECURITY DEFINER RPC to insert registration with status='new'
+    // This bypasses RLS while maintaining security
+    const { data: registrationId, error: insertError } = await supabase
+      .rpc('insert_event_registration_manual', {
         event_id_param: eventId,
         first_name_param: firstName.trim(),
         last_name_param: lastName.trim(),
@@ -101,24 +79,14 @@ async function handler(req, res) {
         phone_param: phone?.trim() || null,
         telegram_id_param: telegramId?.trim() || null,
         comment_param: comment?.trim() || null,
-        verification_token_hash_param: tokenHash,
-        verification_token_expires_at_param: tokenExpiration,
       });
 
     if (insertError) {
-      // Handle duplicate email for this event
-      if (insertError.code === '23505') {
+      // Check if it's a duplicate email constraint
+      if (insertError.message && insertError.message.includes('duplicate')) {
         return res.status(409).json({
           error: 'You have already registered for this event with this email',
           errorType: 'duplicate_email',
-        });
-      }
-
-      // Handle capacity full errors
-      if (insertError.message && insertError.message.includes('capacity')) {
-        return res.status(409).json({
-          error: 'Event capacity is full',
-          errorType: 'capacity_full',
         });
       }
 
@@ -126,36 +94,18 @@ async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to submit registration' });
     }
 
-    // Extract registration ID from RPC result
-    const registration = {
-      id: registrationResult?.[0]?.registration_id,
-    };
-
-    if (!registration.id) {
-      console.error('RPC returned no registration ID');
+    if (!registrationId) {
+      console.error('RPC returned null registration ID');
       return res.status(500).json({ error: 'Failed to submit registration' });
     }
 
-    // Send verification email
-    try {
-      const userName = `${firstName} ${lastName}`;
-      await sendVerificationEmail(
-        email.trim().toLowerCase(),
-        userName,
-        registration.id,
-        rawToken,
-        language
-      );
-    } catch (emailError) {
-      console.error('Email sending error:', emailError);
-      // Don't fail the registration if email fails
-      // The user can request a resend if needed (future feature)
-    }
-
+    // Manual model success message - DIDAR will contact manually, not automatic confirmation
     return res.status(201).json({
       success: true,
-      message: 'Registration submitted. Please check your email to verify your registration.',
-      registrationId: registration.id,
+      message: language === 'fa' 
+        ? 'درخواست شما دریافت شد. در صورت نیاز، دیدار از طریق ایمیل با شما تماس خواهد گرفت.'
+        : 'Ihre Anfrage wurde empfangen. DIDAR wird sich gegebenenfalls per E-Mail bei Ihnen melden.',
+      registrationId,
     });
   } catch (error) {
     console.error('Registration submission error:', error);
