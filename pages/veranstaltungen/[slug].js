@@ -202,14 +202,8 @@ export default function EventDetail({ event, currentLang }) {
     setSuccess(false);
     setIsSubmitting(true);
 
-    // Check if capacity is full before submitting
-    if (capacityStatus && capacityStatus.is_full) {
-      setError(currentLang === 'fa'
-        ? 'ظرفیت رویداد تکمیل شده است'
-        : 'Die Veranstaltung ist ausgebucht');
-      setIsSubmitting(false);
-      return;
-    }
+    // In manual registration model, capacity is informational only.
+    // Registrations are not blocked by capacity - admins manage manually.
 
     try {
       const response = await fetch('/api/registrations/submit', {
@@ -632,26 +626,14 @@ export default function EventDetail({ event, currentLang }) {
                 marginBottom: '15px',
               }}>✓</div>
               <h2 style={{ margin: '0 0 15px 0', color: '#27ae60' }}>
-                {currentLang === 'fa' ? 'ثبت‌نام موفق' : 'Anmeldung erfolgreich'}
+                {currentLang === 'fa' ? 'ثبت‌نام شما دریافت شد' : 'Anmeldung erfolgreich'}
               </h2>
             </div>
 
             <p style={{ margin: '15px 0', fontSize: '16px', lineHeight: '1.6' }}>
               {currentLang === 'fa'
-                ? 'ثبت‌نام شما با موفقیت ثبت شد. یک ایمیل تأیید برای شما ارسال شده است.'
-                : 'Ihre Anmeldung war erfolgreich. Eine Bestätigungsmail wurde an Sie gesendet.'}
-            </p>
-
-            <p style={{ margin: '15px 0', fontSize: '16px', lineHeight: '1.6', fontWeight: 'bold' }}>
-              {currentLang === 'fa'
-                ? '📧 لطفاً صندوق ورودی خود را بررسی کنید و روی لینک تأیید کلیک کنید.'
-                : '📧 Bitte überprüfen Sie Ihren Posteingang und klicken Sie auf den Bestätigungslink.'}
-            </p>
-
-            <p style={{ margin: '15px 0', fontSize: '14px', color: '#7f8c8d' }}>
-              {currentLang === 'fa'
-                ? 'اگر ایمیل را دریافت نکردید، لطفاً پوشهٔ هرزنامه را بررسی کنید.'
-                : 'Falls Sie keine E-Mail erhalten, überprüfen Sie bitte Ihren Spam-Ordner.'}
+                ? 'درخواست شما دریافت شد. در صورت نیاز، دیدار از طریق ایمیل با شما تماس خواهد گرفت.'
+                : 'Ihre Anfrage wurde empfangen. DIDAR wird sich gegebenenfalls per E-Mail bei Ihnen melden.'}
             </p>
 
             <button

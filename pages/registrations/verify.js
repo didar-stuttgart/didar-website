@@ -1,78 +1,80 @@
 /**
- * Event Registration Verification Page
- * Path: /registrations/verify?id={registrationId}&token={token}
+ * Manual Registration Confirmation Page
+ * Path: /registrations/verify (kept for backward compatibility with old email links)
+ * 
+ * Since we've reverted to the manual registration model, this page
+ * is no longer actively used. Email verification links are not sent.
+ * This page remains to handle old links gracefully with a thank-you message
+ * consistent with the manual registration model.
  */
 
-import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import { t } from '@/lib/i18n';
 
-export default function VerificationPage() {
+export default function ManualRegistrationPage() {
   const router = useRouter();
-  const { id, token } = router.query;
-  const [state, setState] = useState('loading');
-  const [error, setError] = useState('');
-  const [capacityStatus, setCapacityStatus] = useState('');
   const currentLang = router.locale || 'de';
 
-  useEffect(() => {
-    if (!id || !token) {
-      setState('error');
-      setError('Missing verification parameters');
-      return;
-    }
+  const content = {
+    fa: {
+      title: 'ثبت‌نام شما دریافت شد',
+      message: 'درخواست ثبت‌نام شما دریافت شده است. DIDAR در صورت نیاز از طریق ایمیل با شما تماس خواهد گرفت.',
+      button: 'بازگشت به رویدادها',
+    },
+    de: {
+      title: 'Vielen Dank für Ihre Anmeldung',
+      message: 'Ihre Anmeldung wurde empfangen. DIDAR wird sich gegebenenfalls per E-Mail bei Ihnen melden.',
+      button: 'Zurück zu den Veranstaltungen',
+    },
+  };
 
-    async function verify() {
-      try {
-        const response = await fetch(`/api/registrations/verify?id=${id}&token=${token}`);
-        const data = await response.json();
-
-        if (!response.ok) {
-          setState('error');
-          setError(data.error || 'Verification failed');
-          return;
-        }
-
-        setCapacityStatus(data.capacityStatus || '');
-        setState('success');
-      } catch (err) {
-        setState('error');
-        setError('An error occurred during verification');
-      }
-    }
-
-    verify();
-  }, [id, token]);
+  const lang = content[currentLang] || content.de;
 
   return (
     <>
       <Head>
-        <title>{currentLang === 'fa' ? 'تأیید ثبت‌نام' : 'Anmeldungsbestätigung'}</title>
+        <title>{currentLang === 'fa' ? 'ثبت‌نام' : 'Anmeldung'}</title>
       </Head>
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-        <div style={{ background: 'white', borderRadius: '8px', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)', maxWidth: '500px', width: '100%', padding: '40px', textAlign: 'center' }}>
-          {state === 'loading' && (
-            <div>
-              <h1>{t('registration.verification_loading', currentLang)}</h1>
-              <p>{t('registration.verification_loading_message', currentLang)}</p>
-            </div>
-          )}
-          {state === 'success' && (
-            <div>
-              <h1>{t('registration.success', currentLang)}</h1>
-              <p>{t('registration.verify_message', currentLang)}</p>
-              {capacityStatus === 'at_capacity' && <p>{t('registration.capacity_full', currentLang)}</p>}
-              <button onClick={() => router.push(`/${currentLang}/veranstaltungen`)}>{t('registration.back_to_events', currentLang)}</button>
-            </div>
-          )}
-          {state === 'error' && (
-            <div>
-              <h1>{t('registration.verification_error', currentLang)}</h1>
-              <p>{error}</p>
-              <button onClick={() => router.push(`/${currentLang}/veranstaltungen`)}>{t('registration.back_to_events', currentLang)}</button>
-            </div>
-          )}
+      <div style={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        padding: '20px', 
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
+      }}>
+        <div style={{ 
+          background: 'white', 
+          borderRadius: '8px', 
+          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)', 
+          maxWidth: '500px', 
+          width: '100%', 
+          padding: '40px', 
+          textAlign: 'center',
+          direction: currentLang === 'fa' ? 'rtl' : 'ltr'
+        }}>
+          <h1>{lang.title}</h1>
+          <p style={{ fontSize: '16px', lineHeight: '1.6', color: '#666', marginBottom: '30px' }}>
+            {lang.message}
+          </p>
+          <button 
+            onClick={() => router.push(`/${currentLang}/veranstaltungen`)}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: '#667eea',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: '500',
+              transition: 'background-color 0.3s ease',
+            }}
+            onMouseOver={(e) => e.target.style.backgroundColor = '#5568d3'}
+            onMouseOut={(e) => e.target.style.backgroundColor = '#667eea'}
+          >
+            {lang.button}
+          </button>
         </div>
       </div>
     </>
