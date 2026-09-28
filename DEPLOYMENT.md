@@ -161,10 +161,22 @@ pm2 save
 
 | Variable | Example | Notes |
 |----------|---------|-------|
-| NEXT_PUBLIC_SUPABASE_URL | https://xxxx.supabase.co | From Supabase dashboard |
-| NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY | eyJxxx... | From Supabase dashboard |
-| SUPABASE_SECRET_KEY | eyJxxx... | Keep secret! (server-only) |
+| NEXT_PUBLIC_SUPABASE_URL | https://xxxx.supabase.co | From Supabase dashboard. **Must be the same Supabase project** as the key below — see warning below. |
+| NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY | eyJxxx... or sb_publishable_xxx... | From Supabase dashboard (Project Settings → API Keys). **Must belong to the same project** as the URL above. |
+| SUPABASE_SECRET_KEY | eyJxxx... or sb_secret_xxx... | Keep secret! (server-only) |
 | ADMIN_PASSWORD_HASH | $2b$12$xxxx... | Generated on admin setup |
+| RESEND_API_KEY | re_xxxx... | Enables admin notification emails for Membership, Contact, and Event Registration forms. If unset, notifications fall back to a server console log only (form submissions still succeed either way). |
+| DIDAR_NOTIFICATION_EMAIL | admin@didar-stuttgart.com | Inbox that receives the admin notification emails. |
+| DIDAR_EMAIL_FROM | DIDAR Stuttgart <noreply@didar-stuttgart.com> | Optional. Defaults to `DIDAR Stuttgart <noreply@didar-stuttgart.com>` if unset. |
+
+**Warning — Supabase URL/key project mismatch:** `NEXT_PUBLIC_SUPABASE_URL` and
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` must reference the **same** Supabase project.
+If the key belongs to a different project than the URL, Supabase's API gateway rejects
+every request with `"Invalid API key"`, which surfaces in this app as a generic
+`500 Failed to submit application` (or equivalent) error on all forms — the app will
+otherwise look correctly configured (both variables present, correct format, no startup
+errors). When diagnosing a form submission failure, verify the key's embedded project
+reference matches the URL's project reference before assuming any other cause.
 
 ### Optional Variables
 

@@ -6,13 +6,15 @@
  * Manual membership flow:
  * - User fills out and submits form
  * - Application saved immediately with status='new'
- * - No automatic emails sent
+ * - No automatic emails sent to user
+ * - Admin receives notification email with all submitted details
  * - Admin reviews in admin panel and manually contacts applicant
  */
 
 import { createServerClient } from '@/lib/supabase';
 import { validateMembershipApplication } from '@/lib/validation';
 import { withRateLimit } from '@/lib/middleware';
+import { sendMembershipNotification } from '@/lib/admin-email';
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -63,6 +65,21 @@ async function handler(req, res) {
       console.error('Supabase RPC error:', error);
       return res.status(500).json({ error: 'Failed to submit application' });
     }
+
+    // Send admin notification (non-blocking, email failure does not affect response)
+    sendMembershipNotification({
+      submissionId: applicationId,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: email.trim().toLowerCase(),
+      phone: phone?.trim() || null,
+      telegramId: telegramId?.trim() || null,
+      additionalInfo: additionalInfo?.trim() || null,
+      timestamp: new Date().toISOString(),
+    }).catch(error => {
+      // Log but don't throw - email failure should not affect form submission
+      console.error('Admin notification error (non-blocking):', error);
+    });
 
     return res.status(201).json({
       success: true,

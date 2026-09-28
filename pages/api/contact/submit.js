@@ -6,13 +6,15 @@
  * Manual contact flow:
  * - User fills out and submits form
  * - Submission saved immediately
- * - No automatic emails sent
+ * - No automatic emails sent to user
+ * - Admin receives notification email with all submitted details
  * - Admin reviews and manually responds
  */
 
 import { createServerClient } from '@/lib/supabase';
 import { validateContactForm } from '@/lib/validation';
 import { withRateLimit } from '@/lib/middleware';
+import { sendContactNotification } from '@/lib/admin-email';
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -50,6 +52,18 @@ async function handler(req, res) {
       console.error('Supabase RPC error:', error);
       return res.status(500).json({ error: 'Failed to submit contact message' });
     }
+
+    // Send admin notification (non-blocking, email failure does not affect response)
+    sendContactNotification({
+      submissionId,
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      message: message.trim(),
+      timestamp: new Date().toISOString(),
+    }).catch(error => {
+      // Log but don't throw - email failure should not affect form submission
+      console.error('Admin notification error (non-blocking):', error);
+    });
 
     return res.status(201).json({
       success: true,

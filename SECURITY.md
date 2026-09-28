@@ -171,6 +171,16 @@ DIDAR collects only necessary information for event registration and membership:
 
 **No automated email addresses, IP addresses, or personal browsing data are stored.**
 
+### Admin Notification Emails (Third-Party Processor)
+
+When a form is submitted successfully, all submitted fields (name, email, phone,
+Telegram ID, comment/message, etc.) are included in an automatic notification email
+sent to the DIDAR admin inbox via **Resend** (a third-party transactional email
+provider), from `noreply@didar-stuttgart.com`. This is in addition to the database
+row created for the submission. No other third party receives this data. Email
+delivery failures do not block or delay the form submission itself (see FORMS.md →
+"Admin Notification Emails" for full behavior).
+
 ### Data Retention
 
 - **Event registrations:** Retained indefinitely (admin can manually delete if needed)

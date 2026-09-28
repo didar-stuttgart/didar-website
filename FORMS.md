@@ -85,7 +85,7 @@ All forms are server-side validated, rate-limited to prevent spam, and saved to 
 5. Backend validates all fields (server-side validation is authoritative)
 6. If valid: Data saved to `event_registrations` table with `status='new'`
 7. User sees confirmation message
-8. **No automated email sent**
+8. **Admin notification email sent automatically** (non-blocking; see "Admin Notification Emails" below) — registration is saved to the database regardless of whether the email succeeds
 9. Admin reviews submission in `/admin/registrations` dashboard
 10. Admin updates status manually (new → contacted → confirmed/declined)
 11. Admin contacts user via email/Telegram/phone using official DIDAR account
@@ -195,7 +195,7 @@ Email verification is not part of the current registration workflow. Registratio
 7. Backend validates all fields
 8. If valid: Data saved to `membership_applications` table with `status='new'`
 9. User sees confirmation message
-10. **No automated email sent**
+10. **Admin notification email sent automatically** (non-blocking; see "Admin Notification Emails" below) — application is saved to the database regardless of whether the email succeeds
 11. Admin reviews application in `/admin/memberships` dashboard
 12. Admin updates status manually (new → contacted → accepted/declined)
 13. Admin contacts applicant via email using official DIDAR account
@@ -288,7 +288,7 @@ The privacy checkbox is required. Before submitting, users see a link to the pri
 5. Backend validates all fields
 6. If valid: Data saved to `contact_submissions` table
 7. User sees confirmation message
-8. **No automated reply sent**
+8. **Admin notification email sent automatically** (non-blocking; see "Admin Notification Emails" below); no automated reply is sent to the person who submitted the form
 9. Admin can view submissions in database (note: contact submissions are not exposed in admin UI yet)
 10. Admin manually sends reply via official email or other channel
 
@@ -306,6 +306,35 @@ The privacy checkbox is required. Before submitting, users see a link to the pri
 - updated_at (timestamp)
 
 **Note:** Unlike event registrations and membership applications, contact submissions do **not enforce unique email addresses**. Multiple messages from the same sender are allowed.
+
+## Admin Notification Emails
+
+All three public forms (Event Registration, Membership Application, Contact) send an
+**automatic admin notification email** to the DIDAR admin inbox via Resend immediately
+after a successful database insert.
+
+**Key behavior:**
+- The database insert happens first and determines the HTTP response (`201` success).
+  The notification email is sent **non-blocking** (fire-and-forget with `.catch()`):
+  if the email fails to send, the form submission still succeeds for the user and the
+  data is still saved — only the email delivery step is skipped, and the failure is
+  logged server-side.
+- Sender: `noreply@didar-stuttgart.com` (verified domain in Resend, routed through
+  `rsend.didar-stuttgart.com`).
+- Recipient: the DIDAR admin inbox (configured via environment variable, not a form field).
+- Each email includes: form type identification, all submitted fields, the new row's
+  database ID (`submissionId`/`registrationId`), and an ISO 8601 timestamp.
+- No automated confirmation/reply email is sent to the person who submitted the form —
+  the notification email goes only to the DIDAR admin. The admin then contacts the
+  person manually, as described in each form's workflow above.
+- A rejected duplicate submission (HTTP 409) does **not** trigger a notification email,
+  since no new database row is created.
+- A submission rejected by validation (HTTP 400) does **not** trigger a notification
+  email, for the same reason.
+
+This behavior was verified end-to-end (database row + Resend delivery + Gmail receipt,
+including sender, subject, all fields, and matching submission ID/timestamp) for all
+three forms during Phase 5 QA.
 
 ---
 

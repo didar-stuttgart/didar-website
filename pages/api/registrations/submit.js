@@ -10,12 +10,14 @@
  * - No verification email sent
  * - No verification token generated
  * - User sees confirmation message that request will be reviewed manually
+ * - Admin receives notification email with all submitted details
  * - Admin reviews in admin panel and manually contacts participant
  */
 
 import { createServerClient } from '@/lib/supabase';
 import { validateEventRegistration } from '@/lib/validation';
 import { withRateLimit } from '@/lib/middleware';
+import { sendRegistrationNotification } from '@/lib/admin-email';
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -98,6 +100,23 @@ async function handler(req, res) {
       console.error('RPC returned null registration ID');
       return res.status(500).json({ error: 'Failed to submit registration' });
     }
+
+    // Send admin notification (non-blocking, email failure does not affect response)
+    const eventTitle = language === 'fa' ? event.title_fa : event.title_de;
+    sendRegistrationNotification({
+      submissionId: registrationId,
+      eventTitle,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: email.trim().toLowerCase(),
+      phone: phone?.trim() || null,
+      telegramId: telegramId?.trim() || null,
+      comment: comment?.trim() || null,
+      timestamp: new Date().toISOString(),
+    }).catch(error => {
+      // Log but don't throw - email failure should not affect form submission
+      console.error('Admin notification error (non-blocking):', error);
+    });
 
     // Manual model success message - DIDAR will contact manually, not automatic confirmation
     return res.status(201).json({

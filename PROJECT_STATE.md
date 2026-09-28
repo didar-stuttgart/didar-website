@@ -210,6 +210,29 @@ This commit represents the most recent stable, production-ready state of the cod
 - **Rationale:** Manual registration model allows admin to decide on overage handling (waitlist, approval, etc.)
 - **Impact:** None (manual review allows flexible handling)
 
+### 6. Event Detail Page Silently Re-Opens Registration on View (found during Phase 5 QA)
+- **Status:** ⚠️ Needs owner decision — not fixed in this QA pass (out of scope; flagged only)
+- **Current Behavior:** `pages/veranstaltungen/[slug].js` `getStaticProps` contains an
+  "auto-correct" step: whenever a published event's `registration_status` is
+  `not_open`, simply *viewing* the event page causes the server to overwrite it to
+  `open` directly in the database.
+- **Details:** This means an admin who deliberately closes registration for a
+  published event (`registration_status = 'not_open'`) can have that choice silently
+  reverted the next time anyone (including a non-admin visitor) loads the event's
+  public page, since `getStaticProps` re-runs on each request in `next dev` and on
+  every `revalidate` (60s) in production.
+- **Discovered:** During Phase 5 QA (2026-09-28), while testing event registration.
+  The "DIDAR Filmabend" event (`movie-night`, id 2) had `registration_status =
+  'not_open'` in the database (confirmed via SQL) and its registration API correctly
+  rejected a real test submission with HTTP 409, yet the public event page displayed
+  "Anmeldung geöffnet" (registration open) and rendered an active registration form.
+- **Impact:** Potential mismatch between admin intent and actual site behavior;
+  worth an explicit owner decision on whether this auto-correct is desired (e.g. "all
+  published events should always accept registration") or should be removed.
+- **Not fixed here:** Per this QA task's scope (fix the Membership submission root
+  cause only; do not modify unrelated pages or rewrite the registration workflow),
+  this was left unchanged and is reported for the owner to decide.
+
 ---
 
 ## Environment Variables Required
@@ -236,15 +259,20 @@ NODE_ENV=production
 ### Optional for Enhanced Features
 
 ```bash
-# Email Sending (if implemented later)
-SMTP_HOST=smtp.example.com
-SMTP_PORT=587
-SMTP_USER=your-email@example.com
-SMTP_PASS=your-password
+# Admin notification emails (Resend) — implemented in Phase 5
+# If RESEND_API_KEY or DIDAR_NOTIFICATION_EMAIL is unset, notifications
+# fall back to a server console log only; forms still work either way.
+RESEND_API_KEY=re_xxxxxxxxxxxx
+DIDAR_NOTIFICATION_EMAIL=admin@didar-stuttgart.com
+DIDAR_EMAIL_FROM=DIDAR Stuttgart <noreply@didar-stuttgart.com>  # optional, has a default
 
 # Analytics (if implemented)
 GOOGLE_ANALYTICS_ID=UA-XXXXXXXXX-X
 ```
+
+**Note:** `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (see
+"Required for All Deployments" above) must both come from the **same** Supabase
+project — see DEPLOYMENT.md for the failure mode if they don't.
 
 ---
 
@@ -367,13 +395,14 @@ Current testing approach: Manual QA. Future enhancements could include:
 
 ## Migration Path (If Needed)
 
-### Adding Automated Email Notifications
+### Automated Admin Notification Emails — ✅ Already Implemented (Phase 5)
 
-1. Add SMTP credentials to environment variables
-2. Implement email service in `lib/email.js`
-3. Call email service from registration/membership create endpoints
-4. Add email templates for notifications
-5. Update documentation
+Admin notification emails (via Resend, `lib/admin-email.js`) are already implemented
+for all three public forms (Event Registration, Membership, Contact) and verified
+end-to-end in Phase 5 QA. See FORMS.md → "Admin Notification Emails" for behavior
+details. No further migration work is needed here. (Note: these are admin-only
+notifications; there is still no automated confirmation email sent back to the
+person who submitted a form — that remains a manual admin task by design.)
 
 ### Adding User Authentication
 
@@ -428,6 +457,7 @@ For production issues, contact:
 
 | Date | Phase | Status | Notes |
 |------|-------|--------|-------|
+| Sep 28, 2026 | 5 QA | ✅ Complete | Root-caused and fixed Membership/Contact/Events "Invalid API key" bug (Supabase URL/key project mismatch in `.env.local`); verified Membership, Contact, and Event Registration end-to-end (DB + admin notification email) through the real UI in Chrome; flagged a registration_status auto-correct issue for owner review (see Known Issues #6) |
 | Sep 27, 2026 | 10 | ✅ Complete | Documentation delivered, ready for owner deployment |
 | Sep 26, 2026 | 9 | ✅ Complete | Admin settings and CMS integration finalized |
 | Sep 20, 2026 | 8 | ✅ Complete | Event and membership management complete |
