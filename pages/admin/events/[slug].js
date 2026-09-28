@@ -36,6 +36,7 @@ export default function AdminEventEdit() {
               status: 'draft',
               registration_status: 'not_open',
               admin_notes: '',
+              is_recurring: false,
             });
             setLoading(false);
           }
@@ -66,6 +67,21 @@ export default function AdminEventEdit() {
 
   const handleChange = (field, value) => {
     setEvent((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const validateEvent = () => {
+    if (!event.title_fa || !event.title_de) {
+      alert('عنوان فارسی و آلمانی الزامی است');
+      return false;
+    }
+
+    // For date-specific events, date is required
+    if (!event.is_recurring && !event.event_date) {
+      alert('برای رویدادهای موقتی، تاریخ الزامی است');
+      return false;
+    }
+
+    return true;
   };
 
   const handlePreview = () => {
@@ -136,6 +152,10 @@ export default function AdminEventEdit() {
   };
 
   const handleSave = async () => {
+    if (!validateEvent()) {
+      return;
+    }
+
     setSaving(true);
     try {
       const method = slug === 'new' ? 'POST' : 'PATCH';
@@ -212,14 +232,27 @@ export default function AdminEventEdit() {
               </div>
 
               <div className={styles.formGroup}>
-                <label>تاریخ رویداد</label>
-                <input
-                  type="date"
-                  value={event.event_date || ''}
-                  onChange={(e) => handleChange('event_date', e.target.value)}
-                  required
-                />
+                <label>نوع رویداد</label>
+                <select
+                  value={event.is_recurring ? 'recurring' : 'dated'}
+                  onChange={(e) => handleChange('is_recurring', e.target.value === 'recurring')}
+                >
+                  <option value="dated">رویداد موقتی (تاریخ مشخص)</option>
+                  <option value="recurring">رویداد درحال انجام (تکرارشونده)</option>
+                </select>
               </div>
+
+              {!event.is_recurring && (
+                <div className={styles.formGroup}>
+                  <label>تاریخ رویداد</label>
+                  <input
+                    type="date"
+                    value={event.event_date || ''}
+                    onChange={(e) => handleChange('event_date', e.target.value)}
+                    required
+                  />
+                </div>
+              )}
 
               <div className={styles.formGroup}>
                 <label>زمان رویداد (اختیاری)</label>

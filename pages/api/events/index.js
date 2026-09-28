@@ -3,7 +3,7 @@
  * GET /api/events - Fetch published events from Supabase
  *
  * Query parameters:
- * - status: 'upcoming' | 'past' | 'all' (default: 'upcoming')
+ * - category: 'recurring' | 'upcoming' | 'past' | 'all' (default: 'all')
  *
  * Returns:
  * {
@@ -15,6 +15,7 @@
 
 import { createServerClient } from '@/lib/supabase';
 import { filterPublicEvents } from '@/lib/events-filter';
+import { categorizeEvents } from '@/lib/events-categorizer';
 
 async function handler(req, res) {
   // Only allow GET requests
@@ -23,38 +24,37 @@ async function handler(req, res) {
   }
 
   try {
-    const { status = 'upcoming' } = req.query;
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const { category = 'all' } = req.query;
 
     const supabase = createServerClient();
 
-    // Base query: only published events
-    let query = supabase
+    // Fetch all published events
+    const { data: events, error } = await supabase
       .from('events')
       .select('*')
       .eq('status', 'published')
       .order('event_date', { ascending: true });
-
-    // Apply status filter
-    if (status === 'upcoming') {
-      // event_date >= today
-      query = query.gte('event_date', today);
-    } else if (status === 'past') {
-      // event_date < today
-      query = query.lt('event_date', today)
-        .order('event_date', { ascending: false });
-    }
-    // 'all' has no additional filter, just published
-
-    const { data: events, error } = await query;
 
     if (error) {
       console.error('Supabase error fetching events:', error);
       return res.status(500).json({ error: 'Failed to fetch events' });
     }
 
+    // Categorize events
+    const { recurring, upcoming, past } = categorizeEvents(events || []);
+
+    // Select appropriate subset based on category parameter
+    let selectedEvents = [...recurring, ...upcoming, ...past]; // 'all'
+    if (category === 'recurring') {
+      selectedEvents = recurring;
+    } else if (category === 'upcoming') {
+      selectedEvents = upcoming;
+    } else if (category === 'past') {
+      selectedEvents = past;
+    }
+
     // Filter to only public-safe fields, removing admin_notes and other admin-only data
-    const publicEvents = filterPublicEvents(events);
+    const publicEvents = filterPublicEvents(selectedEvents);
 
     // Set cache headers: 5 minutes for public data
     res.setHeader('Cache-Control', 'public, max-age=300');

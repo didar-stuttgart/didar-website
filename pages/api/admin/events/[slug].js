@@ -43,6 +43,16 @@ async function handleUpdateEvent(slug, req, res) {
   try {
     const { event } = req.body;
 
+    // Validate required fields
+    if (!event.title_fa || !event.title_de) {
+      return res.status(400).json({ error: 'Title in both languages is required' });
+    }
+
+    // Date validation: required for dated events, optional for recurring events
+    if (!event.is_recurring && !event.event_date) {
+      return res.status(400).json({ error: 'Event date is required for dated events' });
+    }
+
     // Validate capacity: must be empty or a positive integer
     if (event.capacity !== null && event.capacity !== undefined && event.capacity !== '') {
       const cap = Number(event.capacity);
@@ -65,7 +75,7 @@ async function handleUpdateEvent(slug, req, res) {
         title_de: event.title_de,
         description_fa: event.description_fa || '',
         description_de: event.description_de || '',
-        event_date: event.event_date,
+        event_date: event.event_date || null,
         event_time: event.event_time || null,
         location_fa: event.location_fa || '',
         location_de: event.location_de || '',
@@ -75,6 +85,7 @@ async function handleUpdateEvent(slug, req, res) {
         status: event.status || 'draft',
         registration_status: event.registration_status || 'not_open',
         admin_notes: event.admin_notes || '',
+        is_recurring: event.is_recurring || false,
       })
       .eq('slug', slug)
       .select();

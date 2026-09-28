@@ -38,12 +38,13 @@ CREATE TABLE IF NOT EXISTS events (
   description_de TEXT,
 
   -- Event metadata
-  event_date DATE NOT NULL,
+  event_date DATE,
   event_time TIME,
   location_fa TEXT,
   location_de TEXT,
   capacity INT,
   registration_deadline DATE,
+  is_recurring BOOLEAN DEFAULT FALSE,
 
   -- Status management
   status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),

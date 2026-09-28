@@ -56,7 +56,11 @@ export default function EventCard({ event, currentLang, isPast = false }) {
 
         {/* Event Content Section */}
         <div className="event-content">
-          {event.registration_status === 'not_open' ? (
+          {event.is_recurring ? (
+            <div className="event-date event-date-recurring">
+              🔄 {t('events.recurring_badge', currentLang)}
+            </div>
+          ) : event.registration_status === 'not_open' ? (
             <div className="event-date event-date-comingsoon">
               🗓️ {t('event.coming_soon', currentLang)}
             </div>
@@ -69,8 +73,6 @@ export default function EventCard({ event, currentLang, isPast = false }) {
           {getCategory() && <div className="event-category">{getCategory()}</div>}
 
           <h3 className="event-title">{getTitle()}</h3>
-
-          {shortDescription && <p className="event-description">{shortDescription}</p>}
 
           {!isPast && event.registration_status !== 'open' && (
             <span

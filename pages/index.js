@@ -12,25 +12,26 @@ import EventCard from '@/components/EventCard';
 import { t } from '@/lib/i18n';
 import { createServerClient } from '@/lib/supabase';
 import { getCMSContent } from '@/lib/cms-client';
+import { categorizeEvents } from '@/lib/events-categorizer';
 
 export async function getStaticProps() {
   try {
     const supabase = createServerClient();
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
-    // Fetch upcoming events directly from Supabase
+    // Fetch all published events
     const { data: events, error } = await supabase
       .from('events')
       .select('*')
       .eq('status', 'published')
-      .gte('event_date', today)
       .order('event_date', { ascending: true });
 
     if (error) {
       console.error('Error fetching events from Supabase:', error);
       return {
         props: {
-          featuredEvents: [],
+          recurringEvents: [],
+          upcomingEvents: [],
+          pastEvents: [],
           heroTitle_fa: null,
           heroTitle_de: null,
           heroSubtitle_fa: null,
@@ -41,8 +42,13 @@ export async function getStaticProps() {
       };
     }
 
-    // Show up to 3 upcoming events on the homepage
-    const featuredEvents = (events || []).slice(0, 3);
+    // Categorize events
+    const { recurring, upcoming, past } = categorizeEvents(events || []);
+
+    // Show up to 6 events per category for homepage carousel
+    const recurringEvents = recurring.slice(0, 6);
+    const upcomingEvents = upcoming.slice(0, 6);
+    const pastEvents = past.slice(0, 6);
 
     // Fetch CMS content for hero section
     const heroTitle_fa = await getCMSContent(
@@ -75,7 +81,9 @@ export async function getStaticProps() {
 
     return {
       props: {
-        featuredEvents,
+        recurringEvents,
+        upcomingEvents,
+        pastEvents,
         heroTitle_fa,
         heroTitle_de,
         heroSubtitle_fa,
@@ -85,10 +93,12 @@ export async function getStaticProps() {
       revalidate: 3600, // Regenerate every hour
     };
   } catch (error) {
-    console.error('Error fetching featured events:', error);
+    console.error('Error fetching events:', error);
     return {
       props: {
-        featuredEvents: [],
+        recurringEvents: [],
+        upcomingEvents: [],
+        pastEvents: [],
         heroTitle_fa: null,
         heroTitle_de: null,
         heroSubtitle_fa: null,
@@ -101,7 +111,9 @@ export async function getStaticProps() {
 }
 
 export default function Home({
-  featuredEvents,
+  recurringEvents,
+  upcomingEvents,
+  pastEvents,
   currentLang,
   heroTitle_fa,
   heroTitle_de,
@@ -180,25 +192,74 @@ export default function Home({
         </div>
       </section>
 
-      {/* UPCOMING EVENTS */}
-      <section className="section" dir={dir}>
+      {/* EVENTS — RECURRING, UPCOMING, PAST */}
+      <section className="section events-section" dir={dir}>
         <div className="container">
-          <h2>{t('home.upcoming_events', currentLang)}</h2>
-          {featuredEvents.length > 0 ? (
-            <>
-              <div className="grid grid-3 mt-8">
-                {featuredEvents.map((event) => (
-                  <EventCard key={event.id} event={event} currentLang={currentLang} />
-                ))}
-              </div>
-              <div className="mt-8">
-                <Link href="/veranstaltungen" className="btn btn-secondary">
-                  {t('home.all_events', currentLang)}
+          {/* Recurring Events */}
+          {recurringEvents.length > 0 && (
+            <div className="events-category">
+              <div className="events-category-header">
+                <h2>{t('events.recurring', currentLang)}</h2>
+                <Link href="/veranstaltungen" className="btn btn-tertiary">
+                  {t('events.all_events', currentLang)}
                 </Link>
               </div>
-            </>
-          ) : (
-            <p className="mt-8">{t('events.no_upcoming', currentLang)}</p>
+              <div className="event-carousel">
+                <div className="carousel-container">
+                  {recurringEvents.map((event) => (
+                    <EventCard key={event.id} event={event} currentLang={currentLang} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Upcoming Events */}
+          {upcomingEvents.length > 0 && (
+            <div className="events-category">
+              <div className="events-category-header">
+                <h2>{t('events.upcoming', currentLang)}</h2>
+                <Link href="/veranstaltungen" className="btn btn-tertiary">
+                  {t('events.all_events', currentLang)}
+                </Link>
+              </div>
+              <div className="event-carousel">
+                <div className="carousel-container">
+                  {upcomingEvents.map((event) => (
+                    <EventCard key={event.id} event={event} currentLang={currentLang} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Past Events */}
+          {pastEvents.length > 0 && (
+            <div className="events-category">
+              <div className="events-category-header">
+                <h2>{t('events.past', currentLang)}</h2>
+                <Link href="/veranstaltungen" className="btn btn-tertiary">
+                  {t('events.all_events', currentLang)}
+                </Link>
+              </div>
+              <div className="event-carousel">
+                <div className="carousel-container">
+                  {pastEvents.map((event) => (
+                    <EventCard key={event.id} event={event} currentLang={currentLang} isPast />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* No events message */}
+          {recurringEvents.length === 0 && upcomingEvents.length === 0 && pastEvents.length === 0 && (
+            <div className="events-empty">
+              <p>{t('events.no_upcoming', currentLang)}</p>
+              <Link href="/veranstaltungen" className="btn btn-secondary">
+                {t('events.all_events', currentLang)}
+              </Link>
+            </div>
           )}
         </div>
       </section>
