@@ -9,6 +9,7 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import EventCard from '@/components/EventCard';
+import EventCarousel from '@/components/EventCarousel';
 import { t } from '@/lib/i18n';
 import { createServerClient } from '@/lib/supabase';
 import { getCMSContent } from '@/lib/cms-client';
@@ -204,13 +205,11 @@ export default function Home({
                   {t('events.all_events', currentLang)}
                 </Link>
               </div>
-              <div className="event-carousel">
-                <div className="carousel-container">
-                  {recurringEvents.map((event) => (
-                    <EventCard key={event.id} event={event} currentLang={currentLang} />
-                  ))}
-                </div>
-              </div>
+              <EventCarousel currentLang={currentLang}>
+                {recurringEvents.map((event) => (
+                  <EventCard key={event.id} event={event} currentLang={currentLang} />
+                ))}
+              </EventCarousel>
             </div>
           )}
 
@@ -223,13 +222,11 @@ export default function Home({
                   {t('events.all_events', currentLang)}
                 </Link>
               </div>
-              <div className="event-carousel">
-                <div className="carousel-container">
-                  {upcomingEvents.map((event) => (
-                    <EventCard key={event.id} event={event} currentLang={currentLang} />
-                  ))}
-                </div>
-              </div>
+              <EventCarousel currentLang={currentLang}>
+                {upcomingEvents.map((event) => (
+                  <EventCard key={event.id} event={event} currentLang={currentLang} />
+                ))}
+              </EventCarousel>
             </div>
           )}
 
@@ -242,13 +239,11 @@ export default function Home({
                   {t('events.all_events', currentLang)}
                 </Link>
               </div>
-              <div className="event-carousel">
-                <div className="carousel-container">
-                  {pastEvents.map((event) => (
-                    <EventCard key={event.id} event={event} currentLang={currentLang} isPast />
-                  ))}
-                </div>
-              </div>
+              <EventCarousel currentLang={currentLang}>
+                {pastEvents.map((event) => (
+                  <EventCard key={event.id} event={event} currentLang={currentLang} isPast />
+                ))}
+              </EventCarousel>
             </div>
           )}
 
