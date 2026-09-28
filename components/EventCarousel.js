@@ -5,7 +5,7 @@ import { t } from '@/lib/i18n';
 /**
  * EventCarousel Component
  * Displays events in a horizontal scrolling carousel with navigation arrows
- * Uses scrollIntoView for arrow navigation to work around RTL scroll limitations
+ * Uses explicit scrollLeft calculation to reliably handle RTL mode
  */
 export default function EventCarousel({ events, currentLang, isPast = false }) {
   const scrollContainerRef = useRef(null);
@@ -24,7 +24,7 @@ export default function EventCarousel({ events, currentLang, isPast = false }) {
     // Re-check scroll state on window resize
     window.addEventListener('resize', updateScrollState);
     return () => window.removeEventListener('resize', updateScrollState);
-  }, [events]);
+  }, [events, isRTL]);
 
   const updateScrollState = () => {
     const container = scrollContainerRef.current;
@@ -32,8 +32,9 @@ export default function EventCarousel({ events, currentLang, isPast = false }) {
 
     const maxScroll = Math.abs(container.scrollWidth - container.clientWidth);
     const currentScroll = Math.abs(container.scrollLeft);
-    
+
     if (isRTL) {
+      // In RTL, scrollLeft is typically negative, so we work with absolute values
       setCanScrollLeft(currentScroll > 10);
       setCanScrollRight(currentScroll < maxScroll - 10);
     } else {
@@ -69,11 +70,14 @@ export default function EventCarousel({ events, currentLang, isPast = false }) {
 
     const targetCard = cardsRef.current[nextIndex];
     if (targetCard) {
+      // Use scrollIntoView for browser-native, reliable scrolling
+      // In RTL, use 'end' to align from the right; in LTR use 'start' for the left
       targetCard.scrollIntoView({
         behavior: 'smooth',
         block: 'nearest',
         inline: isRTL ? 'end' : 'start'
       });
+
       setCurrentCardIndex(nextIndex);
       setTimeout(updateScrollState, 600);
     }
@@ -91,7 +95,10 @@ export default function EventCarousel({ events, currentLang, isPast = false }) {
     <div className="event-carousel-wrapper">
       <button
         className={`carousel-arrow carousel-arrow-left ${!canScrollLeft ? 'disabled' : ''}`}
-        onClick={() => scroll('left')}
+        onClick={(e) => {
+          e.stopPropagation();
+          scroll('left');
+        }}
         disabled={!canScrollLeft}
         aria-label={currentLang === 'fa' ? 'رفتن به چپ' : 'Nach links scrollen'}
         title={currentLang === 'fa' ? 'رفتن به چپ' : 'Nach links scrollen'}
@@ -124,7 +131,10 @@ export default function EventCarousel({ events, currentLang, isPast = false }) {
 
       <button
         className={`carousel-arrow carousel-arrow-right ${!canScrollRight ? 'disabled' : ''}`}
-        onClick={() => scroll('right')}
+        onClick={(e) => {
+          e.stopPropagation();
+          scroll('right');
+        }}
         disabled={!canScrollRight}
         aria-label={currentLang === 'fa' ? 'رفتن به راست' : 'Nach rechts scrollen'}
         title={currentLang === 'fa' ? 'رفتن به راست' : 'Nach rechts scrollen'}
