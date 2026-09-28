@@ -205,11 +205,7 @@ export default function Home({
                   {t('events.all_events', currentLang)}
                 </Link>
               </div>
-              <EventCarousel currentLang={currentLang}>
-                {recurringEvents.map((event) => (
-                  <EventCard key={event.id} event={event} currentLang={currentLang} />
-                ))}
-              </EventCarousel>
+              <EventCarousel events={recurringEvents} currentLang={currentLang} />
             </div>
           )}
 
@@ -222,11 +218,7 @@ export default function Home({
                   {t('events.all_events', currentLang)}
                 </Link>
               </div>
-              <EventCarousel currentLang={currentLang}>
-                {upcomingEvents.map((event) => (
-                  <EventCard key={event.id} event={event} currentLang={currentLang} />
-                ))}
-              </EventCarousel>
+              <EventCarousel events={upcomingEvents} currentLang={currentLang} />
             </div>
           )}
 
@@ -239,11 +231,7 @@ export default function Home({
                   {t('events.all_events', currentLang)}
                 </Link>
               </div>
-              <EventCarousel currentLang={currentLang}>
-                {pastEvents.map((event) => (
-                  <EventCard key={event.id} event={event} currentLang={currentLang} isPast />
-                ))}
-              </EventCarousel>
+              <EventCarousel events={pastEvents} currentLang={currentLang} isPast />
             </div>
           )}
 
