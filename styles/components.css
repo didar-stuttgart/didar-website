@@ -193,8 +193,8 @@
   background-color: var(--color-footer-bg);
   color: var(--color-footer-text);
   border-top: 3px solid var(--color-footer-accent);
-  padding: var(--space-12) 0 var(--space-6);
-  margin-top: var(--space-16);
+  padding: var(--space-8) 0 var(--space-4);
+  margin-top: var(--space-12);
 }
 
 .footer-content {

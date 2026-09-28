@@ -14,7 +14,7 @@ export default function Footer({ currentLang }) {
             <h3>{currentLang === 'fa' ? 'دیدار' : 'Didar'}</h3>
             <p>
               {currentLang === 'fa'
-                ? 'انجمن فرهنگی هنری دیدار — شتوتگارت'
+                ? 'انجمن فرهنگی هنری دیدار — اشتوتگارت'
                 : 'Iranische Kulturgemeinschaft Stuttgart'}
             </p>
           </div>

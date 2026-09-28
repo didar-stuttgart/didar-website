@@ -33,7 +33,8 @@ export default function About({ currentLang }) {
             />
           </div>
 
-          <div className="about-story mt-12" style={{ maxWidth: '760px' }}>
+          {/* About Story Section - FIRST */}
+          <div className="about-story mt-16">
             <h3>{currentLang === 'fa' ? 'درباره دیدار' : 'Über Didar'}</h3>
 
             {currentLang === 'fa' ? (
@@ -65,6 +66,87 @@ export default function About({ currentLang }) {
                 Didar ist eine kulturelle und künstlerische Gemeinschaft, die sich dem Austausch iranischer Kultur in Stuttgart widmet. Durch kulturelle Veranstaltungen, Ausstellungen, Vorträge und interaktive Programme fördert Didar den Dialog, das Verständnis und die Wertschätzung zwischen Kulturen.
               </p>
             )}
+          </div>
+
+          {/* Founders Section - AFTER main About text */}
+          <div className="founders-section mt-20">
+            <h3 style={{ marginBottom: 'var(--space-12)', textAlign: 'center' }}>
+              {currentLang === 'fa' ? 'بنیان‌گذاران' : 'Gründer'}
+            </h3>
+
+            {/* Founders Grid - Side by side on desktop, stack on mobile */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: 'var(--space-12)',
+              maxWidth: '500px',
+              margin: '0 auto',
+              '@media (max-width: 768px)': {
+                gridTemplateColumns: '1fr'
+              }
+            }}>
+              {/* Founder Card 1 - Avid */}
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  width: '140px',
+                  height: '140px',
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  backgroundColor: 'var(--color-gray-light)',
+                  margin: '0 auto',
+                }}>
+                  <img
+                    src="/images/Avid.jpg"
+                    alt={currentLang === 'fa' ? 'آوید' : 'Avid'}
+                    loading="lazy"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                  />
+                </div>
+                <p style={{
+                  textAlign: 'center',
+                  marginTop: 'var(--space-4)',
+                  fontWeight: 'var(--fw-semibold)',
+                  fontSize: 'var(--fs-sm)'
+                }}>
+                  {currentLang === 'fa' ? 'آوید' : 'Avid'}
+                </p>
+              </div>
+
+              {/* Founder Card 2 - Danial */}
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  width: '140px',
+                  height: '140px',
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  backgroundColor: 'var(--color-gray-light)',
+                  margin: '0 auto',
+                }}>
+                  <img
+                    src="/images/Danial.jpg"
+                    alt={currentLang === 'fa' ? 'دانیال' : 'Danial'}
+                    loading="lazy"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                  />
+                </div>
+                <p style={{
+                  textAlign: 'center',
+                  marginTop: 'var(--space-4)',
+                  fontWeight: 'var(--fw-semibold)',
+                  fontSize: 'var(--fs-sm)'
+                }}>
+                  {currentLang === 'fa' ? 'دانیال' : 'Danial'}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
