@@ -101,9 +101,20 @@ async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to submit registration' });
     }
 
-    // Send admin notification (non-blocking, email failure does not affect response)
+    // Send admin notification. This is awaited (rather than fire-and-forget)
+    // because Vercel serverless functions can freeze/terminate execution as
+    // soon as the HTTP response is sent — an un-awaited notification call
+    // here can be killed mid-flight before its fetch() to Resend ever
+    // completes. This endpoint previously appeared to "work" only because
+    // this event page's capacity-status polling happens to keep the same
+    // serverless container warm long enough for the pending call to finish;
+    // Contact and Membership have no equivalent polling, so it was much
+    // more consistently cut off there. sendRegistrationNotification()
+    // catches its own errors internally and never throws, so awaiting it
+    // cannot fail this request or roll back the database insert that
+    // already succeeded above.
     const eventTitle = language === 'fa' ? event.title_fa : event.title_de;
-    sendRegistrationNotification({
+    await sendRegistrationNotification({
       submissionId: registrationId,
       eventTitle,
       firstName: firstName.trim(),
@@ -113,9 +124,6 @@ async function handler(req, res) {
       telegramId: telegramId?.trim() || null,
       comment: comment?.trim() || null,
       timestamp: new Date().toISOString(),
-    }).catch(error => {
-      // Log but don't throw - email failure should not affect form submission
-      console.error('Admin notification error (non-blocking):', error);
     });
 
     // Manual model success message - DIDAR will contact manually, not automatic confirmation

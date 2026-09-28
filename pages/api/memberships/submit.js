@@ -66,8 +66,15 @@ async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to submit application' });
     }
 
-    // Send admin notification (non-blocking, email failure does not affect response)
-    sendMembershipNotification({
+    // Send admin notification. This is awaited (rather than fire-and-forget)
+    // because Vercel serverless functions can freeze/terminate execution as
+    // soon as the HTTP response is sent — an un-awaited notification call
+    // here was being killed mid-flight before its fetch() to Resend ever
+    // completed, which is why notifications were unreliable in production.
+    // sendMembershipNotification() catches its own errors internally and
+    // never throws, so awaiting it cannot fail this request or roll back the
+    // database insert that already succeeded above.
+    await sendMembershipNotification({
       submissionId: applicationId,
       firstName: firstName.trim(),
       lastName: lastName.trim(),
@@ -76,9 +83,6 @@ async function handler(req, res) {
       telegramId: telegramId?.trim() || null,
       additionalInfo: additionalInfo?.trim() || null,
       timestamp: new Date().toISOString(),
-    }).catch(error => {
-      // Log but don't throw - email failure should not affect form submission
-      console.error('Admin notification error (non-blocking):', error);
     });
 
     return res.status(201).json({

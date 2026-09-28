@@ -53,16 +53,20 @@ async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to submit contact message' });
     }
 
-    // Send admin notification (non-blocking, email failure does not affect response)
-    sendContactNotification({
+    // Send admin notification. This is awaited (rather than fire-and-forget)
+    // because Vercel serverless functions can freeze/terminate execution as
+    // soon as the HTTP response is sent — an un-awaited notification call
+    // here was being killed mid-flight before its fetch() to Resend ever
+    // completed, which is why notifications were unreliable in production.
+    // sendContactNotification() catches its own errors internally and never
+    // throws, so awaiting it cannot fail this request or roll back the
+    // database insert that already succeeded above.
+    await sendContactNotification({
       submissionId,
       name: name.trim(),
       email: email.trim().toLowerCase(),
       message: message.trim(),
       timestamp: new Date().toISOString(),
-    }).catch(error => {
-      // Log but don't throw - email failure should not affect form submission
-      console.error('Admin notification error (non-blocking):', error);
     });
 
     return res.status(201).json({
