@@ -1,11 +1,11 @@
 /**
  * Events Listing Page
  * Path: /veranstaltungen
- * Displays recurring, upcoming, and past events from Supabase
+ * Displays recurring, upcoming, and past events in horizontal carousels
  */
 
 import Head from 'next/head';
-import EventCard from '@/components/EventCard';
+import EventCarousel from '@/components/EventCarousel';
 import { t } from '@/lib/i18n';
 import { createServerClient } from '@/lib/supabase';
 import { filterPublicEvents } from '@/lib/events-filter';
@@ -37,7 +37,7 @@ export async function getStaticProps() {
     // Categorize events
     const { recurring, upcoming, past } = categorizeEvents(events || []);
 
-    // Filter to only public-safe fields
+    // Filter to only public-safe fields (no limit on listing page)
     const recurringEvents = filterPublicEvents(recurring);
     const upcomingEvents = filterPublicEvents(upcoming);
     const pastEvents = filterPublicEvents(past);
@@ -58,7 +58,7 @@ export async function getStaticProps() {
         upcomingEvents: [],
         pastEvents: [],
       },
-      revalidate: 300, // Retry after 5 minutes on error
+      revalidate: 300,
     };
   }
 }
@@ -78,38 +78,26 @@ export default function Events({ recurringEvents, upcomingEvents, pastEvents, cu
 
           {/* Recurring Events */}
           {recurringEvents.length > 0 && (
-            <>
-              <h2 className="mt-12">{t('events.recurring', currentLang)}</h2>
-              <div className="grid grid-3 mt-8">
-                {recurringEvents.map((event) => (
-                  <EventCard key={event.id} event={event} currentLang={currentLang} />
-                ))}
-              </div>
-            </>
+            <div className="events-category mt-12">
+              <h2>{t('events.recurring', currentLang)}</h2>
+              <EventCarousel events={recurringEvents} currentLang={currentLang} />
+            </div>
           )}
 
           {/* Upcoming Events */}
           {upcomingEvents.length > 0 && (
-            <>
-              <h2 className="mt-12">{t('events.upcoming', currentLang)}</h2>
-              <div className="grid grid-3 mt-8">
-                {upcomingEvents.map((event) => (
-                  <EventCard key={event.id} event={event} currentLang={currentLang} isPast={false} />
-                ))}
-              </div>
-            </>
+            <div className="events-category mt-12">
+              <h2>{t('events.upcoming', currentLang)}</h2>
+              <EventCarousel events={upcomingEvents} currentLang={currentLang} />
+            </div>
           )}
 
           {/* Past Events */}
           {pastEvents.length > 0 && (
-            <>
-              <h2 className="mt-12">{t('events.past', currentLang)}</h2>
-              <div className="grid grid-3 mt-8">
-                {pastEvents.map((event) => (
-                  <EventCard key={event.id} event={event} currentLang={currentLang} isPast={true} />
-                ))}
-              </div>
-            </>
+            <div className="events-category mt-12">
+              <h2>{t('events.past', currentLang)}</h2>
+              <EventCarousel events={pastEvents} currentLang={currentLang} isPast={true} />
+            </div>
           )}
 
           {/* No events message */}

@@ -36,95 +36,76 @@ export default function EventCard({ event, currentLang, isPast = false }) {
   const shortDescription = (() => {
     const text = getDescription();
     if (!text) return '';
-    return text.length > 120 ? `${text.slice(0, 117)}\u2026` : text;
+    return text.length > 120 ? `${text.slice(0, 117)}…` : text;
   })();
 
   return (
-    <Link href={`/veranstaltungen/${event.slug}`}>
-      <article className="event-card" dir={dir}>
+    <Link href={`/veranstaltungen/${event.slug}`} className="event-card-link">
+      <div className="event-card" dir={dir}>
         {/* Event Image Section */}
         <div className="event-image">
           <img
             src={event.image_url || getFallbackEventImage(event)}
             alt={event.image_url ? getTitle() : ''}
             loading="lazy"
-            onError={(e) => {
-              e.target.src = getFallbackEventImage(event);
-            }}
           />
+          {event.is_recurring && (
+            <div className="recurring-badge">{t('events.recurring_badge', currentLang)}</div>
+          )}
         </div>
 
-        {/* Event Content Section */}
-        <div className="event-content">
-          {event.is_recurring ? (
-            <div className="event-date event-date-recurring">
-              🔄 {t('events.recurring_badge', currentLang)}
-            </div>
-          ) : event.registration_status === 'not_open' ? (
-            <div className="event-date event-date-comingsoon">
-              🗓️ {t('event.coming_soon', currentLang)}
-            </div>
-          ) : (
-            <div className="event-date">
-              📅 {formatDate(event.event_date || event.date, currentLang)}
-            </div>
-          )}
-
-          {getCategory() && <div className="event-category">{getCategory()}</div>}
-
-          <h3 className="event-title">{getTitle()}</h3>
-
-          {!isPast && event.registration_status !== 'open' && (
-            <span
-              className="badge"
-              style={{
-                display: 'inline-block',
-                alignSelf: 'flex-start',
-                background: 'var(--color-sand, #D4C4B0)',
-                color: 'var(--color-text, #333)',
-                borderRadius: 'var(--radius-sm, 4px)',
-                padding: '0.15rem 0.6rem',
-                fontSize: 'var(--fs-sm, 0.85rem)',
-                marginBottom: '0.5rem',
-              }}
-            >
-              {event.registration_status === 'closed'
-                ? t('events.registration_closed', currentLang)
-                : t('events.coming_soon', currentLang)}
-            </span>
-          )}
-
-          <div className="event-location">
-            📍 {getLocation() || t('events.location_tbd', currentLang)}
+        {/* Event Info Section */}
+        <div className="event-info">
+          {/* Date/Status */}
+          <div className="event-date-status">
+            {event.is_recurring ? (
+              <span className="date-badge recurring">{t('events.recurring_badge', currentLang)}</span>
+            ) : (
+              <>
+                <span className="date-emoji">📅</span>
+                <span className="date-text">
+                  {event.event_date
+                    ? formatDate(event.event_date, currentLang)
+                    : currentLang === 'fa'
+                      ? 'تاریخ به زودی اعلام می‌شود'
+                      : 'Termin folgt'}
+                </span>
+              </>
+            )}
           </div>
 
-          {event.registration_status !== 'not_open' && event.event_time && (
-            <div className="event-time" style={{ fontSize: 'var(--fs-sm)', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>
-              ⏰ {formatTime(event.event_time || event.time, currentLang)}
+          {/* Title */}
+          <h3 className="event-title">{getTitle()}</h3>
+
+          {/* Time */}
+          {event.event_time && (
+            <div className="event-meta">
+              <span>⏰</span>
+              <span>{formatTime(event.event_time, currentLang)}</span>
             </div>
           )}
 
-          {getLanguage() && (
-            <div className="event-language" style={{ fontSize: 'var(--fs-sm)', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>
-              {t('events.language', currentLang)}: {getLanguage()}
+          {/* Location */}
+          {getLocation() && (
+            <div className="event-meta">
+              <span>📍</span>
+              <span>{getLocation()}</span>
             </div>
           )}
 
-          <a
-            href={SOCIAL_LINKS.telegram}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="event-telegram-note"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {t('event.telegram_note', currentLang)}
-          </a>
+          {/* Registration Info */}
+          {event.registration_status === 'open' && (
+            <div className="registration-info">
+              {currentLang === 'fa' ? '✓ ثبت‌نام باز است' : '✓ Anmeldung offen'}
+            </div>
+          )}
 
-          <a href={`/veranstaltungen/${event.slug}`} className="event-link">
-            {t('common.learn_more', currentLang)} {currentLang === 'fa' ? '←' : '→'}
-          </a>
+          {/* More Info Link */}
+          <div className="event-more-link">
+            {currentLang === 'fa' ? 'بیشتر بدانید ←' : 'Mehr erfahren →'}
+          </div>
         </div>
-      </article>
+      </div>
     </Link>
   );
 }

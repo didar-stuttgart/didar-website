@@ -587,3 +587,320 @@ button:disabled {
   margin-bottom: var(--space-4);
   font-size: var(--fs-lg);
 }
+
+/* Carousel Navigation Arrows */
+.event-carousel-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  position: relative;
+}
+
+.carousel-arrow {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.carousel-arrow:hover:not(.disabled) {
+  background: var(--color-bg-tertiary);
+  border-color: var(--color-text);
+}
+
+.carousel-arrow:active:not(.disabled) {
+  transform: scale(0.95);
+}
+
+.carousel-arrow.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: var(--color-border-light);
+}
+
+@media (max-width: 768px) {
+  .carousel-arrow {
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+  }
+}
+
+/* Mobile: hide arrows */
+@media (max-width: 480px) {
+  .carousel-arrow {
+    display: none;
+  }
+
+  .event-carousel-wrapper {
+    gap: 0;
+  }
+}
+
+/* Event Carousel - Responsive container */
+.event-carousel {
+  flex: 1;
+  display: flex;
+  gap: var(--space-4);
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding: var(--space-2) 0;
+  margin: var(--space-2) 0;
+  -webkit-overflow-scrolling: touch;
+
+  /* Hide scrollbar but keep scrolling functional */
+  scrollbar-width: none; /* Firefox */
+}
+
+.event-carousel::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+/* Event Cards in Carousel - Fixed width for consistent sizing */
+.event-carousel > * {
+  flex-shrink: 0;
+}
+
+/* Desktop: 3-4 cards visible */
+@media (min-width: 1024px) {
+  .event-carousel > * {
+    flex: 0 0 calc((100% - var(--space-4) * 2) / 3.2);
+    max-width: 380px;
+    min-width: 300px;
+  }
+}
+
+/* Tablet: 2-3 cards visible */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .event-carousel > * {
+    flex: 0 0 calc((100% - var(--space-4)) / 2.2);
+    min-width: 260px;
+    max-width: 400px;
+  }
+}
+
+/* Mobile: 1 full card + partial next */
+@media (max-width: 767px) {
+  .event-carousel > * {
+    flex: 0 0 calc(100% - var(--space-3));
+    min-width: calc(100% - var(--space-3));
+  }
+
+  .event-carousel {
+    gap: var(--space-3);
+    margin-left: calc(var(--space-3) * -1);
+    margin-right: calc(var(--space-3) * -1);
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+  }
+}
+
+/* Events Section Styling */
+.events-category {
+  margin-top: var(--space-12);
+  margin-bottom: var(--space-8);
+}
+
+.events-category:first-of-type {
+  margin-top: var(--space-6);
+}
+
+.events-category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--space-6);
+  gap: var(--space-4);
+}
+
+.events-category-header h2 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+  flex: 1;
+}
+
+.events-category-header .btn-text {
+  white-space: nowrap;
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.events-category-header .btn-text:hover {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .events-category-header {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .events-category-header h2 {
+    font-size: 22px;
+  }
+
+  .events-category-header .btn-text {
+    font-size: 13px;
+  }
+}
+
+/* No overflow on page level */
+body,
+html {
+  overflow-x: hidden;
+}
+
+section.section {
+  overflow-x: hidden;
+}
+
+.container {
+  overflow-x: hidden;
+}
+
+/* Ensure carousel doesn't create horizontal scroll on page */
+.events-homepage,
+.events-full-list {
+  overflow: hidden;
+}
+
+/* Updated Event Card Styles - Non-Article Version */
+.event-card-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.event-card {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: all var(--transition-base);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.event-card:hover {
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-olive);
+}
+
+.event-card-link:hover .event-card {
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-olive);
+}
+
+/* Event Image */
+.event-image {
+  width: 100%;
+  height: 200px;
+  background-color: var(--color-gray-light);
+  overflow: hidden;
+  position: relative;
+}
+
+.event-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.recurring-badge {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  background-color: var(--color-olive);
+  color: white;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Event Info */
+.event-info {
+  padding: var(--space-4);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.event-date-status {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.date-emoji {
+  margin-right: var(--space-1);
+}
+
+.date-badge {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  background-color: var(--color-olive);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.event-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.3;
+  color: var(--color-text);
+  flex-grow: 1;
+}
+
+.event-meta {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  display: flex;
+  gap: var(--space-2);
+}
+
+.registration-info {
+  font-size: 12px;
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.event-more-link {
+  font-size: 13px;
+  color: var(--color-olive);
+  font-weight: 600;
+  margin-top: auto;
+}
+
+@media (max-width: 768px) {
+  .event-image {
+    height: 160px;
+  }
+
+  .event-info {
+    padding: var(--space-3);
+    gap: var(--space-2);
+  }
+
+  .event-title {
+    font-size: 15px;
+  }
+}
