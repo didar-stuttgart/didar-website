@@ -536,6 +536,7 @@ button:disabled {
   align-items: center;
   gap: var(--space-2);
   position: relative;
+  z-index: 1;
 }
 
 .carousel-arrow {
@@ -555,6 +556,8 @@ button:disabled {
   padding: 0;
   transition: all var(--transition-base);
   z-index: 10;
+  position: relative;
+  pointer-events: auto;
 }
 
 .carousel-arrow:hover:not(:disabled) {
@@ -590,6 +593,11 @@ button:disabled {
   -webkit-overflow-scrolling: touch;
   /* Remove scrollbar but keep functionality on devices that need it */
   scrollbar-width: none;
+  /* CRITICAL FIX FOR RTL: Override inherited direction: rtl so that scrollLeft
+     works reliably. The outer UI remains RTL via flexbox order, but internal
+     scroll coordinates use LTR logic. This keeps visual RTL correct while
+     making programmatic scrolling stable. */
+  direction: ltr;
 }
 
 .event-carousel::-webkit-scrollbar {

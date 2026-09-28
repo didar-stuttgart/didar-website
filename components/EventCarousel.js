@@ -1,105 +1,145 @@
-import { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
+import EventCard from './EventCard';
+import { t } from '@/lib/i18n';
 
-export default function EventCarousel({ children, currentLang }) {
-  const containerRef = useRef(null);
-  const scrollViewportRef = useRef(null);
+/**
+ * EventCarousel Component
+ * Displays events in a horizontal scrolling carousel with navigation arrows
+ * Uses explicit scrollLeft calculation to reliably handle RTL mode
+ */
+export default function EventCarousel({ events, currentLang, isPast = false }) {
+  const scrollContainerRef = useRef(null);
+  const cardsRef = useRef([]);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const isRTL = currentLang === 'fa';
 
-  // Check scroll position and update button states
-  const checkScroll = () => {
-    if (!scrollViewportRef.current) return;
-
-    const { scrollLeft, scrollWidth, clientWidth } = scrollViewportRef.current;
-
-    // For RTL, scrollLeft behavior is inverted in some browsers
-    // We check if we can scroll in either direction
-    setCanScrollLeft(scrollLeft > 0 || scrollWidth > clientWidth);
-    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10); // 10px threshold
-  };
-
+  // Check scroll position on mount and whenever events change
   useEffect(() => {
-    checkScroll();
-    const viewport = scrollViewportRef.current;
-    if (viewport) {
-      viewport.addEventListener('scroll', checkScroll);
-      return () => viewport.removeEventListener('scroll', checkScroll);
-    }
-  }, []);
+    updateScrollState();
+    const container = scrollContainerRef.current;
+    if (!container) return;
 
-  // Get scroll amount based on viewport and card size
-  const getScrollAmount = () => {
-    if (!scrollViewportRef.current) return 320;
-    const { clientWidth } = scrollViewportRef.current;
-    // Calculate based on visible cards: scroll by about one full card width
-    return Math.max(clientWidth / 3.5, 280);
+    // Re-check scroll state on window resize
+    window.addEventListener('resize', updateScrollState);
+    return () => window.removeEventListener('resize', updateScrollState);
+  }, [events, isRTL]);
+
+  const updateScrollState = () => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const maxScroll = Math.abs(container.scrollWidth - container.clientWidth);
+    const currentScroll = Math.abs(container.scrollLeft);
+
+    if (isRTL) {
+      // In RTL, scrollLeft is typically negative, so we work with absolute values
+      setCanScrollLeft(currentScroll > 10);
+      setCanScrollRight(currentScroll < maxScroll - 10);
+    } else {
+      setCanScrollLeft(container.scrollLeft > 10);
+      setCanScrollRight(container.scrollLeft < maxScroll - 10);
+    }
   };
 
   const scroll = (direction) => {
-    if (!scrollViewportRef.current) return;
+    const container = scrollContainerRef.current;
+    if (!container || cardsRef.current.length === 0) return;
 
-    const scrollAmount = getScrollAmount();
-    const container = scrollViewportRef.current;
+    // Estimate how many cards fit in viewport
+    const cardWidth = cardsRef.current[0]?.offsetWidth || 320;
+    const containerWidth = container.clientWidth;
+    const cardsPerView = Math.floor(containerWidth / cardWidth) || 1;
 
-    if (direction === 'right') {
-      // For both LTR and RTL, scroll "right" means forward through content
-      container.scrollBy({
-        left: isRTL ? -scrollAmount : scrollAmount,
-        behavior: 'smooth',
-      });
+    let nextIndex = currentCardIndex;
+    if (isRTL) {
+      // In RTL: direction is reversed for user intuition
+      if (direction === 'left') {
+        nextIndex = Math.min(currentCardIndex + cardsPerView, cardsRef.current.length - 1);
+      } else {
+        nextIndex = Math.max(currentCardIndex - cardsPerView, 0);
+      }
     } else {
-      // For both LTR and RTL, scroll "left" means backward through content
-      container.scrollBy({
-        left: isRTL ? scrollAmount : -scrollAmount,
-        behavior: 'smooth',
-      });
+      if (direction === 'left') {
+        nextIndex = Math.max(currentCardIndex - cardsPerView, 0);
+      } else {
+        nextIndex = Math.min(currentCardIndex + cardsPerView, cardsRef.current.length - 1);
+      }
     }
 
-    // Update button states after scroll
-    setTimeout(checkScroll, 300);
+    const targetCard = cardsRef.current[nextIndex];
+    if (targetCard) {
+      // Use scrollIntoView for browser-native, reliable scrolling
+      // In RTL, use 'end' to align from the right; in LTR use 'start' for the left
+      targetCard.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: isRTL ? 'end' : 'start'
+      });
+
+      setCurrentCardIndex(nextIndex);
+      setTimeout(updateScrollState, 600);
+    }
   };
 
-  const handleLeftArrowClick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    scroll('left');
+  const handleScroll = () => {
+    updateScrollState();
   };
 
-  const handleRightArrowClick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    scroll('right');
-  };
+  if (!events || events.length === 0) {
+    return null;
+  }
 
   return (
-    <div className="carousel-wrapper" ref={containerRef}>
+    <div className="event-carousel-wrapper">
       <button
-        type="button"
-        className="carousel-arrow carousel-arrow-left"
-        onClick={handleLeftArrowClick}
+        className={`carousel-arrow carousel-arrow-left ${!canScrollLeft ? 'disabled' : ''}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          scroll('left');
+        }}
+        disabled={!canScrollLeft}
         aria-label={currentLang === 'fa' ? 'رفتن به چپ' : 'Nach links scrollen'}
         title={currentLang === 'fa' ? 'رفتن به چپ' : 'Nach links scrollen'}
-        disabled={!canScrollLeft}
       >
-        <span aria-hidden="true">‹</span>
+        ‹
       </button>
 
-      <div className="event-carousel" ref={scrollViewportRef}>
-        <div className="carousel-container">
-          {children}
-        </div>
+      <div
+        className="event-carousel"
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        role="region"
+        aria-label={currentLang === 'fa' ? 'رویدادها' : 'Veranstaltungen'}
+      >
+        {events.map((event, idx) => (
+          <div
+            key={event.id}
+            ref={(el) => {
+              if (el) cardsRef.current[idx] = el;
+            }}
+          >
+            <EventCard
+              event={event}
+              currentLang={currentLang}
+              isPast={isPast}
+            />
+          </div>
+        ))}
       </div>
 
       <button
-        type="button"
-        className="carousel-arrow carousel-arrow-right"
-        onClick={handleRightArrowClick}
+        className={`carousel-arrow carousel-arrow-right ${!canScrollRight ? 'disabled' : ''}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          scroll('right');
+        }}
+        disabled={!canScrollRight}
         aria-label={currentLang === 'fa' ? 'رفتن به راست' : 'Nach rechts scrollen'}
         title={currentLang === 'fa' ? 'رفتن به راست' : 'Nach rechts scrollen'}
-        disabled={!canScrollRight}
       >
-        <span aria-hidden="true">›</span>
+        ›
       </button>
     </div>
   );
