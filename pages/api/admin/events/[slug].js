@@ -48,10 +48,8 @@ async function handleUpdateEvent(slug, req, res) {
       return res.status(400).json({ error: 'Title in both languages is required' });
     }
 
-    // Date validation: required for dated events, optional for recurring events
-    if (!event.is_recurring && !event.event_date) {
-      return res.status(400).json({ error: 'Event date is required for dated events' });
-    }
+    // Date validation: both recurring and non-recurring events may exist without a date
+    // No global requirement that every event has an event_date
 
     // Validate capacity: must be empty or a positive integer
     if (event.capacity !== null && event.capacity !== undefined && event.capacity !== '') {

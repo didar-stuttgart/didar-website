@@ -70,6 +70,11 @@ export default function Datenschutz({ currentLang }) {
                 این استفاده بر اساس منافع مشروع دیدار در معرفی فعالیت‌ها و رویدادهای خود صورت می‌گیرد. اعلام تمایل شما برای محدود کردن استفاده از تصویرتان، به معنای تضمین حذف کامل آن از تمامی عکس‌ها یا ویدیوهای گروهی نیست؛ ما تا حد امکان و به‌صورت معقول تلاش خواهیم کرد این درخواست را رعایت کنیم.
               </p>
 
+              <h2 className="mt-12">۶الف. ذخیره‌سازی تنظیمات زبان</h2>
+              <p className="mt-4">
+                ما تنظیمات زبان انتخاب‌شده شما (فارسی یا آلمانی) را در localStorage مرورگر شما ذخیره می‌کنیم. این اطلاعات تنها شامل گزینه زبان است و نیازی به ارسال به سرور ندارد. این ذخیره‌سازی به‌طور کامل محلی است (روی دستگاه شما) و برای فراهم کردن تجربه کاربری بهتر استفاده می‌شود. localStorage به‌طور خودکار هنگام پاک‌کردن داده‌های مرورگر حذف می‌شود.
+              </p>
+
               <h2 className="mt-12">۶. اشتراک‌گذاری اطلاعات</h2>
               <p className="mt-4">
                 ما اطلاعات شخصی شما را با اشخاص ثالث به‌اشتراک نمی‌گذاریم، مگر در موارد زیر:
@@ -179,6 +184,11 @@ export default function Datenschutz({ currentLang }) {
               </p>
               <p className="mt-4">
                 Diese Nutzung erfolgt auf Grundlage des berechtigten Interesses von Didar an der Darstellung und Kommunikation seiner Aktivitäten und Veranstaltungen. Die Mitteilung eines entsprechenden Wunsches stellt keine Garantie für die vollständige Entfernung Ihrer Abbildung aus allen Fotos oder Gruppenaufnahmen dar; wir bemühen uns jedoch nach Möglichkeit und in zumutbarem Rahmen, diesem Wunsch nachzukommen.
+              </p>
+
+              <h2 className="mt-12">5a. Speicherung von Spracheinstellungen</h2>
+              <p className="mt-4">
+                Wir speichern Ihre gewählte Spracheinstellung (Persisch oder Deutsch) im localStorage Ihres Browsers. Diese Daten enthalten nur die Sprachoption und erfordern keine Übertragung an den Server. Diese Speicherung erfolgt vollständig lokal (auf Ihrem Gerät) und dient der Verbesserung des Nutzungserlebnis. localStorage wird automatisch gelöscht, wenn Sie die Browserdaten löschen.
               </p>
 
               <h2 className="mt-12">6. Weitergabe von Informationen</h2>

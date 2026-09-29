@@ -76,12 +76,7 @@ export default function AdminEventEdit() {
       return false;
     }
 
-    // For date-specific events, date is required
-    if (!event.is_recurring && !event.event_date) {
-      alert('برای رویدادهای موقتی، تاریخ الزامی است');
-      return false;
-    }
-
+    // Both recurring and non-recurring events may exist without a date
     return true;
   };
 
@@ -245,12 +240,11 @@ export default function AdminEventEdit() {
 
               {!event.is_recurring && (
                 <div className={styles.formGroup}>
-                  <label>تاریخ رویداد</label>
+                  <label>تاریخ رویداد (اختیاری)</label>
                   <input
                     type="date"
                     value={event.event_date || ''}
                     onChange={(e) => handleChange('event_date', e.target.value)}
-                    required
                   />
                 </div>
               )}

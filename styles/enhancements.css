@@ -934,3 +934,249 @@ img[loading='lazy'] {
     height: 100%;
   }
 }
+/* ========================================
+
+/* ========================================
+   PHASE 3 - CRITICAL THINKING COURSE PAGE IMPROVEMENTS
+   Structured information architecture and visual hierarchy
+   ======================================== */
+
+/* COURSE INFORMATION BLOCK - Key facts at a glance */
+.course-info-block {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-6);
+  padding: var(--space-6);
+  background-color: var(--color-off-white);
+  border-radius: var(--radius-lg);
+  border-left: 4px solid var(--color-olive);
+}
+
+[dir='rtl'] .course-info-block {
+  border-left: none;
+  border-right: 4px solid var(--color-olive);
+}
+
+.course-info-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.course-info-label {
+  margin: 0 0 0.5rem 0;
+  font-size: var(--fs-xs, 0.75rem);
+  font-weight: var(--fw-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+}
+
+.course-info-value {
+  margin: 0;
+  font-size: var(--fs-base, 1rem);
+  font-weight: var(--fw-medium);
+  color: var(--color-text-dark);
+  line-height: var(--lh-relaxed);
+}
+
+@media (max-width: 640px) {
+  .course-info-block {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+}
+
+/* SYLLABUS GRID - Structured topic list */
+.syllabus-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.syllabus-item {
+  padding: var(--space-4);
+  background-color: var(--color-off-white);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-light);
+  font-size: var(--fs-sm, 0.9375rem);
+  line-height: var(--lh-relaxed);
+  color: var(--color-text-dark);
+  transition: all 0.3s ease;
+}
+
+.syllabus-item:hover {
+  background-color: #f5f9f0;
+  border-color: var(--color-olive);
+  box-shadow: 0 2px 4px rgba(85, 107, 47, 0.08);
+}
+
+@media (max-width: 640px) {
+  .syllabus-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* PRICING GRID - Clear pricing options */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-6);
+  margin-top: var(--space-4);
+}
+
+.pricing-option {
+  padding: var(--space-6);
+  background-color: var(--color-white);
+  border: 2px solid var(--color-olive);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.pricing-category {
+  margin: 0 0 0.5rem 0;
+  font-size: var(--fs-sm, 0.9375rem);
+  color: var(--color-text-muted);
+  font-weight: var(--fw-medium);
+}
+
+.pricing-amount {
+  margin: 0;
+  font-size: var(--fs-2xl, 1.875rem);
+  font-weight: var(--fw-bold);
+  color: var(--color-olive);
+  font-family: var(--font-serif);
+}
+
+@media (max-width: 640px) {
+  .pricing-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* REGISTRATION INFORMATION BLOCK */
+.registration-info-block {
+  padding: var(--space-6);
+  background-color: #faf8f5;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border-light);
+  margin-top: var(--space-4);
+}
+
+.registration-status {
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-6);
+  border-bottom: 2px solid var(--color-border);
+}
+
+.registration-status-label {
+  margin: 0 0 0.5rem 0;
+  font-size: var(--fs-xs, 0.75rem);
+  font-weight: var(--fw-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+}
+
+.registration-status-value {
+  margin: 0;
+  font-size: var(--fs-lg, 1.125rem);
+  font-weight: var(--fw-bold);
+}
+
+.registration-info-item {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.registration-info-item:last-child {
+  border-bottom: none;
+}
+
+.registration-info-label {
+  margin: 0 0 0.5rem 0;
+  font-size: var(--fs-xs, 0.75rem);
+  font-weight: var(--fw-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+}
+
+.registration-info-value {
+  margin: 0;
+  font-size: var(--fs-base, 1rem);
+  font-weight: var(--fw-medium);
+  color: var(--color-text-dark);
+  line-height: var(--lh-relaxed);
+}
+
+/* ORGANIZER SECTION - Course instructor card */
+.organizer-section {
+  background-color: var(--color-off-white);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  margin-top: var(--space-8);
+}
+
+.organizer-card {
+  display: flex;
+  gap: var(--space-6);
+  align-items: flex-start;
+  margin-top: var(--space-4);
+}
+
+.organizer-image {
+  width: 140px;
+  height: 140px;
+  min-width: 140px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 3px solid var(--color-white);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.organizer-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.organizer-name {
+  margin: 0 0 0.5rem 0;
+  font-size: var(--fs-lg, 1.125rem);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text-dark);
+}
+
+.organizer-bio {
+  margin: 0;
+  font-size: var(--fs-sm, 0.9375rem);
+  color: var(--color-text-muted);
+  line-height: var(--lh-relaxed);
+}
+
+@media (max-width: 640px) {
+  .organizer-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-4);
+  }
+
+  .organizer-image {
+    width: 120px;
+    height: 120px;
+    min-width: 120px;
+  }
+
+  .organizer-info {
+    justify-content: flex-start;
+  }
+
+  .organizer-section {
+    padding: var(--space-4);
+  }
+}

@@ -337,43 +337,161 @@ export default function EventDetail({ event, currentLang }) {
                 </div>
               )}
 
-              <div className="mt-8">
-                <h3>{t('event.description', currentLang)}</h3>
-                <p style={{ whiteSpace: 'pre-line' }}>{description}</p>
-              </div>
-
               {event.slug === 'critical-thinking-workshop' && (
-                <div
-                  className="mt-6"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 'var(--space-4)',
-                  }}
-                >
-                  <img
-                    src="/images/event-3.jpg"
-                    alt={currentLang === 'fa' ? 'امیر برازنده' : 'Amir Barazandeh'}
-                    loading="lazy"
-                    style={{
-                      width: '56px',
-                      height: '56px',
-                      borderRadius: '50%',
-                      objectFit: 'cover',
-                      flexShrink: 0,
-                    }}
-                  />
-                  <div>
-                    <p style={{ fontWeight: 'var(--fw-semibold)', margin: 0, fontSize: 'var(--fs-sm)' }}>
-                      {currentLang === 'fa' ? 'امیر برازنده' : 'Amir Barazandeh'}
-                    </p>
-                    <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--color-text-muted)', margin: 0 }}>
-                      {currentLang === 'fa'
-                        ? 'ارشد ادبیات انگلیسی و برگزار کننده دوره‌های تفکر نقاد'
-                        : 'Master-Abschluss in Englischer Literatur und Leiter der Critical-Thinking-Kurse.'}
-                    </p>
+                <>
+                  {/* COURSE INFORMATION BLOCK */}
+                  <div className="mt-8 course-info-block">
+                    <div className="course-info-item">
+                      <p className="course-info-label">📅 {currentLang === 'fa' ? 'تاریخ' : 'Datum'}</p>
+                      <p className="course-info-value">
+                        {currentLang === 'fa' ? '۳ نوامبر ۲۰۲۶' : '3. November 2026'}
+                      </p>
+                    </div>
+
+                    <div className="course-info-item">
+                      <p className="course-info-label">🗣 {currentLang === 'fa' ? 'زبان' : 'Sprache'}</p>
+                      <p className="course-info-value">
+                        {currentLang === 'fa'
+                          ? 'این دوره به زبان فارسی برگزار می‌شود.'
+                          : 'Die Veranstaltung findet auf Persisch statt.'}
+                      </p>
+                    </div>
+
+                    <div className="course-info-item">
+                      <p className="course-info-label">📚 {currentLang === 'fa' ? 'قالب' : 'Format'}</p>
+                      <p className="course-info-value">
+                        {currentLang === 'fa' ? 'دوره ۱۰ جلسه‌ای' : '10-teiliger Kurs'}
+                      </p>
+                    </div>
                   </div>
-                </div>
+
+                  {/* COURSE DESCRIPTION */}
+                  <div className="mt-8">
+                    <h3>{t('event.description', currentLang)}</h3>
+                    <p style={{ whiteSpace: 'pre-line' }}>{description}</p>
+                  </div>
+
+                  {/* SYLLABUS SECTION */}
+                  <div className="mt-8">
+                    <h3>{currentLang === 'fa' ? 'سرفصل‌های دوره' : 'Kurssyllabus'}</h3>
+                    <div className="syllabus-grid">
+                      {currentLang === 'fa' ? (
+                        <>
+                          <div className="syllabus-item">رؤیااندیشی</div>
+                          <div className="syllabus-item">سوگیری تأیید</div>
+                          <div className="syllabus-item">سوگیری لنگر انداختن</div>
+                          <div className="syllabus-item">سوگیری بیننده–بازیگر</div>
+                          <div className="syllabus-item">تمایز تقصیر و مسئولیت</div>
+                          <div className="syllabus-item">دین‌اندیشی مدرن (باور به عدل، باور به نجات‌دهنده، باور به عامل فراواقعی)</div>
+                          <div className="syllabus-item">کج‌فهمی‌های موجود دربارهٔ مفهوم مغالطه؛ تفاوت مغالطات صوری و غیرصوری</div>
+                          <div className="syllabus-item">رفتار مسئولانه در تقابل خودمرکزیت</div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="syllabus-item">Fantasiedenken</div>
+                          <div className="syllabus-item">Bestätigungsverzerrung</div>
+                          <div className="syllabus-item">Verankerungsverzerrung</div>
+                          <div className="syllabus-item">Beobachter-Akteur-Vorurteile</div>
+                          <div className="syllabus-item">Unterscheidung zwischen Schuld und Verantwortung</div>
+                          <div className="syllabus-item">Modernes religiöses Denken (Glaube an Gerechtigkeit, Glaube an Erlöser, Glaube an übernatürliche Agenten)</div>
+                          <div className="syllabus-item">Bestehende Missverständnisse zum Konzept des Trugschlusses; Unterschied zwischen formalen und informalen Trugschlüssen</div>
+                          <div className="syllabus-item">Verantwortungsvolles Verhalten im Gegensatz zum Egozentrismus</div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ORGANIZER SECTION */}
+                  <div className="mt-8 organizer-section">
+                    <h3>{currentLang === 'fa' ? 'برگزار کننده' : 'Kursleiterin'}</h3>
+                    <div className="organizer-card">
+                      <img
+                        src="/images/Barazandeh.png"
+                        alt={currentLang === 'fa' ? 'امیر برازنده' : 'Amir Barazandeh'}
+                        loading="lazy"
+                        className="organizer-image"
+                      />
+                      <div className="organizer-info">
+                        <p className="organizer-name">
+                          {currentLang === 'fa' ? 'امیر برازنده' : 'Amir Barazandeh'}
+                        </p>
+                        <p className="organizer-bio">
+                          {currentLang === 'fa'
+                            ? 'ارشد ادبیات انگلیسی و برگزار کننده دوره های تفکر نقاد'
+                            : 'Master-Abschluss in Englischer Literatur und Leiter der Critical-Thinking-Kurse.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  {/* PRICING SECTION */}
+                  <div className="mt-8">
+                    <h3>{currentLang === 'fa' ? 'هزینه دوره' : 'Kursgebühr'}</h3>
+                    <div className="pricing-grid">
+                      <div className="pricing-option">
+                        <p className="pricing-category">
+                          {currentLang === 'fa'
+                            ? 'دانشجو / کارآموز / پناهنده'
+                            : 'Studierende / Auszubildende / Geflüchtete'}
+                        </p>
+                        <p className="pricing-amount">€45</p>
+                      </div>
+                      <div className="pricing-option">
+                        <p className="pricing-category">
+                          {currentLang === 'fa' ? 'سایر شرکت‌کنندگان' : 'Andere Teilnehmer'}
+                        </p>
+                        <p className="pricing-amount">€60</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* REGISTRATION INFORMATION SECTION */}
+                  <div className="mt-8">
+                    <h3>{currentLang === 'fa' ? 'ثبت‌نام و پرداخت' : 'Anmeldung und Zahlung'}</h3>
+                    
+                    <div className="registration-info-block">
+                      <div className="registration-status">
+                        <p className="registration-status-label">
+                          {currentLang === 'fa' ? 'وضعیت فعلی' : 'Aktueller Status'}
+                        </p>
+                        <p className="registration-status-value" style={{ color: 'var(--color-error)' }}>
+                          {currentLang === 'fa' ? '❌ بسته' : '❌ GESCHLOSSEN'}
+                        </p>
+                      </div>
+
+                      <div className="registration-info-item">
+                        <p className="registration-info-label">
+                          {currentLang === 'fa' ? 'باز شدن ثبت‌نام' : 'Anmeldung öffnet'}
+                        </p>
+                        <p className="registration-info-value">
+                          {currentLang === 'fa' ? '۱۵ اکتبر ۲۰۲۶' : '15. Oktober 2026'}
+                        </p>
+                      </div>
+
+                      <div className="registration-info-item">
+                        <p className="registration-info-label">
+                          {currentLang === 'fa' ? 'اولویت' : 'Priorität'}
+                        </p>
+                        <p className="registration-info-value">
+                          {currentLang === 'fa'
+                            ? 'افرادی که پرداخت خود را زودتر انجام دهند، در اولویت هستند.'
+                            : 'Personen, die ihre Zahlung früher leisten, haben Priorität.'}
+                        </p>
+                      </div>
+
+                      <div className="registration-info-item">
+                        <p className="registration-info-label">
+                          {currentLang === 'fa' ? 'پرداخت اقساطی' : 'Ratenzahlung'}
+                        </p>
+                        <p className="registration-info-value">
+                          {currentLang === 'fa'
+                            ? 'پرداخت به‌صورت اقساطی نیز امکان‌پذیر است. برای پرداخت اقساطی می‌توانند با DIDAR تماس بگیرند.'
+                            : 'Ratenzahlung ist ebenfalls möglich. Interessierte können DIDAR dafür kontaktieren.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+
               )}
 
           <div className="mt-12" style={{ maxWidth: '600px' }}>
