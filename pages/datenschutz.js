@@ -27,7 +27,7 @@ export default function Datenschutz({ currentLang }) {
 
               <h2 className="mt-12">۱. معرفی</h2>
               <p className="mt-4">
-                Didar – Hochschulgruppe an der Universität Stuttgart (به اختصار &quot;ما&quot; یا &quot;دیدار&quot;) متعهد به حفاظت از حریم خصوصی و امنیت اطلاعات شخصی شما است. این سند توضیح می‌دهد که ما چگونه اطلاعات شما را جمع‌آوری، استفاده و حفاظت می‌کنیم.
+                Didar – Hochschulgruppe an der Universität Stuttgart (به اختصار &quot;دیدار&quot;) متعهد به حفاظت از حریم خصوصی و امنیت اطلاعات شخصی شما است. این سند توضیح می‌دهد که ما چگونه اطلاعات شما را جمع‌آوری، استفاده و حفاظت می‌کنیم.
               </p>
 
               <h2 className="mt-12">۲. اطلاعات جمع‌آوری شده</h2>

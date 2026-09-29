@@ -58,6 +58,25 @@ async function handleCreateEvent(req, res) {
       event.capacity = null;
     }
 
+    // Validate remaining_capacity: purely a manually-set public display
+    // value ("ظرفیت باقیمانده" / "Verbleibende Plätze"). Must be empty or a
+    // non-negative integer. Never derived/calculated from registrations.
+    if (
+      event.remaining_capacity !== null &&
+      event.remaining_capacity !== undefined &&
+      event.remaining_capacity !== ''
+    ) {
+      const remaining = Number(event.remaining_capacity);
+      if (!Number.isInteger(remaining) || remaining < 0) {
+        return res.status(400).json({
+          error: 'Remaining capacity must be empty or a non-negative integer (0 or higher)'
+        });
+      }
+      event.remaining_capacity = remaining;
+    } else {
+      event.remaining_capacity = null;
+    }
+
     const adminClient = createAdminClient();
     const slug = event.title_fa.toLowerCase().replace(/\s+/g, '-');
 
@@ -75,6 +94,7 @@ async function handleCreateEvent(req, res) {
           location_fa: event.location_fa || '',
           location_de: event.location_de || '',
           capacity: event.capacity,
+          remaining_capacity: event.remaining_capacity,
           registration_deadline: event.registration_deadline || null,
           image_url: event.image_url || '',
           status: event.status || 'draft',

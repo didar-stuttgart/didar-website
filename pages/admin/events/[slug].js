@@ -31,6 +31,7 @@ export default function AdminEventEdit() {
               location_fa: '',
               location_de: '',
               capacity: null,
+              remaining_capacity: null,
               registration_deadline: '',
               image_url: '',
               status: 'draft',
@@ -238,7 +239,7 @@ export default function AdminEventEdit() {
                   onChange={(e) => handleChange('is_recurring', e.target.value === 'recurring')}
                 >
                   <option value="dated">رویداد موقتی (تاریخ مشخص)</option>
-                  <option value="recurring">رویداد درحال انجام (تکرارشونده)</option>
+                  <option value="recurring">رویداد درحال برگزاری (تکرارشونده)</option>
                 </select>
               </div>
 
@@ -271,6 +272,18 @@ export default function AdminEventEdit() {
                   onChange={(e) => handleChange('capacity', e.target.value ? parseInt(e.target.value) : null)}
                   placeholder="تعداد شرکت‌کنندگان"
                   min="1"
+                  step="1"
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>ظرفیت باقیمانده (نمایش عمومی، اختیاری)</label>
+                <input
+                  type="number"
+                  value={event.remaining_capacity ?? ''}
+                  onChange={(e) => handleChange('remaining_capacity', e.target.value ? parseInt(e.target.value) : null)}
+                  placeholder="مثلاً 5 — به‌صورت «ظرفیت باقیمانده: 5» نمایش داده می‌شود"
+                  min="0"
                   step="1"
                 />
               </div>

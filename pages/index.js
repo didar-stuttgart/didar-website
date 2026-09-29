@@ -196,6 +196,12 @@ export default function Home({
       {/* EVENTS — RECURRING, UPCOMING, PAST */}
       <section className="section events-section" dir={dir}>
         <div className="container">
+          {currentLang === 'de' && (recurringEvents.length > 0 || upcomingEvents.length > 0 || pastEvents.length > 0) && (
+            <p className="mb-8" style={{ color: 'var(--color-text-muted)' }}>
+              {t('events.language_notice_de', currentLang)}
+            </p>
+          )}
+
           {/* Recurring Events */}
           {recurringEvents.length > 0 && (
             <div className="events-category">

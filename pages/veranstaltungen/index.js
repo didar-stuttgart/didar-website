@@ -76,6 +76,12 @@ export default function Events({ recurringEvents, upcomingEvents, pastEvents, cu
         <div className="container">
           <h1>{t('events.title', currentLang)}</h1>
 
+          {currentLang === 'de' && (
+            <p className="mt-4" style={{ color: 'var(--color-text-muted)' }}>
+              {t('events.language_notice_de', currentLang)}
+            </p>
+          )}
+
           {/* Recurring Events */}
           {recurringEvents.length > 0 && (
             <div className="events-category mt-12">

@@ -13,6 +13,7 @@ import { useState, useEffect } from 'react';
 import { createServerClient } from '@/lib/supabase';
 import { t, formatDate, formatTime } from '@/lib/i18n';
 import { filterPublicEvent } from '@/lib/events-filter';
+import { getEventImage } from '@/lib/event-image';
 
 export async function getStaticProps({ params }) {
   try {
@@ -338,8 +339,42 @@ export default function EventDetail({ event, currentLang }) {
 
               <div className="mt-8">
                 <h3>{t('event.description', currentLang)}</h3>
-                <p>{description}</p>
+                <p style={{ whiteSpace: 'pre-line' }}>{description}</p>
               </div>
+
+              {event.slug === 'critical-thinking-workshop' && (
+                <div
+                  className="mt-6"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-4)',
+                  }}
+                >
+                  <img
+                    src="/images/event-3.jpg"
+                    alt={currentLang === 'fa' ? 'امیر برازنده' : 'Amir Barazandeh'}
+                    loading="lazy"
+                    style={{
+                      width: '56px',
+                      height: '56px',
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div>
+                    <p style={{ fontWeight: 'var(--fw-semibold)', margin: 0, fontSize: 'var(--fs-sm)' }}>
+                      {currentLang === 'fa' ? 'امیر برازنده' : 'Amir Barazandeh'}
+                    </p>
+                    <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--color-text-muted)', margin: 0 }}>
+                      {currentLang === 'fa'
+                        ? 'ارشد ادبیات انگلیسی و برگزار کننده دوره‌های تفکر نقاد'
+                        : 'Master-Abschluss in Englischer Literatur und Leiter der Critical-Thinking-Kurse.'}
+                    </p>
+                  </div>
+                </div>
+              )}
 
           <div className="mt-12" style={{ maxWidth: '600px' }}>
             {externalRegistrationUrl ? (
@@ -361,25 +396,37 @@ export default function EventDetail({ event, currentLang }) {
                   </div>
                 )}
 
-                {capacityStatus && (
+                {/* Remaining capacity — a manually-set, purely informational
+                    number from the Admin editor (event.remaining_capacity).
+                    Replaces the old "حضور: verified/capacity" display, which
+                    always showed 0 under the manual registration model since
+                    registrations never reach status='verified'. */}
+                {typeof event.remaining_capacity === 'number' && (
                   <div className="mt-6" style={{
                     padding: '1rem',
                     backgroundColor: 'var(--color-bg-secondary)',
                     borderRadius: '0.5rem',
                     textAlign: currentLang === 'fa' ? 'right' : 'left'
                   }}>
-                    <p style={{ margin: 0, fontWeight: 'bold' }}>
-                      {currentLang === 'fa' ? 'حضور:' : 'Anmeldungen:'} {capacityStatus.verified_count}/{capacityStatus.capacity}
+                    <p style={{ margin: 0, fontWeight: 'bold', color: 'var(--color-warning)' }}>
+                      {t('event.remaining_capacity', currentLang)}: {event.remaining_capacity}
                     </p>
-                    {capacityStatus.is_full && (
-                      <p style={{
-                        margin: '0.5rem 0 0 0',
-                        color: 'var(--color-error)',
-                        fontWeight: 'bold'
-                      }}>
-                        {currentLang === 'fa' ? '❌ رویداد تکمیل شده است' : '❌ Veranstaltung ist ausgebucht'}
-                      </p>
-                    )}
+                  </div>
+                )}
+                {capacityStatus && capacityStatus.is_full && (
+                  <div className="mt-6" style={{
+                    padding: '1rem',
+                    backgroundColor: 'var(--color-bg-secondary)',
+                    borderRadius: '0.5rem',
+                    textAlign: currentLang === 'fa' ? 'right' : 'left'
+                  }}>
+                    <p style={{
+                      margin: 0,
+                      color: 'var(--color-error)',
+                      fontWeight: 'bold'
+                    }}>
+                      {currentLang === 'fa' ? '❌ رویداد تکمیل شده است' : '❌ Veranstaltung ist ausgebucht'}
+                    </p>
                   </div>
                 )}
                 <div className="alert alert-info mt-6" role="region" aria-label="Privacy notice">
@@ -561,16 +608,16 @@ export default function EventDetail({ event, currentLang }) {
 
             <div className="event-detail-media">
               <div className="event-hero" dir={dir}>
-                {event.image_url ? (
-                  <div
-                    className="event-hero-image"
-                    style={{ backgroundImage: `url('${event.image_url}')` }}
-                    role="img"
-                    aria-label={title}
-                  />
-                ) : (
-                  <div className="event-hero-image event-hero-image-empty" aria-hidden="true" />
-                )}
+                {/* Same canonical image resolution as EventCard (getEventImage),
+                    so the detail page never shows a different image — or a
+                    blank placeholder — for an event whose card already shows
+                    a fallback image. */}
+                <div
+                  className="event-hero-image"
+                  style={{ backgroundImage: `url('${getEventImage(event)}')` }}
+                  role="img"
+                  aria-label={title}
+                />
 
                 <div className="event-hero-overlay">
                   {registrationStatus === 'not_open' ? (

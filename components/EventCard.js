@@ -1,28 +1,7 @@
 import Link from 'next/link';
 import { t, formatDate, formatTime } from '@/lib/i18n';
 import { SOCIAL_LINKS } from '@/components/SocialIcons';
-
-// Curated, generic event photos (public/images/event-1.jpg … event-5.jpg)
-// used only as a fallback when an event has no image_url of its own, so
-// cards never fall back to a bare emoji. Picked deterministically from the
-// event's own id/slug, so the same event always shows the same fallback
-// image rather than a different one on every render.
-const FALLBACK_EVENT_IMAGES = [
-  '/images/event-1.jpg',
-  '/images/event-2.jpg',
-  '/images/event-3.jpg',
-  '/images/event-4.jpg',
-  '/images/event-5.jpg',
-];
-
-function getFallbackEventImage(event) {
-  const key = String(event.id ?? event.slug ?? '');
-  let hash = 0;
-  for (let i = 0; i < key.length; i += 1) {
-    hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
-  }
-  return FALLBACK_EVENT_IMAGES[hash % FALLBACK_EVENT_IMAGES.length];
-}
+import { getEventImage, hasOwnEventImage } from '@/lib/event-image';
 
 export default function EventCard({ event, currentLang, isPast = false }) {
   const dir = currentLang === 'fa' ? 'rtl' : 'ltr';
@@ -45,8 +24,8 @@ export default function EventCard({ event, currentLang, isPast = false }) {
         {/* Event Image Section */}
         <div className="event-image">
           <img
-            src={event.image_url || getFallbackEventImage(event)}
-            alt={event.image_url ? getTitle() : ''}
+            src={getEventImage(event)}
+            alt={hasOwnEventImage(event) ? getTitle() : ''}
             loading="lazy"
           />
           {event.is_recurring && (
@@ -97,6 +76,16 @@ export default function EventCard({ event, currentLang, isPast = false }) {
           {event.registration_status === 'open' && (
             <div className="registration-info">
               {currentLang === 'fa' ? '✓ ثبت‌نام باز است' : '✓ Anmeldung offen'}
+            </div>
+          )}
+
+          {/* Remaining capacity — a manually-set, purely informational
+              number from the Admin editor (event.remaining_capacity). This
+              replaces the old "حضور: 0/0" verified-count display, which was
+              always 0/0 under the manual registration model. */}
+          {typeof event.remaining_capacity === 'number' && (
+            <div className="event-remaining-capacity" style={{ color: 'var(--color-warning)', fontWeight: 'var(--fw-semibold)' }}>
+              {t('event.remaining_capacity', currentLang)}: {event.remaining_capacity}
             </div>
           )}
 

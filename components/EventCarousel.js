@@ -52,30 +52,30 @@ export default function EventCarousel({ events, currentLang, isPast = false }) {
     const containerWidth = container.clientWidth;
     const cardsPerView = Math.floor(containerWidth / cardWidth) || 1;
 
+    // NOTE: .event-carousel forces CSS 'direction: ltr' on the scroll
+    // track itself (see styles/components.css) so that scrollLeft math
+    // stays reliable in both languages. That means cards are always laid
+    // out left-to-right in the track regardless of currentLang/isRTL, so
+    // the index math must be identical for FA and DE: 'left' always
+    // steps to an earlier (physically-left) card and 'right' always
+    // steps to a later (physically-right) card. Branching this on isRTL
+    // (as a previous version did) inverted the two arrows for Persian.
     let nextIndex = currentCardIndex;
-    if (isRTL) {
-      // In RTL: direction is reversed for user intuition
-      if (direction === 'left') {
-        nextIndex = Math.min(currentCardIndex + cardsPerView, cardsRef.current.length - 1);
-      } else {
-        nextIndex = Math.max(currentCardIndex - cardsPerView, 0);
-      }
+    if (direction === 'left') {
+      nextIndex = Math.max(currentCardIndex - cardsPerView, 0);
     } else {
-      if (direction === 'left') {
-        nextIndex = Math.max(currentCardIndex - cardsPerView, 0);
-      } else {
-        nextIndex = Math.min(currentCardIndex + cardsPerView, cardsRef.current.length - 1);
-      }
+      nextIndex = Math.min(currentCardIndex + cardsPerView, cardsRef.current.length - 1);
     }
 
     const targetCard = cardsRef.current[nextIndex];
     if (targetCard) {
-      // Use scrollIntoView for browser-native, reliable scrolling
-      // In RTL, use 'end' to align from the right; in LTR use 'start' for the left
+      // Use scrollIntoView for browser-native, reliable scrolling.
+      // The track is always LTR internally (see note above), so 'start'
+      // is correct for both languages.
       targetCard.scrollIntoView({
         behavior: 'smooth',
         block: 'nearest',
-        inline: isRTL ? 'end' : 'start'
+        inline: 'start'
       });
 
       setCurrentCardIndex(nextIndex);
