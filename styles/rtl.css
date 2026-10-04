@@ -75,14 +75,6 @@ html[dir="ltr"] .header-end {
   direction: ltr;
 }
 
-html[dir="rtl"] .logo-text {
-  margin-right: var(--space-2);
-}
-
-html[dir="ltr"] .logo-text {
-  margin-left: var(--space-2);
-}
-
 /* Lists */
 html[dir="rtl"] ul,
 html[dir="rtl"] ol {
@@ -193,11 +185,6 @@ html[dir="ltr"] .footer-grid {
    canceling that out and visually re-ordering it back to LTR order,
    inconsistent with .footer-grid and .hero-cta, which correctly mirror
    without needing an override. */
-
-/* Language Switch */
-html[dir="rtl"] .language-switch {
-  flex-direction: row-reverse;
-}
 
 /* Hamburger Menu Position */
 html[dir="rtl"] .header-end {

@@ -55,16 +55,10 @@ export default function Header({ currentLang, onLanguageChange }) {
               src="/images/logo-header.png"
               alt={currentLang === 'fa' ? 'دیدار' : 'Didar'}
               className="logo-image"
-              width="40"
-              height="40"
-              style={{
-                height: '40px',
-                width: 'auto',
-                objectFit: 'contain',
-              }}
+              width="96"
+              height="96"
             />
           </picture>
-          <span className="logo-text">{currentLang === 'fa' ? 'دیدار' : 'Didar'}</span>
         </Link>
 
         <nav className="nav" aria-label={t('nav.primary', currentLang)}>

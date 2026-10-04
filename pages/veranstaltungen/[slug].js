@@ -484,8 +484,8 @@ export default function EventDetail({ event, currentLang }) {
                         </p>
                         <p className="registration-info-value">
                           {currentLang === 'fa'
-                            ? 'پرداخت به‌صورت اقساطی نیز امکان‌پذیر است. برای پرداخت اقساطی می‌توانند با DIDAR تماس بگیرند.'
-                            : 'Ratenzahlung ist ebenfalls möglich. Interessierte können DIDAR dafür kontaktieren.'}
+                            ? 'پرداخت به‌صورت اقساطی نیز امکان‌پذیر است. برای پرداخت اقساطی می‌توانند با دیدار تماس بگیرند.'
+                            : 'Ratenzahlung ist ebenfalls möglich. Interessierte können Didar dafür kontaktieren.'}
                         </p>
                       </div>
                     </div>
@@ -688,6 +688,7 @@ export default function EventDetail({ event, currentLang }) {
                       maxLength={1000}
                       aria-invalid={Boolean(fieldErrors.comment)}
                     />
+                    <p className="form-hint">{t('form.sensitive_data_hint', currentLang)}</p>
                     {fieldErrors.comment && (
                       <p className="error-text">{fieldErrors.comment}</p>
                     )}
@@ -798,7 +799,7 @@ export default function EventDetail({ event, currentLang }) {
             <p style={{ margin: '15px 0', fontSize: '16px', lineHeight: '1.6' }}>
               {currentLang === 'fa'
                 ? 'درخواست شما دریافت شد. در صورت نیاز، دیدار از طریق ایمیل با شما تماس خواهد گرفت.'
-                : 'Ihre Anfrage wurde empfangen. DIDAR wird sich gegebenenfalls per E-Mail bei Ihnen melden.'}
+                : 'Ihre Anfrage wurde empfangen. Didar wird sich gegebenenfalls per E-Mail bei Ihnen melden.'}
             </p>
 
             <button

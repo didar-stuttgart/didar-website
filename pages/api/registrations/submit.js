@@ -131,7 +131,7 @@ async function handler(req, res) {
       success: true,
       message: language === 'fa' 
         ? 'درخواست شما دریافت شد. در صورت نیاز، دیدار از طریق ایمیل با شما تماس خواهد گرفت.'
-        : 'Ihre Anfrage wurde empfangen. DIDAR wird sich gegebenenfalls per E-Mail bei Ihnen melden.',
+        : 'Ihre Anfrage wurde empfangen. Didar wird sich gegebenenfalls per E-Mail bei Ihnen melden.',
       registrationId,
     });
   } catch (error) {

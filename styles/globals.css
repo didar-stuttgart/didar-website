@@ -42,15 +42,15 @@
   --color-info: #1976d2;
 
   /* Typography */
-  --font-serif: 'Playfair Display', 'Georgia', serif;
+  --font-serif: var(--font-playfair), 'Playfair Display', 'Georgia', serif;
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   --font-mono: 'Courier New', monospace;
   /* Persian: Vazirmatn for all readable UI/body text and headings;
      Lalezar is reserved for the single hero display headline only
      (applied narrowly via html[lang="fa"] .hero-title), never for
      paragraphs or long text. */
-  --font-fa-sans: 'Vazirmatn', 'Segoe UI', 'Tahoma', sans-serif;
-  --font-fa-display: 'Lalezar', 'Vazirmatn', sans-serif;
+  --font-fa-sans: var(--font-vazirmatn), 'Vazirmatn', 'Segoe UI', 'Tahoma', sans-serif;
+  --font-fa-display: var(--font-lalezar), 'Lalezar', var(--font-vazirmatn), 'Vazirmatn', sans-serif;
 
   /* Font Sizes — Responsive Scale
      Heading tokens (xl through 4xl) trimmed slightly at the top end so

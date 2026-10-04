@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Head from 'next/head';
 import { useState } from 'react';
 import { t } from '@/lib/i18n';
+import SuccessModal from '@/components/SuccessModal';
 import { SOCIAL_LINKS, InstagramIcon, TelegramIcon } from '@/components/SocialIcons';
 
 export default function Contact({ currentLang }) {
@@ -75,10 +76,6 @@ export default function Contact({ currentLang }) {
         // Success
         setSuccess(true);
         setFormData({ name: '', email: '', message: '' });
-        // Clear success message after 5 seconds
-        setTimeout(() => {
-          setSuccess(false);
-        }, 5000);
       }
     } catch (err) {
       console.error('Contact form error:', err);
@@ -102,13 +99,6 @@ export default function Contact({ currentLang }) {
           <div className="grid grid-2 gap-12 mt-12">
             <div>
               <h2>{t('contact.form_title', currentLang)}</h2>
-
-              {/* Success Message */}
-              {success && (
-                <div className="alert alert-success mt-4">
-                  {t('form.success', currentLang)}
-                </div>
-              )}
 
               {/* General Error Message */}
               {error && !Object.keys(fieldErrors).length && (
@@ -245,6 +235,10 @@ export default function Contact({ currentLang }) {
           </div>
         </div>
       </section>
+
+      {success && (
+        <SuccessModal currentLang={currentLang} onClose={() => setSuccess(false)} />
+      )}
     </>
   );
 }

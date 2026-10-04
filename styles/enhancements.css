@@ -563,18 +563,6 @@ img[loading='lazy'] {
   }
 }
 
-/* Even more compact on mobile, so it stays a small utility control next to
-   the logo and hamburger button rather than competing with them. Width
-   (not padding) is reduced here since each segment is now a fixed-width
-   button rather than text-hugging padding. */
-@media (max-width: 767px) {
-  .language-switch button {
-    width: 1.9rem;
-    padding: 0.3rem 0;
-    font-size: 0.65rem;
-  }
-}
-
 /* Mobile menu panel (previously had only an animation, no layout) */
 .mobile-menu {
   display: flex;

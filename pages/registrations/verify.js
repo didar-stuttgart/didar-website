@@ -18,12 +18,12 @@ export default function ManualRegistrationPage() {
   const content = {
     fa: {
       title: 'ثبت‌نام شما دریافت شد',
-      message: 'درخواست ثبت‌نام شما دریافت شده است. DIDAR در صورت نیاز از طریق ایمیل با شما تماس خواهد گرفت.',
+      message: 'درخواست ثبت‌نام شما دریافت شده است. دیدار در صورت نیاز از طریق ایمیل با شما تماس خواهد گرفت.',
       button: 'بازگشت به رویدادها',
     },
     de: {
       title: 'Vielen Dank für Ihre Anmeldung',
-      message: 'Ihre Anmeldung wurde empfangen. DIDAR wird sich gegebenenfalls per E-Mail bei Ihnen melden.',
+      message: 'Ihre Anmeldung wurde empfangen. Didar wird sich gegebenenfalls per E-Mail bei Ihnen melden.',
       button: 'Zurück zu den Veranstaltungen',
     },
   };

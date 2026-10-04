@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import { Playfair_Display, Vazirmatn, Lalezar } from 'next/font/google';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import '@/styles/globals.css';
@@ -8,6 +9,23 @@ import '@/styles/layout.css';
 import '@/styles/components.css';
 import '@/styles/rtl.css';
 import '@/styles/enhancements.css';
+
+// Fonts are self-hosted by next/font at build time (no browser request to
+// Google). The generated family names are hashed, so they are exposed as
+// root-level CSS variables below and consumed in globals.css / rtl.css.
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  display: 'swap',
+});
+const vazirmatn = Vazirmatn({
+  subsets: ['arabic', 'latin'],
+  display: 'swap',
+});
+const lalezar = Lalezar({
+  weight: '400',
+  subsets: ['arabic', 'latin'],
+  display: 'swap',
+});
 
 const defaultLang = 'fa';
 
@@ -52,11 +70,15 @@ export default function App({ Component, pageProps }) {
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Vazirmatn:wght@400;500;600;700&family=Lalezar&display=swap"
-          rel="stylesheet"
-        />
       </Head>
+
+      <style jsx global>{`
+        :root {
+          --font-playfair: ${playfair.style.fontFamily};
+          --font-vazirmatn: ${vazirmatn.style.fontFamily};
+          --font-lalezar: ${lalezar.style.fontFamily};
+        }
+      `}</style>
 
       <div className="main-layout">
         <Header currentLang={currentLang} onLanguageChange={handleLanguageChange} />

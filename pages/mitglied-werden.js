@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Head from 'next/head';
 import { useState } from 'react';
 import { t } from '@/lib/i18n';
+import SuccessModal from '@/components/SuccessModal';
 
 export default function Membership({ currentLang }) {
   const dir = currentLang === 'fa' ? 'rtl' : 'ltr';
@@ -111,10 +112,6 @@ export default function Membership({ currentLang }) {
           additionalInfo: '',
           privacyAgreed: false,
         });
-        // Clear success message after 5 seconds
-        setTimeout(() => {
-          setSuccess(false);
-        }, 5000);
       }
     } catch (err) {
       console.error('Membership form error:', err);
@@ -161,13 +158,6 @@ export default function Membership({ currentLang }) {
 
           <h2>{t('membership.form_title', currentLang)}</h2>
           <p className="mt-4">{t('membership.form_intro', currentLang)}</p>
-
-          {/* Success Message */}
-          {success && (
-            <div className="alert alert-success mt-4">
-              {t('form.success', currentLang)}
-            </div>
-          )}
 
           {/* General Error Message */}
           {error && !Object.keys(fieldErrors).length && (
@@ -282,6 +272,7 @@ export default function Membership({ currentLang }) {
                 onChange={handleChange}
                 disabled={isSubmitting}
               ></textarea>
+              <p className="form-hint">{t('form.sensitive_data_hint', currentLang)}</p>
               {fieldErrors.additionalInfo && (
                 <p className="error-text">{fieldErrors.additionalInfo}</p>
               )}
@@ -294,7 +285,7 @@ export default function Membership({ currentLang }) {
                 {t('form.privacy_membership_notice', currentLang)}
               </p>
               <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', marginTop: 'var(--space-2)' }}>
-                <Link href="/datenschutz">
+                <Link href="/datenschutz" target="_blank" rel="noopener noreferrer">
                   {t('form.privacy_policy_link', currentLang)}
                 </Link>
               </p>
@@ -327,12 +318,12 @@ export default function Membership({ currentLang }) {
               {isSubmitting ? t('common.loading', currentLang) : t('common.submit', currentLang)}
             </button>
           </form>
-
-          <p className="mt-8" style={{ fontSize: 'var(--fs-sm)', color: 'var(--color-text-muted)' }}>
-            {t('membership.response_time', currentLang)}
-          </p>
         </div>
       </section>
+
+      {success && (
+        <SuccessModal currentLang={currentLang} onClose={() => setSuccess(false)} />
+      )}
     </>
   );
 }
