@@ -688,7 +688,11 @@ export default function EventDetail({ event, currentLang }) {
                       maxLength={1000}
                       aria-invalid={Boolean(fieldErrors.comment)}
                     />
-                    <p className="form-hint">{t('form.sensitive_data_hint', currentLang)}</p>
+                    <p className="form-hint">
+                      {currentLang === 'fa'
+                        ? 'لطفاً از درج اطلاعات حساس خودداری کنید.'
+                        : 'Bitte geben Sie keine sensiblen Daten an.'}
+                    </p>
                     {fieldErrors.comment && (
                       <p className="error-text">{fieldErrors.comment}</p>
                     )}
@@ -739,9 +743,7 @@ export default function EventDetail({ event, currentLang }) {
                 />
 
                 <div className="event-hero-overlay">
-                  {registrationStatus === 'not_open' ? (
-                    <p className="event-hero-date-value">{t('event.coming_soon', currentLang)}</p>
-                  ) : (
+                  {event.event_date ? (
                     <>
                       <p className="event-hero-date-value">{formatDate(event.event_date, currentLang)}</p>
                       <p className="event-hero-date-label">{t('event.date', currentLang)}</p>
@@ -753,6 +755,8 @@ export default function EventDetail({ event, currentLang }) {
                         </>
                       )}
                     </>
+                  ) : (
+                    <p className="event-hero-date-value">{t('events.coming_soon', currentLang)}</p>
                   )}
                 </div>
               </div>
