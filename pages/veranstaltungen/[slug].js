@@ -14,6 +14,7 @@ import { createServerClient } from '@/lib/supabase';
 import { t, formatDate, formatTime } from '@/lib/i18n';
 import { filterPublicEvent } from '@/lib/events-filter';
 import { getEventImage } from '@/lib/event-image';
+import { InstagramIcon } from '@/components/SocialIcons';
 
 export async function getStaticProps({ params }) {
   try {
@@ -330,7 +331,7 @@ export default function EventDetail({ event, currentLang }) {
                 </div>
               )}
 
-              {eventLanguage && (
+              {eventLanguage && event.slug !== 'critical-thinking-workshop' && (
                 <div className="mt-6">
                   <p className="event-meta-label">{t('event.language', currentLang)}</p>
                   <p className="event-meta-value">{eventLanguage}</p>
@@ -349,11 +350,12 @@ export default function EventDetail({ event, currentLang }) {
                     </div>
 
                     <div className="course-info-item">
-                      <p className="course-info-label">🗣 {currentLang === 'fa' ? 'زبان' : 'Sprache'}</p>
+                      <p className="course-info-label">💶 {currentLang === 'fa' ? 'هزینه دوره' : 'Kursgebühr'}</p>
+                      <p className="course-info-value pricing-amount">€40</p>
                       <p className="course-info-value">
                         {currentLang === 'fa'
-                          ? 'این دوره به زبان فارسی برگزار می‌شود.'
-                          : 'Die Veranstaltung findet auf Persisch statt.'}
+                          ? 'امکان پرداخت در دو قسمت'
+                          : 'Zahlung in zwei Teilen möglich'}
                       </p>
                     </div>
 
@@ -364,7 +366,6 @@ export default function EventDetail({ event, currentLang }) {
                       </p>
                     </div>
                   </div>
-
                   {/* COURSE DESCRIPTION */}
                   <div className="mt-8">
                     <h3>{t('event.description', currentLang)}</h3>
@@ -412,8 +413,21 @@ export default function EventDetail({ event, currentLang }) {
                         className="organizer-image"
                       />
                       <div className="organizer-info">
-                        <p className="organizer-name">
-                          {currentLang === 'fa' ? 'امیر برازنده' : 'Amir Barazandeh'}
+                        <p
+                          className="organizer-name"
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                        >
+                          <span>{currentLang === 'fa' ? 'امیر برازنده' : 'Amir Barazandeh'}</span>
+                          <a
+                            href="https://www.instagram.com/amirbarazande2?stkn=MXMweXl5cW11OTEyZw=="
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="Instagram – Amir Barazandeh"
+                            title="Instagram – Amir Barazandeh"
+                            style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 1 }}
+                          >
+                            <InstagramIcon size={17} />
+                          </a>
                         </p>
                         <p className="organizer-bio">
                           {currentLang === 'fa'
@@ -423,74 +437,23 @@ export default function EventDetail({ event, currentLang }) {
                       </div>
                     </div>
                   </div>
-                  {/* PRICING SECTION */}
-                  <div className="mt-8">
-                    <h3>{currentLang === 'fa' ? 'هزینه دوره' : 'Kursgebühr'}</h3>
-                    <div className="pricing-grid">
-                      <div className="pricing-option">
-                        <p className="pricing-category">
-                          {currentLang === 'fa'
-                            ? 'دانشجو / کارآموز / پناهنده'
-                            : 'Studierende / Auszubildende / Geflüchtete'}
-                        </p>
-                        <p className="pricing-amount">€45</p>
-                      </div>
-                      <div className="pricing-option">
-                        <p className="pricing-category">
-                          {currentLang === 'fa' ? 'سایر شرکت‌کنندگان' : 'Andere Teilnehmer'}
-                        </p>
-                        <p className="pricing-amount">€60</p>
-                      </div>
-                    </div>
-                  </div>
-
                   {/* REGISTRATION INFORMATION SECTION */}
                   <div className="mt-8">
                     <h3>{currentLang === 'fa' ? 'ثبت‌نام و پرداخت' : 'Anmeldung und Zahlung'}</h3>
-                    
+
                     <div className="registration-info-block">
-                      <div className="registration-status">
-                        <p className="registration-status-label">
-                          {currentLang === 'fa' ? 'وضعیت فعلی' : 'Aktueller Status'}
-                        </p>
-                        <p className="registration-status-value" style={{ color: 'var(--color-error)' }}>
-                          {currentLang === 'fa' ? '❌ بسته' : '❌ GESCHLOSSEN'}
-                        </p>
-                      </div>
-
-                      <div className="registration-info-item">
-                        <p className="registration-info-label">
-                          {currentLang === 'fa' ? 'باز شدن ثبت‌نام' : 'Anmeldung öffnet'}
-                        </p>
-                        <p className="registration-info-value">
-                          {currentLang === 'fa' ? '۱۵ اکتبر ۲۰۲۶' : '15. Oktober 2026'}
-                        </p>
-                      </div>
-
-                      <div className="registration-info-item">
-                        <p className="registration-info-label">
-                          {currentLang === 'fa' ? 'اولویت' : 'Priorität'}
-                        </p>
-                        <p className="registration-info-value">
-                          {currentLang === 'fa'
-                            ? 'افرادی که پرداخت خود را زودتر انجام دهند، در اولویت هستند.'
-                            : 'Personen, die ihre Zahlung früher leisten, haben Priorität.'}
-                        </p>
-                      </div>
-
-                      <div className="registration-info-item">
-                        <p className="registration-info-label">
-                          {currentLang === 'fa' ? 'پرداخت اقساطی' : 'Ratenzahlung'}
-                        </p>
-                        <p className="registration-info-value">
-                          {currentLang === 'fa'
-                            ? 'پرداخت به‌صورت اقساطی نیز امکان‌پذیر است. برای پرداخت اقساطی می‌توانند با دیدار تماس بگیرند.'
-                            : 'Ratenzahlung ist ebenfalls möglich. Interessierte können Didar dafür kontaktieren.'}
-                        </p>
-                      </div>
+                      <p className="registration-info-value">
+                        {currentLang === 'fa'
+                          ? 'جلسه اول رایگان است و می‌توانید برای آشنایی با دوره در جلسه اول شرکت کنید. اگر ظرفیت ۱۰ نفره جلسه اول تکمیل نشده باشد، می‌توانید پس از آن برای ادامه دوره ثبت‌نام کنید و هزینه دوره را پرداخت کنید.'
+                          : 'Die erste Sitzung ist kostenlos und bietet die Möglichkeit, den Kurs kennenzulernen. Wenn die Kapazität von 10 Personen in der ersten Sitzung nicht ausgeschöpft ist, können Sie sich anschließend für die weitere Teilnahme anmelden und die Kursgebühr bezahlen.'}
+                      </p>
+                      <p className="registration-info-value" style={{ marginTop: 'var(--space-4)' }}>
+                        {currentLang === 'fa'
+                          ? 'پرداخت هزینه دوره به‌صورت نقدی یا از طریق PayPal امکان‌پذیر است.'
+                          : 'Die Zahlung ist bar oder per PayPal möglich.'}
+                      </p>
                     </div>
-                  </div>
-                </>
+                  </div>                </>
 
               )}
 
