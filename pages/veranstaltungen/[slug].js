@@ -444,13 +444,13 @@ export default function EventDetail({ event, currentLang }) {
                     <div className="registration-info-block">
                       <p className="registration-info-value">
                         {currentLang === 'fa'
-                          ? 'جلسه اول رایگان است و می‌توانید برای آشنایی با دوره در جلسه اول شرکت کنید. اگر ظرفیت ۱۰ نفره جلسه اول تکمیل نشده باشد، می‌توانید پس از آن برای ادامه دوره ثبت‌نام کنید و هزینه دوره را پرداخت کنید.'
-                          : 'Die erste Sitzung ist kostenlos und bietet die Möglichkeit, den Kurs kennenzulernen. Wenn die Kapazität von 10 Personen in der ersten Sitzung nicht ausgeschöpft ist, können Sie sich anschließend für die weitere Teilnahme anmelden und die Kursgebühr bezahlen.'}
+                          ? 'با ثبت‌نام در دوره، می‌توانید در جلسه اول شرکت کنید و با محتوا و فضای دوره آشنا شوید. اگر پس از جلسه اول تصمیم گرفتید که دوره برای شما مناسب نیست، می‌توانید از ادامه شرکت در دوره انصراف دهید و هزینه پرداخت‌شده را پس بگیرید.'
+                          : 'Mit Ihrer Anmeldung können Sie an der ersten Sitzung teilnehmen und die Inhalte sowie die Atmosphäre des Kurses kennenlernen. Wenn Sie nach der ersten Sitzung entscheiden, dass der Kurs nicht zu Ihnen passt, können Sie von der weiteren Teilnahme zurücktreten und die bereits gezahlte Kursgebühr zurückerhalten.'}
                       </p>
                       <p className="registration-info-value" style={{ marginTop: 'var(--space-4)' }}>
                         {currentLang === 'fa'
-                          ? 'پرداخت هزینه دوره به‌صورت نقدی یا از طریق PayPal امکان‌پذیر است.'
-                          : 'Die Zahlung ist bar oder per PayPal möglich.'}
+                          ? 'پس از تکمیل فرم ثبت‌نام، اطلاعات مربوط به پرداخت هزینه دوره به آدرس ایمیلی که هنگام ثبت‌نام وارد کرده‌اید ارسال می‌شود. پرداخت هزینه از طریق نقدی یا PayPal امکان‌پذیر است.'
+                          : 'Nach dem Absenden des Anmeldeformulars werden die Zahlungsinformationen an die E-Mail-Adresse gesendet, die Sie bei der Anmeldung angegeben haben. Die Kursgebühr kann bar oder per PayPal bezahlt werden.'}
                       </p>
                     </div>
                   </div>                </>
