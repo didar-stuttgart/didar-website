@@ -34,13 +34,19 @@ Shows three numbers from `GET /api/admin/stats`: upcoming published events (date
 - The cancellation token hash is removed from every admin response.
 - Workflow: read the notification email → open the list → contact the person by email/Telegram/phone from DIDAR's official accounts → set `contacted` → later `confirmed` or `declined`. Confirmation of attendance is always your decision; the automatic receipt does not confirm anything.
 
+**Filter by event:** the dropdown above the list (default *All events*) is filled from the events table and filters on the server (`GET /api/admin/registrations?eventId=<id>`); the sort dropdown works within the filtered list. The CSV export always contains all registrations.
+
+**Deleting:** every registration, membership application and contact message has a *Delete* button. A dialog shows who/what will be deleted; confirming permanently removes only that one row (`DELETE /api/admin/<registrations|memberships|contact>/<id>`). The row disappears from the list only after the server confirms. There is no undo; the CSV export is a way to keep a copy first.
+
+**Language:** `/admin/...` is Persian (RTL), `/de/admin/...` is German (LTR); the FA/Deutsch switch in each page header changes it. The events, content and settings pages are still Persian only.
+
 ## 5. Memberships (`/admin/memberships`)
 
 Same pattern: list, status dropdown (`new`, `contacted`, `accepted`, `declined`), displayed notes, CSV export (`/api/admin/memberships/export`). Applications are unique per email. Membership is free of charge according to the privacy text; terms, benefits and decisions are handled manually by the team.
 
 ## 6. Contact messages
 
-There is **no admin page**. Messages arrive as `[DIDAR] New Contact Message` emails and are stored in `contact_submissions` (view them in Supabase → Table Editor). The `read` flag is not used by any code.
+`/admin/contact` lists the messages stored in `contact_submissions` (name, email, message, date) and lets you delete a single message. New messages still also arrive as `[DIDAR] New Contact Message` emails. There is no reply or status feature.
 
 ## 7. Content (`/admin/content`)
 
@@ -65,4 +71,4 @@ Edits `organization_settings` rows (including a managers list). **No public page
 | Login succeeds but pages redirect back | session row not created (check `SUPABASE_SECRET_KEY`, `admin_sessions`), cookie blocked |
 | Changes not visible publicly | ISR delay; CMS key not one of the three used |
 | Event shows "open" though set to "not open" | the auto-open behaviour described above |
-| Can't find a contact message | no admin UI; use Supabase |
+| Can't find a contact message | `/admin/contact`; it may have been deleted |

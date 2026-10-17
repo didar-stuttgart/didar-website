@@ -3,9 +3,13 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import styles from '../../styles/admin.module.css';
+import { adminT, adminDir, getAdminLang } from '../../lib/admin-i18n';
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const lang = getAdminLang(router);
+  const dir = adminDir(lang);
+  const t = (key) => adminT(lang, key);
   const [sessionValid, setSessionValid] = useState(false);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -48,23 +52,27 @@ export default function AdminDashboard() {
   };
 
   if (!sessionValid || loading) {
-    return <div className={styles.loading}>درحال بارگذاری...</div>;
+    return <div className={styles.loading} dir={dir}>{t('loading')}</div>;
   }
 
   return (
     <>
       <Head>
-        <title>پنل مدیریت — دیدار</title>
+        <title>{t('dash_title')}</title>
         <meta name="robots" content="noindex, nofollow" />
       </Head>
 
-      <div className={styles.adminLayout}>
+      <div className={styles.adminLayout} dir={dir} lang={lang}>
         <header className={styles.adminHeader}>
           <div>
-            <h1>پنل مدیریت</h1>
+            <h1>{t('dash_heading')}</h1>
           </div>
+          <nav className={styles.langSwitch} aria-label="Language">
+            <Link href={router.asPath} locale="fa" aria-current={lang === 'fa' ? 'true' : undefined}>فارسی</Link>
+            <Link href={router.asPath} locale="de" aria-current={lang === 'de' ? 'true' : undefined}>Deutsch</Link>
+          </nav>
           <button onClick={handleLogout} className={styles.logoutButton}>
-            خروج
+            {t('dash_logout')}
           </button>
         </header>
 
@@ -73,15 +81,15 @@ export default function AdminDashboard() {
             <div className={styles.statsSection}>
               <div className={styles.statCard}>
                 <div className={styles.statNumber}>{stats.upcomingEvents || 0}</div>
-                <div className={styles.statLabel}>رویدادهای آینده</div>
+                <div className={styles.statLabel}>{t('dash_stat_events')}</div>
               </div>
               <div className={styles.statCard}>
                 <div className={styles.statNumber}>{stats.newRegistrations || 0}</div>
-                <div className={styles.statLabel}>ثبت‌نام جدید این هفته</div>
+                <div className={styles.statLabel}>{t('dash_stat_regs')}</div>
               </div>
               <div className={styles.statCard}>
                 <div className={styles.statNumber}>{stats.newMemberships || 0}</div>
-                <div className={styles.statLabel}>درخواست عضویت جدید</div>
+                <div className={styles.statLabel}>{t('dash_stat_members')}</div>
               </div>
             </div>
           )}
@@ -89,32 +97,38 @@ export default function AdminDashboard() {
           <div className={styles.navigationSection}>
             <Link href="/admin/events" className={styles.navCard}>
               <div className={styles.navIcon}>📅</div>
-              <h3>رویدادها</h3>
-              <p>ایجاد و ویرایش رویدادها</p>
+              <h3>{t('dash_events')}</h3>
+              <p>{t('dash_events_desc')}</p>
             </Link>
 
             <Link href="/admin/registrations" className={styles.navCard}>
               <div className={styles.navIcon}>👥</div>
-              <h3>ثبت‌نام‌ها</h3>
-              <p>مدیریت ثبت‌نام‌های رویدادها</p>
+              <h3>{t('dash_regs')}</h3>
+              <p>{t('dash_regs_desc')}</p>
             </Link>
 
             <Link href="/admin/memberships" className={styles.navCard}>
               <div className={styles.navIcon}>🎫</div>
-              <h3>عضویت</h3>
-              <p>مدیریت درخواست‌های عضویت</p>
+              <h3>{t('dash_members')}</h3>
+              <p>{t('dash_members_desc')}</p>
+            </Link>
+
+            <Link href="/admin/contact" className={styles.navCard}>
+              <div className={styles.navIcon}>✉️</div>
+              <h3>{t('dash_contact')}</h3>
+              <p>{t('dash_contact_desc')}</p>
             </Link>
 
             <Link href="/admin/content" className={styles.navCard}>
               <div className={styles.navIcon}>✏️</div>
-              <h3>محتوا</h3>
-              <p>ویرایش متن‌های صفحات</p>
+              <h3>{t('dash_content')}</h3>
+              <p>{t('dash_content_desc')}</p>
             </Link>
 
             <Link href="/admin/settings" className={styles.navCard}>
               <div className={styles.navIcon}>⚙️</div>
-              <h3>تنظیمات</h3>
-              <p>اطلاعات تماس و شبکه‌های اجتماعی</p>
+              <h3>{t('dash_settings')}</h3>
+              <p>{t('dash_settings_desc')}</p>
             </Link>
           </div>
         </div>

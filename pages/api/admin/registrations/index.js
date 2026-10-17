@@ -1,5 +1,6 @@
 import { requireAdminSession } from '../../../../lib/api-middleware.js';
 import { createAdminClient } from '../../../../lib/supabase.js';
+import { parseRecordId } from '../../../../lib/admin-records.js';
 
 export default async function handler(req, res) {
   if (!(await requireAdminSession(req, res))) {
@@ -10,12 +11,26 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Optional server-side filter: ?eventId=<events.id>. Absent or empty = all events.
+  const rawEventId = Array.isArray(req.query.eventId) ? req.query.eventId[0] : req.query.eventId;
+  let eventId = null;
+  if (rawEventId !== undefined && rawEventId !== '') {
+    eventId = parseRecordId(rawEventId);
+    if (!eventId) {
+      return res.status(400).json({ error: 'Invalid event id' });
+    }
+  }
+
   try {
     const adminClient = createAdminClient();
-    const { data: registrations, error } = await adminClient
+    let query = adminClient
       .from('event_registrations')
       .select('*')
       .order('created_at', { ascending: false });
+    if (eventId) {
+      query = query.eq('event_id', eventId);
+    }
+    const { data: registrations, error } = await query;
 
     if (error) throw error;
 
@@ -48,6 +63,7 @@ export default async function handler(req, res) {
       return {
         ...regWithoutTokenHash,
         event_title: event ? (event.title_fa || event.title_de) : 'Unknown Event',
+        event_title_de: event ? (event.title_de || event.title_fa) : 'Unknown Event',
       };
     });
 

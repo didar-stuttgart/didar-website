@@ -100,10 +100,11 @@ Admin (all require `requireAdminSession`, else `401 {error:'Unauthorized'}`):
 | `/api/admin/events` | GET, POST | `events` |
 | `/api/admin/events/[slug]` | GET, PATCH, DELETE | `events` (DELETE only sets `status='archived'`) |
 | `/api/admin/fix-event-status` | POST | sets an event's `registration_status` to `open` |
-| `/api/admin/registrations` | GET | `event_registrations` + event titles |
-| `/api/admin/registrations/[id]` | PATCH | `status`, `admin_notes` |
+| `/api/admin/registrations` | GET | `event_registrations` + event titles; optional `?eventId=<id>` filter (positive integer, else 400) |
+| `/api/admin/registrations/[id]` | PATCH / DELETE | `status`, `admin_notes` / delete exactly one row by primary key (`lib/admin-records.js`) |
 | `/api/admin/registrations/export` | GET | CSV download |
-| `/api/admin/memberships`, `/[id]`, `/export` | GET / PATCH / GET | `membership_applications` |
+| `/api/admin/memberships`, `/[id]`, `/export` | GET / PATCH + DELETE / GET | `membership_applications` |
+| `/api/admin/contact`, `/contact/[id]` | GET / DELETE | `contact_submissions` (list; delete one row) |
 | `/api/admin/content/cms` | GET, POST | `cms_content` (updates `content_fa`/`content_de`) |
 | `/api/admin/content` | GET, POST | **legacy**: queries a table named `content` that no migration creates; not used by any admin page |
 | `/api/admin/settings/organization` | GET, POST | `organization_settings` |
