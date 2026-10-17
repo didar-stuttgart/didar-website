@@ -142,6 +142,11 @@ export default function AdminRegistrations() {
                       <div className={styles.regMeta}>
                         تاریخ ثبت‌نام: {new Date(reg.created_at).toLocaleDateString('fa-IR', { calendar: 'gregory' })}
                       </div>
+                      {reg.cancelled_at && (
+                        <div className={styles.regMeta}>
+                          لغو شده در: {new Date(reg.cancelled_at).toLocaleDateString('fa-IR', { calendar: 'gregory' })}
+                        </div>
+                      )}
                     </div>
                     <div className={styles.statusSelect}>
                       <select
@@ -152,6 +157,7 @@ export default function AdminRegistrations() {
                         <option value="contacted">تماس گرفته شده</option>
                         <option value="confirmed">تأیید شده</option>
                         <option value="declined">رد شده</option>
+                        <option value="cancelled">لغو شده</option>
                       </select>
                     </div>
                   </div>

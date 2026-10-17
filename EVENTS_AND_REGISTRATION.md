@@ -4,7 +4,7 @@ This document describes the event lifecycle and manual event registration workfl
 
 ## Overview
 
-Events are created and managed by admins. Users can register for events through a public form. The entire workflow is manual: no automated emails, no verification links, no waitlists. Admins review registrations and contact users directly.
+Events are created and managed by admins. Users can register for events through a public form. Registration review is manual: no email-verification links, no automatic confirmation of attendance, no automatic capacity enforcement, no waitlists. After a registration is saved, the registrant automatically receives an acknowledgment (receipt) email, and the admin automatically receives a notification email. The receipt does **not** confirm attendance. Admins review registrations and contact users directly. Registrants can cancel through a secure link in the receipt email (see "Self-Cancellation").
 
 ---
 
@@ -56,9 +56,10 @@ Events are created and managed by admins. Users can register for events through 
 3. User clicks submit
 4. Form data POST to `/api/registrations/submit`
 5. Backend validates, saves to database with `status='new'`
-6. **No automated email sent**
-7. User sees confirmation message
-8. Registration appears in admin dashboard
+6. Admin notification email is sent (non-blocking)
+7. A receipt (acknowledgment) email is sent to the registrant (non-blocking). It says the registration was *received*, not that attendance is confirmed
+8. User sees success message
+9. Registration appears in admin dashboard
 
 ### 5. Admin Review
 
@@ -90,6 +91,7 @@ Events are created and managed by admins. Users can register for events through 
 - "contacted" — Admin has reached out
 - "confirmed" — User confirmed attendance
 - "declined" — User declined or no response
+- "cancelled" — Set automatically when the registrant cancels via the link in the receipt email (not set manually)
 
 ### 7. Event Occurs
 
@@ -155,6 +157,8 @@ new
 contacted
   ├─→ confirmed (user confirmed attendance)
   └─→ declined (user declined or no response)
+
+(any status) ─→ cancelled   (registrant used the cancellation link; set by the system)
 ```
 
 ### Status Meanings
@@ -163,6 +167,14 @@ contacted
 - **contacted** — Admin has reached out to user
 - **confirmed** — User confirmed attendance
 - **declined** — User declined or no longer attending
+- **cancelled** — Registrant cancelled via the self-cancellation link. The row is kept (never deleted) with `cancelled_at` set. The `(event_id, email)` unique constraint still applies, so the same email cannot register again for that event.
+
+### Receipt Email and Self-Cancellation
+
+- **Receipt email** (to the registrant, in the registration language FA/DE): states the registration was received, that DIDAR may contact them by email or social networks, asks them to check Spam/Junk, and contains the cancellation link. It is an acknowledgment only; it does not confirm attendance or acceptance. Inbox placement is not guaranteed.
+- **Admin notification** (to `DIDAR_NOTIFICATION_EMAIL`): unchanged, plus a cancellation notification (`[DIDAR] Event Registration Cancelled — <event>`) when someone cancels.
+- **Cancellation**: the link opens `/registrations/cancel?token=...`, which only shows a confirmation button; opening it (GET) never changes data. The button sends a POST to `/api/registrations/cancel`. Only a SHA-256 hash of the random token is stored; the raw token exists only in the email. Cancelling twice is harmless and sends no second admin email.
+- Email failures never roll back a registration or a cancellation.
 
 ---
 
@@ -242,7 +254,7 @@ No verification needed:
 
 - View all registrations for all events
 - Filter by event
-- Filter by status (new, contacted, confirmed, declined)
+- Filter by status (new, contacted, confirmed, declined, cancelled)
 - Sort by submission date, name
 - Search by name or email
 

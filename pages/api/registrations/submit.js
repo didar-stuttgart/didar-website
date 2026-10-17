@@ -7,10 +7,15 @@
  * Manual registration flow:
  * - User fills out and submits form
  * - Registration saved immediately with status='new' via SECURITY DEFINER RPC
- * - No verification email sent
- * - No verification token generated
+ * - No verification email sent, no email verification token
+ * - A random self-cancellation token is generated; only its SHA-256 hash is
+ *   saved (in the same insert as the registration). The raw token exists only
+ *   in the cancellation link of the receipt email.
  * - User sees confirmation message that request will be reviewed manually
  * - Admin receives notification email with all submitted details
+ * - Registrant receives a RECEIPT email (acknowledgment only, not a
+ *   confirmation of attendance) with a link to cancel the registration
+ * - Email failures never roll back or fail the saved registration
  * - Admin reviews in admin panel and manually contacts participant
  */
 
@@ -18,6 +23,8 @@ import { createServerClient } from '@/lib/supabase';
 import { validateEventRegistration } from '@/lib/validation';
 import { withRateLimit } from '@/lib/middleware';
 import { sendRegistrationNotification } from '@/lib/admin-email';
+import { sendRegistrationReceipt } from '@/lib/registration-receipt-email';
+import { generateCancellationToken } from '@/lib/registration-cancellation';
 
 async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -70,6 +77,10 @@ async function handler(req, res) {
       });
     }
 
+    // Self-cancellation token: the raw token is only used for the receipt
+    // email link; only its hash is stored (same insert as the registration).
+    const { token: cancellationToken, tokenHash: cancellationTokenHash } = generateCancellationToken();
+
     // Call SECURITY DEFINER RPC to insert registration with status='new'
     // This bypasses RLS while maintaining security
     const { data: registrationId, error: insertError } = await supabase
@@ -81,6 +92,7 @@ async function handler(req, res) {
         phone_param: phone?.trim() || null,
         telegram_id_param: telegramId?.trim() || null,
         comment_param: comment?.trim() || null,
+        cancellation_token_hash_param: cancellationTokenHash,
       });
 
     if (insertError) {
@@ -124,6 +136,19 @@ async function handler(req, res) {
       telegramId: telegramId?.trim() || null,
       comment: comment?.trim() || null,
       timestamp: new Date().toISOString(),
+    });
+
+    // Receipt email to the registrant (acknowledgment only, never a
+    // confirmation of attendance). Awaited for the same serverless reason as
+    // above; sendRegistrationReceipt() never throws, so a failure here can
+    // neither fail this request nor undo the saved registration.
+    await sendRegistrationReceipt({
+      registrationId,
+      eventTitle,
+      firstName: firstName.trim(),
+      email: email.trim().toLowerCase(),
+      language,
+      cancellationToken,
     });
 
     // Manual model success message - DIDAR will contact manually, not automatic confirmation

@@ -23,7 +23,10 @@ export default async function handler(req, res) {
       .select();
 
     if (error) throw error;
-    return res.status(200).json({ registration: data[0] });
+    // Never return the cancellation token hash to the browser
+    const registration = { ...data[0] };
+    delete registration.cancellation_token_hash;
+    return res.status(200).json({ registration });
   } catch (err) {
     console.error('Update registration error:', err);
     return res.status(500).json({ error: 'Failed to update registration' });

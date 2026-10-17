@@ -93,7 +93,9 @@ email TEXT NOT NULL
 phone TEXT
 telegram_id TEXT
 comment TEXT
-status TEXT DEFAULT 'new' CHECK (status IN ('new', 'contacted', 'confirmed', 'declined'))
+status TEXT DEFAULT 'new' CHECK (status IN ('new', 'contacted', 'confirmed', 'declined', 'cancelled'))
+cancellation_token_hash TEXT   -- SHA-256 hex of the emailed cancel token (unique when set); never the raw token
+cancelled_at TIMESTAMPTZ       -- set when the registrant self-cancels (migration_012)
 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 ```

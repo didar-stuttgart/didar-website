@@ -79,8 +79,12 @@ CREATE TABLE IF NOT EXISTS event_registrations (
   comment TEXT,
 
   -- Admin tracking
-  status TEXT DEFAULT 'new' CHECK (status IN ('new', 'contacted', 'confirmed', 'declined')),
+  status TEXT DEFAULT 'new' CHECK (status IN ('new', 'contacted', 'confirmed', 'declined', 'cancelled')),
   admin_notes TEXT,
+
+  -- Self-cancellation (migration 012): only the SHA-256 hash of the token is stored
+  cancellation_token_hash TEXT,
+  cancelled_at TIMESTAMP WITH TIME ZONE,
 
   CONSTRAINT event_registrations_email_unique UNIQUE (event_id, email)
 );

@@ -42,8 +42,11 @@ export default async function handler(req, res) {
 
     const enriched = (registrations || []).map((reg) => {
       const event = eventsById[reg.event_id];
+      // The cancellation token hash is a credential-derived value; the admin UI never needs it
+      // eslint-disable-next-line no-unused-vars
+      const { cancellation_token_hash, ...regWithoutTokenHash } = reg;
       return {
-        ...reg,
+        ...regWithoutTokenHash,
         event_title: event ? (event.title_fa || event.title_de) : 'Unknown Event',
       };
     });

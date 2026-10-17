@@ -87,7 +87,8 @@ This commit represents the most recent stable, production-ready state of the cod
   - Status workflow (new → contacted → confirmed/declined)
   - CSV export of registrations
   - Duplicate prevention (one registration per user per event)
-  - Manual review model (no automated emails)
+  - Manual review model (admin notification email + acknowledgment receipt email to the registrant; no automatic attendance confirmation)
+  - Self-cancellation via secure emailed link (migration_012; `cancelled` status)
 
 ### Phase 7: Membership Management
 - **Status:** ✅ Complete
@@ -163,7 +164,6 @@ This commit represents the most recent stable, production-ready state of the cod
 **Future Feature Possibilities (not yet implemented):**
 - Automated email notifications for admins when new registrations arrive
 - Two-factor authentication for admin accounts
-- User registration confirmation emails (currently disabled)
 - Advanced event analytics and reporting
 - Bulk import/export for memberships
 - Recurring events support
@@ -400,9 +400,11 @@ Current testing approach: Manual QA. Future enhancements could include:
 Admin notification emails (via Resend, `lib/admin-email.js`) are already implemented
 for all three public forms (Event Registration, Membership, Contact) and verified
 end-to-end in Phase 5 QA. See FORMS.md → "Admin Notification Emails" for behavior
-details. No further migration work is needed here. (Note: these are admin-only
-notifications; there is still no automated confirmation email sent back to the
-person who submitted a form — that remains a manual admin task by design.)
+details. No further migration work is needed here. (Note: admin notifications
+cover all three forms. Event registrations additionally send the registrant an
+acknowledgment/receipt email with a self-cancellation link (migration_012 must be applied
+BEFORE deploying that code). It is not an attendance confirmation; membership and contact
+submitters receive no email, and review remains manual.)
 
 ### Adding User Authentication
 

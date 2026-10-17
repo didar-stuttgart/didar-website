@@ -10,7 +10,7 @@ The website has three public forms for user submissions:
 2. **Membership Application** — Users apply to become members
 3. **Contact Form** — Visitors send messages to DIDAR
 
-All forms are server-side validated, rate-limited to prevent spam, and saved to the database. No automated emails are sent; the admin reviews submissions manually and responds.
+All forms are server-side validated, rate-limited to prevent spam, and saved to the database. Admins review submissions manually and respond. Every submission triggers an admin notification email; additionally, **event registrations** send the registrant an acknowledgment (receipt) email that does not confirm attendance. Membership and contact submissions send no email to the submitter.
 
 ---
 
@@ -84,11 +84,13 @@ All forms are server-side validated, rate-limited to prevent spam, and saved to 
 4. Frontend sends POST to `/api/registrations/submit`
 5. Backend validates all fields (server-side validation is authoritative)
 6. If valid: Data saved to `event_registrations` table with `status='new'`
-7. User sees confirmation message
+7. Backend stores only a SHA-256 hash of a random cancellation token with the registration (atomic with the insert)
 8. **Admin notification email sent automatically** (non-blocking; see "Admin Notification Emails" below) — registration is saved to the database regardless of whether the email succeeds
-9. Admin reviews submission in `/admin/registrations` dashboard
-10. Admin updates status manually (new → contacted → confirmed/declined)
-11. Admin contacts user via email/Telegram/phone using official DIDAR account
+9. **Receipt email sent to the registrant** (non-blocking, FA or DE per registration language): "registration received", not a confirmation of attendance; includes a Spam/Junk hint and the cancellation link
+10. User sees success message
+11. Admin reviews submission in `/admin/registrations` dashboard
+12. Admin updates status manually (new → contacted → confirmed/declined). Registrants may cancel via the emailed link, which sets status `cancelled` and notifies the admin
+13. Admin contacts user via email/Telegram/phone using official DIDAR account
 
 ### Database Storage
 
@@ -103,7 +105,7 @@ All forms are server-side validated, rate-limited to prevent spam, and saved to 
 - phone (text, nullable)
 - telegram_id (text, nullable)
 - comment (text, nullable)
-- status (enum: 'new', 'contacted', 'confirmed', 'declined')
+- status (enum: 'new', 'contacted', 'confirmed', 'declined', 'cancelled')
 - created_at (timestamp)
 - updated_at (timestamp)
 
@@ -324,9 +326,14 @@ after a successful database insert.
 - Recipient: the DIDAR admin inbox (configured via environment variable, not a form field).
 - Each email includes: form type identification, all submitted fields, the new row's
   database ID (`submissionId`/`registrationId`), and an ISO 8601 timestamp.
-- No automated confirmation/reply email is sent to the person who submitted the form —
-  the notification email goes only to the DIDAR admin. The admin then contacts the
-  person manually, as described in each form's workflow above.
+- Membership and contact forms send no email to the submitter — the notification email
+  goes only to the DIDAR admin, who then contacts the person manually.
+- Event registrations additionally send an acknowledgment (receipt) email to the registrant
+  (`lib/registration-receipt-email.js`, same Resend sender, idempotency key
+  `registration-receipt-<id>`). It does not confirm attendance. Cancelling via the link in
+  that email sends the admin an `[DIDAR] Event Registration Cancelled — <event>` email
+  (idempotency key `registration-cancellation-<id>`). Neither email contains the raw token
+  in admin mail, logs or the database; email failure never fails the registration.
 - A rejected duplicate submission (HTTP 409) does **not** trigger a notification email,
   since no new database row is created.
 - A submission rejected by validation (HTTP 400) does **not** trigger a notification
@@ -468,10 +475,10 @@ Users see privacy notices on each form explaining:
 
 ### Manual Contact
 
-No automated emails mean:
-- No need for email service providers (Brevo, SendGrid, etc.)
+Review stays manual:
+- No automatic attendance confirmation, email verification or waitlist
 - Admin maintains direct, personal contact with users
-- Simpler infrastructure and lower operational complexity
+- Only Resend is used (admin notifications and the event-registration receipt); no second email provider
 
 ---
 

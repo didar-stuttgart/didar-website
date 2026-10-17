@@ -158,7 +158,7 @@ Shows all event registrations in a list.
 
 **Filtering:**
 - Filter by event (dropdown)
-- Filter by status (new, contacted, confirmed, declined)
+- Filter by status (new, contacted, confirmed, declined, cancelled)
 
 **Sorting:**
 - Click column header to sort by that column
@@ -181,7 +181,7 @@ Shows all event registrations in a list.
 
 **From registration detail page:**
 
-1. Click "Status" dropdown (shows: new, contacted, confirmed, declined)
+1. Click "Status" dropdown (shows: new, contacted, confirmed, declined, cancelled)
 2. Select new status
 3. Click "Save"
 4. Status updates immediately
@@ -191,6 +191,9 @@ Shows all event registrations in a list.
 - **contacted** — Admin has reached out to user
 - **confirmed** — User confirmed attendance
 - **declined** — User declined or will not attend
+- **cancelled** — User cancelled via the link in their receipt email (you also receive a "[DIDAR] Event Registration Cancelled" email). The registration stays in the list.
+
+Note: registrants automatically get a receipt email after registering. It only says the registration was received; it does not confirm attendance — that remains your manual decision.
 
 ### Contacting Users
 
