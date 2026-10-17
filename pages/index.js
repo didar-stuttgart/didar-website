@@ -47,9 +47,11 @@ export async function getStaticProps() {
     const { recurring, upcoming, past } = categorizeEvents(events || []);
 
     // Show up to 6 events per category for homepage carousel
-    const recurringEvents = recurring.slice(0, 6);
-    const upcomingEvents = upcoming.slice(0, 6);
-    const pastEvents = past.slice(0, 6);
+    // Strip admin-only data before it is embedded in the public page payload
+    const stripAdminFields = ({ admin_notes, ...publicFields }) => publicFields; // eslint-disable-line no-unused-vars
+    const recurringEvents = recurring.slice(0, 6).map(stripAdminFields);
+    const upcomingEvents = upcoming.slice(0, 6).map(stripAdminFields);
+    const pastEvents = past.slice(0, 6).map(stripAdminFields);
 
     // Fetch CMS content for hero section
     const heroTitle_fa = await getCMSContent(
@@ -136,6 +138,10 @@ export default function Home({
   };
 
   const getHeroSubtitle = () => {
+    if (currentLang === 'de') {
+      // German identity line: translation of the Persian subtitle
+      return t('home.subtitle', 'de');
+    }
     if (!heroSubtitle_fa || heroSubtitle_fa.startsWith('[')) {
       // Fallback to original hardcoded value
       return 'انجمن فرهنگی هنری اشتوتگارت';
@@ -179,9 +185,7 @@ export default function Home({
           <h1 className="hero-title">
             {getHeroTitle()}
           </h1>
-          {currentLang === 'fa' && (
-            <p className="hero-subtitle">{getHeroSubtitle()}</p>
-          )}
+          <p className="hero-subtitle">{getHeroSubtitle()}</p>
           <div className="hero-cta">
             <Link href="/veranstaltungen" className="btn btn-primary">
               {t('home.cta_primary', currentLang)}

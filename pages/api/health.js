@@ -34,7 +34,7 @@ export default async function handler(req, res) {
   } catch (error) {
     return res.status(503).json({
       status: 'unhealthy',
-      error: error.message,
+      error: 'Database connection failed',
     });
   }
 }

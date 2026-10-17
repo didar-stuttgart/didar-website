@@ -42,7 +42,7 @@ export default async function handler(req, res) {
 
     if (updateError) {
       console.error('Update error:', updateError);
-      return res.status(500).json({ error: 'Failed to update event', details: updateError });
+      return res.status(500).json({ error: 'Failed to update event' });
     }
 
     return res.status(200).json({
@@ -53,7 +53,7 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error('Error in fix-event-status:', err);
-    return res.status(500).json({ error: 'Internal server error', details: err.message });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
 

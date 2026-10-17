@@ -7,7 +7,6 @@ export default async function handler(req, res) {
 
   const cookieHeader = req.headers.cookie || '';
   console.log('\n📨 VERIFY REQUEST');
-  console.log('📦 Raw cookie header:', cookieHeader ? cookieHeader.substring(0, 100) + '...' : '(empty)');
   
   const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
     const [key, value] = cookie.trim().split('=');
@@ -17,13 +16,8 @@ export default async function handler(req, res) {
     return acc;
   }, {});
 
-  console.log('🔍 Parsed cookie keys:', Object.keys(cookies).join(', '));
   
   const sessionToken = cookies?.session_token;
-  console.log('🔑 session_token present:', !!sessionToken);
-  if (sessionToken) {
-    console.log('   Token preview:', sessionToken.substring(0, 16) + '...');
-  }
 
   if (!sessionToken) {
     console.log('❌ VERIFY FAILED: No session_token cookie\n');

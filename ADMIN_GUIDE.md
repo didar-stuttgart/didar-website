@@ -1,448 +1,68 @@
 # ADMIN GUIDE
 
-This guide walks you through the DIDAR admin dashboard features and how to manage events, registrations, memberships, and website content.
+What the admin panel actually does today (checked against `pages/admin/*` and `pages/api/admin/*` on 2026-10-17), including its limits. The panel UI is in Persian. For the underlying APIs see [ARCHITECTURE.md](ARCHITECTURE.md#5-api-routes); for the review workflow see [EVENTS_AND_REGISTRATION.md](EVENTS_AND_REGISTRATION.md).
 
----
+## 1. Signing in
 
-## Accessing the Admin Dashboard
+- URL: `/admin/login` (production: `https://www.didar-stuttgart.com/admin/login`). There is a **single shared admin password**; no usernames, no password-reset or change feature.
+- The password is verified against the `ADMIN_PASSWORD_HASH` environment variable (format `salt:hash`, PBKDF2-SHA256, 10,000 iterations, produced by `node scripts/setup-admin.js`). Changing the password means generating a new hash and updating the environment variable, then redeploying/restarting.
+- A successful login stores a hashed session token in the `admin_sessions` table and sets the cookie `session_token` (HttpOnly, `SameSite=Lax`, `Path=/`, 24 h). Logout (`/admin` → logout button) deletes the session row.
+- Every admin page checks the session with `POST /api/auth/verify` and redirects to the login if invalid; every admin API route re-checks it.
+- Never share the password in chat/email and never paste it into tools or documents. If it may have leaked, generate a new hash and delete all rows in `admin_sessions` (see [SECURITY.md](SECURITY.md#8-incident-steps)).
 
-### Login
+## 2. Dashboard (`/admin`)
 
-1. Visit `https://didar-stuttgart.de/admin/login` (or local `http://localhost:3000/admin/login`)
-2. Enter your admin password
-3. Click "Login"
-4. You are logged in for 24 hours
-5. Bookmark `/admin` for quick access
+Shows three numbers from `GET /api/admin/stats`: upcoming published events (date ≥ today), registrations created in the last 7 days, membership applications created in the last 7 days, plus cards linking to events, registrations, memberships, content and settings. (There is no contact-message count.)
 
-### Session Duration
+## 3. Events (`/admin/events`, `/admin/events/[slug]`)
 
-- **Login duration:** 24 hours from login
-- **If session expires:** You'll be redirected to login page
-- **For security:** Always log out on public computers
+- **List:** all events, a status filter (draft / published / archived) and registration-status badges; edit and "delete" actions.
+- **Create/Edit** fields: titles FA/DE (both required), descriptions, event type (dated / recurring), date (hidden for recurring), time, locations FA/DE, capacity (empty or integer ≥ 1), remaining capacity (empty or integer ≥ 0), registration deadline, image URL (any URL or `/images/…` path from `public/images`; there is no upload), registration status (`not_open` / `open` / `closed`), event status (`draft` / `published` / …), admin notes.
+- **"Delete"** only archives the event (`status='archived'`); it disappears from the public site, and registrations are kept.
+- New events: if `registration_status` is not supplied it defaults to `open` when the event is published, otherwise `not_open`.
+- **Important:** the public event page tries to flip `not_open` to `open` on view (known issue in [EVENTS_AND_REGISTRATION.md](EVENTS_AND_REGISTRATION.md#8-known-issues-documented-not-fixed)). Set `closed` (not `not_open`) when you want to stop registrations, and check the public page afterwards.
+- The slug is generated once from the Persian title and cannot be changed in the editor.
+- Public pages refresh via ISR: allow up to a minute for the event page and up to an hour for the home/list pages.
+- `admin_notes` are never shown on the event page or list, but see the known leak on the home page in [SECURITY.md](SECURITY.md#2-admin-authentication-and-sessions): **do not put sensitive text into event `admin_notes`**.
 
----
+## 4. Registrations (`/admin/registrations`)
 
-## Dashboard Overview
+- Lists all registrations (newest first) with the event title, applicant details, status, comment, timestamps; sorting by date / name / status. There is **no event or status filter and no search** (use the browser's find, or the CSV).
+- Change status via the dropdown (`new`, `contacted`, `confirmed`, `declined`, `cancelled`); this saves immediately. Existing `admin_notes` are displayed, but the page has no field to edit them (the API supports it).
+- `cancelled` normally appears on its own when a registrant uses the link in the receipt email (you also receive "[DIDAR] Event Registration Cancelled — …").
+- **Export:** "CSV" downloads `registrations.csv` (all rows). Columns: name, email, phone, Telegram, event, status, date, notes. Known defect: the event column is expected to be empty (it reads a field that does not exist). Cells are quoted but not protected against spreadsheet formulas.
+- The cancellation token hash is removed from every admin response.
+- Workflow: read the notification email → open the list → contact the person by email/Telegram/phone from DIDAR's official accounts → set `contacted` → later `confirmed` or `declined`. Confirmation of attendance is always your decision; the automatic receipt does not confirm anything.
 
-**URL:** `/admin`
+## 5. Memberships (`/admin/memberships`)
 
-The dashboard shows:
-- Pending counts (new registrations, memberships, contact messages)
-- Recent activity
-- Quick links to management pages
+Same pattern: list, status dropdown (`new`, `contacted`, `accepted`, `declined`), displayed notes, CSV export (`/api/admin/memberships/export`). Applications are unique per email. Membership is free of charge according to the privacy text; terms, benefits and decisions are handled manually by the team.
 
-### Key Metrics
+## 6. Contact messages
 
-- New event registrations (count)
-- New membership applications (count)
-- New contact messages (count)
-- Upcoming events (next 7 days)
-- Recent submissions (by type)
+There is **no admin page**. Messages arrive as `[DIDAR] New Contact Message` emails and are stored in `contact_submissions` (view them in Supabase → Table Editor). The `read` flag is not used by any code.
 
----
+## 7. Content (`/admin/content`)
 
-## Event Management
+Edits rows of `cms_content` (filter by page, grouped by section, FA and DE text per row, save per row). Only three keys affect the public site: `homepage.hero.title` (FA and DE), `homepage.hero.subtitle` (FA), `homepage.about.description` (FA, DE) — and the seed rows still contain `[TEST]` placeholders unless production differs (NOT VERIFIED). Text starting with `[` is ignored by the home page. Everything else on the site (About, Impressum, Datenschutz, footer, contact details) is hard-coded in the repository and can only be changed in code. Because the German hero title comes from this table, e.g. changing the wording of the German title is done here.
 
-### Viewing Events
+## 8. Settings (`/admin/settings`)
 
-**URL:** `/admin/events`
+Edits `organization_settings` rows (including a managers list). **No public page reads these values**, so changes do not alter the website. Treat this page as non-functional until the owner decides what it should drive. (`/api/admin/settings` is an unused in-memory leftover.)
 
-Shows all events (published and unpublished) in a sortable list.
+## 9. Daily/weekly routine (suggested)
 
-**Columns:**
-- Event date
-- Title (German)
-- Title (Persian)
-- Registration status
-- Published status
-- Actions
+1. Check the notification inbox (`DIDAR_NOTIFICATION_EMAIL`); also check Spam for `noreply@didar-stuttgart.com`.
+2. Open registrations/memberships, process `new` rows, update statuses.
+3. For full events: set `remaining_capacity` to 0 and set `registration_status = closed`.
+4. Export CSVs only when needed; keep exports out of Git and cloud-sync folders you do not control (they contain personal data).
 
-### Creating an Event
+## 10. Troubleshooting
 
-**Click:** "Create Event" button
-
-**Form fields:**
-
-| Field | Required | Notes |
-|-------|----------|-------|
-| Title (German) | Yes | Event name in German |
-| Title (Persian) | Yes | Event name in Persian |
-| Description (German) | No | Event description in German |
-| Description (Persian) | No | Event description in Persian |
-| Date | Yes | When the event occurs |
-| Time | No | Event time (optional) |
-| Location (German) | No | Venue in German |
-| Location (Persian) | No | Venue in Persian |
-| Capacity | No | Number of attendees (informational) |
-| Image URL | No | Full URL to event image |
-| Registration Status | Yes | not_open / open / closed |
-| Publish | No | Checkbox to publish event |
-
-**Steps:**
-1. Fill in all required fields
-2. Set registration status to "not_open" (unless opening immediately)
-3. Uncheck "Publish" if you want to preview first
-4. Click "Create Event"
-5. Event appears in event list
-6. Edit later to publish when ready
-
-### Editing an Event
-
-**Click:** Event row in list
-
-**Allowed changes:**
-- Title, description, location (all languages)
-- Date, time
-- Capacity
-- Image URL
-- Registration status
-- Published status
-
-**Steps:**
-1. Click event title to edit
-2. Update fields as needed
-3. Click "Save Changes"
-4. Changes take effect immediately
-
-### Publishing an Event
-
-**From event edit page:**
-1. Check "Publish" checkbox
-2. Click "Save Changes"
-3. Event now appears in public `/veranstaltungen` listing
-4. Users can see event and register
-
-### Unpublishing an Event
-
-1. Uncheck "Publish" checkbox
-2. Click "Save Changes"
-3. Event hidden from public (existing registrations remain)
-
-### Changing Registration Status
-
-**During event creation or editing:**
-
-- **not_open** — Registration not yet available (event created but not yet accepting signups)
-- **open** — Registration currently open (users can register)
-- **closed** — Registration closed (event happened, or signup window passed)
-
-**Steps:**
-1. Click event to edit
-2. Change "Registration Status" dropdown
-3. Click "Save Changes"
-4. Status updates immediately
-
-### Deleting an Event
-
-**Click:** "Delete" button on event
-
-**Warning:** This cascades to delete all registrations for that event.
-
----
-
-## Registration Management
-
-### Viewing Registrations
-
-**URL:** `/admin/registrations`
-
-Shows all event registrations in a list.
-
-**Columns:**
-- User name
-- Email
-- Event
-- Submission date
-- Status
-- Actions
-
-**Filtering:**
-- Filter by event (dropdown)
-- Filter by status (new, contacted, confirmed, declined, cancelled)
-
-**Sorting:**
-- Click column header to sort by that column
-
-### Reviewing a Registration
-
-**Click:** Registration row to view details
-
-**What you see:**
-- First name, last name
-- Email address
-- Phone (if provided)
-- Telegram ID (if provided)
-- Comments (if provided)
-- Event details
-- Status
-- Submission timestamp
-
-### Updating Registration Status
-
-**From registration detail page:**
-
-1. Click "Status" dropdown (shows: new, contacted, confirmed, declined, cancelled)
-2. Select new status
-3. Click "Save"
-4. Status updates immediately
-
-**Status meanings:**
-- **new** — Just received, not yet reviewed
-- **contacted** — Admin has reached out to user
-- **confirmed** — User confirmed attendance
-- **declined** — User declined or will not attend
-- **cancelled** — User cancelled via the link in their receipt email (you also receive a "[DIDAR] Event Registration Cancelled" email). The registration stays in the list.
-
-Note: registrants automatically get a receipt email after registering. It only says the registration was received; it does not confirm attendance — that remains your manual decision.
-
-### Contacting Users
-
-**Outside the admin dashboard:**
-
-Users' contact info available:
-- Email (always)
-- Phone (if provided)
-- Telegram (if provided)
-
-**Steps:**
-1. Note user's contact info
-2. Send email via your email client (not in admin dashboard)
-3. Or message via Telegram
-4. Or call if phone provided
-5. Update registration status to "contacted" when done
-
-### Exporting Registrations
-
-**Click:** "Export to CSV" button
-
-**What you get:**
-- CSV file with all registrations (or filtered set)
-- Columns: name, email, phone, telegram, event, date, status, comments
-- Open in Excel or Google Sheets
-
-**Uses:**
-- Create mail-merge for emails
-- Import into CRM or contact management
-- Share registrations with co-organizers
-- Backup for records
-
----
-
-## Membership Application Management
-
-### Viewing Applications
-
-**URL:** `/admin/memberships`
-
-Shows all membership applications.
-
-**Columns:**
-- Applicant name
-- Email
-- Application date
-- Status
-- Actions
-
-### Reviewing an Application
-
-**Click:** Application row to view details
-
-**What you see:**
-- First name, last name
-- Email address
-- Phone (if provided)
-- Telegram ID (if provided)
-- Additional info (if provided)
-- Application timestamp
-- Status
-
-### Updating Application Status
-
-**From application detail page:**
-
-1. Click "Status" dropdown (shows: new, contacted, accepted, declined)
-2. Select new status
-3. Click "Save"
-
-**Status meanings:**
-- **new** — Application received, not yet reviewed
-- **contacted** — Admin has reached out to applicant
-- **accepted** — Applicant accepted for membership
-- **declined** — Applicant not accepted
-
-### Contacting Applicants
-
-**Outside the admin dashboard:**
-
-1. Note applicant's contact info (email, phone, Telegram)
-2. Send email or message to confirm their interest
-3. Explain membership benefits, costs, requirements
-4. Update status to "contacted" when done
-5. Update to "accepted" or "declined" when decision made
-
-### Exporting Applications
-
-**Click:** "Export to CSV" button
-
-**CSV contents:**
-- Name, email, phone, telegram, additional info
-- Application date, status
-
----
-
-## Content Management (CMS)
-
-### Accessing CMS
-
-**URL:** `/admin/content`
-
-Edit website content without touching HTML.
-
-**Currently editable sections:**
-- Homepage hero text
-- About page content
-- Membership page intro
-- Contact info
-- Social media links
-
-### Editing Content
-
-**Steps:**
-
-1. Go to `/admin/content`
-2. Select page from dropdown (Homepage, About, Membership, etc.)
-3. Select section (Hero, Story, Contact, etc.)
-4. Enter content in text editor
-5. Click "Save"
-
-**Languages:**
-- Content can be edited in German and Persian separately
-- Each language has its own text field
-
-**Important:**
-- Changes take effect immediately on public website
-- Preview before publishing (by visiting public page)
-
----
-
-## Settings
-
-### Accessing Settings
-
-**URL:** `/admin/settings`
-
-Configure organization info visible on website.
-
-### Available Settings
-
-| Setting | Default | Notes |
-|---------|---------|-------|
-| Organization Name | DIDAR | Shown in footer and headers |
-| Contact Email | info@didar-stuttgart.com | Displayed on contact page |
-| Phone | [configured] | Shown in footer |
-| Telegram Handle | [configured] | Link in header |
-| Instagram URL | [configured] | Link in header |
-| Address | [configured] | Shown in footer |
-
-### Updating Settings
-
-**Steps:**
-
-1. Go to `/admin/settings`
-2. Edit fields as needed
-3. Click "Save Settings"
-4. Changes appear on website within minutes
-
----
-
-## Contact Messages
-
-**Note:** Contact form submissions are saved to the database but not yet exposed in the admin UI. To view contact messages:
-
-1. Contact the developer or project owner
-2. Or access Supabase dashboard directly
-3. Query `contact_submissions` table
-
-**Future enhancement:** Admin UI page for contact message review.
-
----
-
-## Dashboard Statistics
-
-The admin dashboard shows quick metrics:
-
-- **New Registrations** — Count of registrations with status='new'
-- **New Memberships** — Count of applications with status='new'
-- **New Contacts** — Count of submissions (if accessible)
-- **Upcoming Events** — Events with event_date in next 7 days
-- **Recent Activity** — Latest submissions by type and date
-
----
-
-## Best Practices
-
-### Daily Workflow
-
-1. **Morning:** Check dashboard for pending counts
-2. **Review:** Click on "new" registrations/memberships
-3. **Contact:** Send emails/messages to new applicants
-4. **Update:** Mark as "contacted" when done
-5. **Decide:** Update to "confirmed" or "declined" after response
-
-### Weekly Workflow
-
-1. **Events:** Create upcoming events
-2. **Publish:** Turn on registration for events opening next week
-3. **Archive:** Unpublish or archive past events
-4. **Export:** Back up registrations as CSV
-5. **Report:** Review stats and activity
-
-### Before Events
-
-1. **1 week before:** Confirm attendance with all registrants
-2. **3 days before:** Final headcount check
-3. **1 day before:** Prepare registration list for on-site use
-4. **Export:** CSV with names for check-in
-
-### After Events
-
-1. **Next day:** Update status of no-shows to "declined"
-2. **Thank yous:** Send thank-you message to attendees
-3. **Archive:** Unpublish event from public listing
-4. **Keep:** Maintain record in database for history
-
----
-
-## Troubleshooting
-
-### Can't Log In
-
-- **Forgot password?** Contact project owner to reset
-- **Browser cookies?** Clear cache and try again
-- **Session expired?** Happens after 24 hours; log in again
-
-### Changes Don't Appear on Website
-
-- **Give it a minute:** Dynamic pages cache content
-- **Clear browser cache:** Hard refresh (Ctrl+Shift+R or Cmd+Shift+R)
-- **Check publish status:** Make sure event/content is published
-
-### Can't Find a Registration
-
-- **Check filters:** Filter might be hiding it
-- **Search by name:** Use browser find (Ctrl+F) in registration list
-- **Check date range:** Registration might be from past event
-
-### User Registered Twice
-
-- **Same email for same event?** System prevents this
-- **Different email?** User used different email each time
-- **Solution:** Contact user to confirm which registration is correct
-
----
-
-## Related Documentation
-
-- **EVENTS_AND_REGISTRATION.md** — Event lifecycle, registration workflow
-- **FORMS.md** — Form validation rules, API details
-- **DEPLOYMENT.md** — Deployment and environment setup
+| Problem | Likely cause |
+|---|---|
+| Login fails with "Admin password not configured" | `ADMIN_PASSWORD_HASH` unset or still the placeholder |
+| Login succeeds but pages redirect back | session row not created (check `SUPABASE_SECRET_KEY`, `admin_sessions`), cookie blocked |
+| Changes not visible publicly | ISR delay; CMS key not one of the three used |
+| Event shows "open" though set to "not open" | the auto-open behaviour described above |
+| Can't find a contact message | no admin UI; use Supabase |

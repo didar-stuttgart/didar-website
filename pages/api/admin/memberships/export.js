@@ -1,5 +1,6 @@
 ﻿import { requireAdminSession } from '../../../../lib/api-middleware.js';
 import { createAdminClient } from '../../../../lib/supabase.js';
+import { csvCell } from '../../../../lib/csv.js';
 
 export default async function handler(req, res) {
   if (!(await requireAdminSession(req, res))) {
@@ -33,7 +34,7 @@ export default async function handler(req, res) {
 
     // Build CSV with BOM for Excel
     const bom = 'ï»¿';
-    const csv = bom + [headers, ...rows].map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const csv = bom + [headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\n');
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="memberships.csv"');

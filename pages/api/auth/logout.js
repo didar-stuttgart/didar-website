@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     }
 
     res.setHeader('Set-Cookie', 
-      'session_token=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax'
+      `session_token=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`
     );
 
     return res.status(200).json({

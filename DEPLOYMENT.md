@@ -1,496 +1,113 @@
 # DEPLOYMENT
 
-This guide covers building, testing, and deploying the DIDAR website.
+Setup, environment, deployment, migrations, verification and recovery. Verified against the repository on 2026-10-17. Where something can only be confirmed in a dashboard (Vercel, Supabase, Resend), it is marked NOT VERIFIED.
 
----
+Related: [README.md](README.md) · [DATABASE.md](DATABASE.md) · [SECURITY.md](SECURITY.md) · [FORMS.md](FORMS.md)
 
-## Local Development Setup
+## 1. Current setup
 
-### Prerequisites
+- **Hosting:** Vercel (production response headers show `server: Vercel`, region `fra1`; project under the Vercel team `didar-team`). Domain: `www.didar-stuttgart.com` (the apex redirects with HTTP 308).
+- **Deploy trigger:** pushing to the GitHub repository `didar-Stuttgart/didar-website` branch `main` deploys to production (observed: a push on 2026-10-17 deployed immediately). Branch/preview behaviour and exact Vercel project settings are NOT VERIFIED.
+- **Database:** one Supabase project (PostgreSQL). There is **no staging environment** known to the repository.
+- **Email:** Resend, sending domain `didar-stuttgart.com` (return-path `rsend.didar-stuttgart.com`); the domain must stay verified in Resend.
+- **Build output:** standard `next build`; no custom `vercel.json` in the repository.
 
-- Node.js 18+ and npm
-- Git
-- Supabase account (free tier sufficient)
+## 2. Environment variables
 
-### Initial Setup
+Set them in Vercel (Project → Settings → Environment Variables) and locally in `.env.local` (never committed). Names verified by searching the code; **never put values in documentation, tickets or chat**.
 
-1. **Clone repository:**
-   ```bash
-   git clone https://github.com/[owner]/didar-website.git
-   cd didar-website
+| Variable | Required | Used by | Notes |
+|---|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | yes | `lib/supabase.js` | the code throws at import time without it |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | yes | `lib/supabase.js` | must belong to the **same** project as the URL, otherwise every request fails with "Invalid API key" (appears as generic 500s on all forms) |
+| `SUPABASE_SECRET_KEY` | yes (admin) | `createAdminClient()` | server-only; bypasses RLS; admin login/sessions and all `/api/admin/*` need it |
+| `ADMIN_PASSWORD_HASH` | yes (admin) | `pages/api/auth/login.js` | `salt:hash` from `node scripts/setup-admin.js`; the script enforces ≥ 12 chars with upper/lower/digit/special |
+| `RESEND_API_KEY` | for email | `lib/admin-email.js`, `lib/registration-receipt-email.js` | missing → receipt skipped; admin notifications fall back to logging submitted data to the console |
+| `DIDAR_NOTIFICATION_EMAIL` | for admin email | `lib/admin-email.js` | recipient of all admin notifications (currently didar.stuttgart@gmail.com per project configuration) |
+| `DIDAR_EMAIL_FROM` | no | both email libs | default `DIDAR Stuttgart <noreply@didar-stuttgart.com>` |
+| `NEXT_PUBLIC_APP_URL` | no | `lib/registration-cancellation.js` | base URL for cancellation links, default `https://www.didar-stuttgart.com`. A preview deployment that does not set it will still emit production links |
+| `RATE_LIMIT_REQUESTS`, `RATE_LIMIT_WINDOW_MS` | no | `lib/rate-limit.js` | defaults 10 and 60000 |
+
+`NODE_ENV` / `VERCEL_ENV` appear in `.env.example` but are not read by the application code. `.env.example` still carries some outdated comments ("Phase 3+/Phase 5"); the table above is authoritative. After changing any variable in Vercel, redeploy for it to take effect.
+
+## 3. Local development and checks
+
+```bash
+npm install
+cp .env.example .env.local   # fill in real values
+npm run dev                  # FA: http://localhost:3000  DE: http://localhost:3000/de
+npm run lint                 # warnings only at the time of writing (img elements, hook deps)
+npm run build                # needs working Supabase env vars and network access
+```
+
+- A cold `next build` can take several minutes on slow machines (a warm cache took ~10 s of compilation plus page generation on 2026-10-17).
+- **Automated tests:** none are runnable. `__tests__/auth.test.js` imports `@jest/globals`, but Jest is neither a dependency nor configured and `package.json` has no `test` script. Verification today is manual (see §6).
+- Never point a local `.env.local` at the production Supabase project when testing destructive actions; there is no staging database.
+
+## 4. Deploying
+
+1. Make sure `npm run build` passes locally.
+2. If the change needs a database migration, **apply it to production first** (§5).
+3. Commit and push to `main` (or merge a PR); Vercel builds and deploys automatically.
+4. Run the post-deploy checks (§6).
+
+Code that depends on a migration must not go out before the migration is applied. On 2026-10-17 the receipt-email code (which calls the 8-argument `insert_event_registration_manual`) was pushed before migration 012 existed in production; every event registration returned 500 until the migration was applied manually. Keep this ordering rule.
+
+## 5. Database migrations
+
+There is no migration runner. Migrations are plain SQL files in `data/` that are pasted into the Supabase SQL editor.
+
+1. Confirm a recent backup exists (Supabase dashboard; plan/retention NOT VERIFIED).
+2. Read the file; check whether it is re-runnable (most newer ones use `IF NOT EXISTS`, `DROP … IF EXISTS`, `BEGIN/COMMIT`).
+3. Run it in the SQL editor of the **production** project.
+4. Verify, for example:
+   ```sql
+   select proname, pronargs from pg_proc
+   where proname in ('insert_event_registration_manual','cancel_event_registration_manual',
+                     'insert_membership_application_manual','insert_contact_submission_manual');
+   select column_name from information_schema.columns
+   where table_name = 'event_registrations' order by 1;
    ```
-
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Create `.env.local` file:**
-   ```bash
-   cp .env.example .env.local
-   ```
-
-4. **Add Supabase credentials to `.env.local`:**
-   - `NEXT_PUBLIC_SUPABASE_URL` — From Supabase project settings
-   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — From Supabase project settings
-   - `SUPABASE_SECRET_KEY` — From Supabase project settings
-   - `ADMIN_PASSWORD_HASH` — Will be set during admin setup
-
-5. **Set up database:**
-   - Open Supabase SQL editor
-   - Run migrations in order (migration_001 through migration_009)
-   - Each migration file is in `data/` directory
-
-6. **Start development server:**
-   ```bash
-   npm run dev
-   ```
-   - Visit http://localhost:3000
-   - Admin dashboard: http://localhost:3000/admin/login
-
----
-
-## Production Deployment
-
-### Option 1: Vercel (Recommended)
-
-Vercel provides automatic deployments from Git with zero configuration.
-
-#### Initial Setup
-
-1. **Push code to GitHub:**
-   ```bash
-   git push origin main
-   ```
-
-2. **Go to Vercel.com and sign in**
-
-3. **Import project:**
-   - Click "Import Project"
-   - Select your GitHub repository
-   - Vercel automatically detects Next.js project
-
-4. **Set environment variables:**
-   - Click "Environment Variables"
-   - Add each variable from `.env.local`:
-     - `NEXT_PUBLIC_SUPABASE_URL`
-     - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-     - `SUPABASE_SECRET_KEY`
-     - `ADMIN_PASSWORD_HASH`
-   - Save and redeploy
-
-5. **Deploy:**
-   - Click "Deploy"
-   - Vercel builds and deploys automatically
-   - Your site is live at `[project].vercel.app`
-
-#### Ongoing Deployments
-
-After initial setup, every git push to `main` triggers automatic deployment:
-
-```bash
-# Make changes locally
-git add .
-git commit -m "Update content"
-git push origin main
-
-# Vercel automatically:
-# 1. Detects push to main
-# 2. Builds the project
-# 3. Runs tests (if configured)
-# 4. Deploys to production
-```
-
-Monitor deployment status in Vercel dashboard.
-
-### Option 2: Self-Hosted (Node.js)
-
-For self-hosted deployments (AWS, DigitalOcean, etc.):
-
-#### Build for Production
-
-```bash
-npm run build
-npm run start
-```
-
-This starts the Next.js server on port 3000.
-
-#### Reverse Proxy (nginx)
-
-```nginx
-server {
-  listen 80;
-  server_name didar-stuttgart.de www.didar-stuttgart.de;
-
-  location / {
-    proxy_pass http://localhost:3000;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection 'upgrade';
-    proxy_set_header Host $host;
-    proxy_cache_bypass $http_upgrade;
-  }
-}
-```
-
-#### SSL Certificate (Let's Encrypt)
-
-```bash
-certbot certonly --standalone -d didar-stuttgart.de -d www.didar-stuttgart.de
-```
-
-Update nginx config to use HTTPS.
-
-#### Process Manager (PM2)
-
-Keep the server running even after restarts:
-
-```bash
-npm install -g pm2
-pm2 start "npm run start" --name didar
-pm2 startup
-pm2 save
-```
-
----
-
-## Environment Variables
-
-### Required Variables
-
-| Variable | Example | Notes |
-|----------|---------|-------|
-| NEXT_PUBLIC_SUPABASE_URL | https://xxxx.supabase.co | From Supabase dashboard. **Must be the same Supabase project** as the key below — see warning below. |
-| NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY | eyJxxx... or sb_publishable_xxx... | From Supabase dashboard (Project Settings → API Keys). **Must belong to the same project** as the URL above. |
-| SUPABASE_SECRET_KEY | eyJxxx... or sb_secret_xxx... | Keep secret! (server-only) |
-| ADMIN_PASSWORD_HASH | $2b$12$xxxx... | Generated on admin setup |
-| RESEND_API_KEY | re_xxxx... | Enables admin notification emails for Membership, Contact, and Event Registration forms. If unset, notifications fall back to a server console log only (form submissions still succeed either way). |
-| DIDAR_NOTIFICATION_EMAIL | admin@didar-stuttgart.com | Inbox that receives the admin notification emails. |
-| DIDAR_EMAIL_FROM | DIDAR Stuttgart <noreply@didar-stuttgart.com> | Optional. Defaults to `DIDAR Stuttgart <noreply@didar-stuttgart.com>` if unset. |
-
-**Warning — Supabase URL/key project mismatch:** `NEXT_PUBLIC_SUPABASE_URL` and
-`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` must reference the **same** Supabase project.
-If the key belongs to a different project than the URL, Supabase's API gateway rejects
-every request with `"Invalid API key"`, which surfaces in this app as a generic
-`500 Failed to submit application` (or equivalent) error on all forms — the app will
-otherwise look correctly configured (both variables present, correct format, no startup
-errors). When diagnosing a form submission failure, verify the key's embedded project
-reference matches the URL's project reference before assuming any other cause.
-
-### Optional Variables
-
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| RATE_LIMIT_REQUESTS | 10 | Requests per window |
-| RATE_LIMIT_WINDOW_MS | 60000 | Rate limit window in ms |
-| NODE_ENV | development | Set to "production" on deploy |
-
-### Secrets Management
-
-**Never commit `.env.local` to Git:**
-
-1. `.env.local` is in `.gitignore`
-2. On Vercel: Use dashboard to set env variables
-3. On self-hosted: Use system environment variables or `.env` file (not committed)
-4. Rotate secrets periodically
-5. Use separate secret for production
-
----
-
-## Build & Optimization
-
-### Build Process
-
-```bash
-npm run build
-```
-
-This:
-1. Compiles Next.js app
-2. Optimizes images and CSS
-3. Creates `.next/` build artifacts
-4. Runs any pre-deployment checks
-
-### Build Time
-
-- First build: ~60-120 seconds
-- Incremental builds: ~30-60 seconds
-
-### Output
-
-```
-npm run build
-> next build
-
-  ▲ Next.js 15.0.0
-
-  ✓ Compiled successfully
-  ✓ Linting and checking validity of types
-  ✓ Optimizing for production
-  ✓ Collecting page data
-  ✓ Generating static pages (X prerendered)
-
-Build complete. Preparing for production
-```
-
----
-
-## Database Migrations
-
-### Applying Migrations
-
-When deploying:
-
-1. **Ensure migrations are applied to production database:**
-   - Log into Supabase dashboard for production project
-   - Open SQL editor
-   - Run each migration file in order (001-009)
-   - Verify no errors
-
-2. **Test in staging first:**
-   - Create separate Supabase project for staging
-   - Apply migrations there
-   - Test thoroughly before production
-
-3. **Backup before major changes:**
-   - Take Supabase backup before applying new migrations
-   - Supabase automatically backs up daily
-
-### Migration Checklist
-
-- [ ] Backup production database
-- [ ] Apply migration to staging
-- [ ] Test staging site thoroughly
-- [ ] Apply migration to production
-- [ ] Verify production site works
-- [ ] Document what changed (commit message)
-
----
-
-## Health Checks
-
-### Endpoint
-
-**GET** `/api/health`
-
-Returns:
-```json
-{
-  "status": "ok",
-  "timestamp": "2026-09-27T15:54:00Z"
-}
-```
-
-### Monitoring
-
-Use health endpoint to monitor uptime:
-
-```bash
-# Every 5 minutes, check health
-*/5 * * * * curl -f https://didar-stuttgart.de/api/health || alert
-
-# Or use external monitoring:
-# - Vercel Monitoring (built-in)
-# - UptimeRobot (free tier)
-# - Pingdom
-# - New Relic
-```
-
----
-
-## Performance Monitoring
-
-### Vercel Analytics
-
-Vercel provides built-in performance monitoring:
-- Page load times
-- User experience metrics
-- Real-world usage data
-- Deploy history
-
-### Google Lighthouse
-
-Run locally:
-```bash
-npm install -g @lighthouse-cli/cli
-lighthouse https://didar-stuttgart.de
-```
-
-Targets:
-- Performance: 90+
-- Accessibility: 90+
-- Best Practices: 90+
-- SEO: 90+
-
----
-
-## Rollback
-
-If deployment breaks the site:
-
-### Vercel
-
-1. Go to Vercel dashboard
-2. Click "Deployments"
-3. Find previous working deployment
-4. Click "Redeploy"
-5. Site reverts to previous version
-
-### Git
-
-```bash
-# Revert last commit
-git revert HEAD
-git push origin main
-
-# Or reset to specific commit
-git reset --hard [commit-hash]
-git push origin main --force
-```
-
----
-
-## Updating Dependencies
-
-### Check for Updates
-
-```bash
-npm outdated
-```
-
-### Update Safely
-
-```bash
-# Update patch versions (safe)
-npm update
-
-# Update minor versions (test first)
-npm install next@latest
-
-# Verify still works
-npm run dev
-npm run build
-
-# Commit and deploy
-git add package.json package-lock.json
-git commit -m "Update dependencies"
-git push
-```
-
----
-
-## Environment-Specific Settings
-
-### Development (.env.local)
-
-- Supabase development project
-- Local admin password
-- Verbose logging
-- RATE_LIMIT disabled or very high
-
-### Staging (.env.staging)
-
-- Supabase staging project
-- Staging admin password
-- Normal rate limiting
-- Production-like settings
-
-### Production (.env or Vercel)
-
-- Supabase production project
-- Strong admin password (changed regularly)
-- Normal rate limiting
-- Performance optimizations
-- Error tracking
-
----
-
-## Admin Setup
-
-### First-Time Admin
-
-1. **Generate password hash:**
-   ```bash
-   # On your local machine
-   npm run generate-admin-hash
-   # Or manually create PBKDF2 hash of your password
-   ```
-
-2. **Set ADMIN_PASSWORD_HASH in environment:**
-   - Local: Add to `.env.local`
-   - Vercel: Add to environment variables
-   - Self-hosted: Add to `.env`
-
-3. **Deploy with new hash**
-
-4. **Visit admin login:**
-   - http://localhost:3000/admin/login (local)
-   - https://didar-stuttgart.de/admin/login (production)
-
-5. **Log in with password**
-
-6. **Change password:**
-   - Not yet implemented; contact owner to update ADMIN_PASSWORD_HASH
-
----
-
-## Maintenance
-
-### Regular Tasks
-
-| Task | Frequency | Steps |
-|------|-----------|-------|
-| Monitor uptime | Daily | Check `/api/health` |
-| Review errors | Daily | Check Vercel logs |
-| Backup database | Weekly | Verify Supabase backups |
-| Review registrations | Weekly | Check admin dashboard |
-| Update dependencies | Monthly | npm outdated, update, test |
-| Security audit | Quarterly | Review access, passwords, secrets |
-
-### Logs
-
-**Vercel:**
-- Go to dashboard → Deployments → Logs
-- View request logs, errors, warnings
-
-**Self-hosted:**
-- Check application stdout/stderr
-- Use PM2: `pm2 logs didar`
-
----
-
-## Troubleshooting Deployments
-
-### Build Fails on Vercel
-
-1. **Check build logs** in Vercel dashboard
-2. **Verify environment variables** are set correctly
-3. **Test locally first:** `npm run build`
-4. **Common issues:**
-   - Missing env variables
-   - Incompatible dependency versions
-   - TypeScript errors (if enabled)
-
-### Site Down After Deployment
-
-1. **Check Vercel status page** for platform issues
-2. **Redeploy previous version** if needed
-3. **Check logs** for error messages
-4. **Verify database** connection still works
-5. **Clear cache** (Vercel does this automatically)
-
-### Database Connection Fails
-
-1. **Verify connection string** in env variables
-2. **Check Supabase** project is running
-3. **Test locally** with same connection string
-4. **Check IP allowlist** (if configured)
-
----
-
-## Related Documentation
-
-- **ARCHITECTURE.md** — Technical architecture overview
-- **SECURITY.md** — Security best practices
-- **DATABASE.md** — Database setup and schema
+   (`insert_event_registration_manual` must show 8 arguments after migration 012.)
+5. Then deploy the dependent code.
+
+Full order for a new database and the effect of each file: [DATABASE.md](DATABASE.md#1-how-to-build-a-database-from-scratch). There are no "down" migrations.
+
+## 6. Post-deployment verification checklist
+
+1. `GET /api/health` → `200 {"status":"healthy",…}` (reads the `events` table; `503` on failure).
+2. Home page in FA (`/`) and DE (`/de`): hero text, events present; language toggle keeps the route.
+3. An event detail page renders; a registration form appears only for `open` events.
+4. Submit **one** registration with an address you control (events registrations are permanent and the address cannot be reused for that event): expect the success modal, a row in Supabase, the admin notification email, the receipt email (check Spam), and that the cancel link opens the confirmation page (do not click confirm unless you intend to cancel).
+5. Membership and contact forms: one test each with your own address (membership addresses are unique and permanent).
+6. Admin: login, dashboard numbers, registrations list. 
+7. Check the Vercel function logs for errors and Resend → Emails for delivery. HTTP 201 from an API **does not prove** an email was delivered.
+8. For email-related changes, open the received message in Gmail → "Show original" and confirm SPF/DKIM/DMARC pass.
+
+## 7. Troubleshooting production
+
+| Symptom | Where to look |
+|---|---|
+| All forms return 500 | Vercel function logs; "Invalid API key" → Supabase URL/key mismatch (§2) |
+| Only event registration returns 500 | RPC signature vs. code (§4); duplicate/unique errors are 409 not 500 |
+| Admin cannot log in | `ADMIN_PASSWORD_HASH` set? `SUPABASE_SECRET_KEY` valid? logs from `/api/auth/login` |
+| No notification email | `RESEND_API_KEY`/`DIDAR_NOTIFICATION_EMAIL` set? Resend dashboard; domain verification; logs contain `[Admin Email]` lines (a "console fallback" line means the variables are missing) |
+| Receipt email missing | `[Receipt Email]` log lines; Spam; Resend dashboard |
+| Page content stale | ISR windows (60 s event page, up to 1 h home/list) |
+| Build fails on Vercel | build log; Supabase env vars present at build time (pages are pre-rendered against the database) |
+
+## 8. Rollback and recovery
+
+- **Code:** in Vercel, promote/redeploy an earlier successful deployment (standard Vercel feature; not exercised for this project) or `git revert` the offending commit and push. Prefer `git revert`; do **not** rewrite `main`'s history.
+- **Database:** no automated rollback. Migration 012 is not backward compatible with the pre-012 code (it drops the 7-argument RPC), so rolling code back past that point requires restoring the old function from `migration_006` in SQL — do this only deliberately and re-test registration.
+- **Data:** Supabase backups (dashboard). Test restores are NOT VERIFIED.
+- **Secrets compromised:** see [SECURITY.md](SECURITY.md#8-incident-steps).
+
+## 9. Regular maintenance
+
+| Task | How often |
+|---|---|
+| Check `DIDAR_NOTIFICATION_EMAIL` inbox and Spam | daily while forms are active |
+| `npm audit` / dependency updates (test locally with `npm run build` first) | monthly |
+| Review Supabase backups and Resend domain status | quarterly |
+| Delete expired rows from `admin_sessions` (`delete from admin_sessions where expires_at < now()`) | occasionally; nothing cleans them automatically except on a failed login-validation of that specific expired token |

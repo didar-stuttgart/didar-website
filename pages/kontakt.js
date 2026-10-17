@@ -12,6 +12,7 @@ export default function Contact({ currentLang }) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    emailConfirm: '',
     message: '',
   });
 
@@ -28,6 +29,9 @@ export default function Contact({ currentLang }) {
       [name]: value,
     }));
     // Clear field error when user starts typing
+    if (name === 'email' && fieldErrors.emailConfirm) {
+      setFieldErrors(prev => ({ ...prev, emailConfirm: null }));
+    }
     if (fieldErrors[name]) {
       setFieldErrors(prev => ({
         ...prev,
@@ -42,6 +46,15 @@ export default function Contact({ currentLang }) {
     setError(null);
     setFieldErrors({});
     setSuccess(false);
+
+    // Client-side only: confirmation value is never sent to the API
+    if (formData.email.trim().toLowerCase() !== formData.emailConfirm.trim().toLowerCase()) {
+      setFieldErrors({
+        emailConfirm: t('form.validation_email_mismatch', currentLang),
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -50,7 +63,11 @@ export default function Contact({ currentLang }) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          message: formData.message,
+        }),
       });
 
       const data = await response.json();
@@ -75,7 +92,7 @@ export default function Contact({ currentLang }) {
       } else {
         // Success
         setSuccess(true);
-        setFormData({ name: '', email: '', message: '' });
+        setFormData({ name: '', email: '', emailConfirm: '', message: '' });
       }
     } catch (err) {
       console.error('Contact form error:', err);
@@ -157,6 +174,27 @@ export default function Contact({ currentLang }) {
                   />
                   {fieldErrors.email && (
                     <p className="error-text">{fieldErrors.email}</p>
+                  )}
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="emailConfirm">
+                    {t('form.email_confirm', currentLang)}
+                  </label>
+                  <input
+                    id="emailConfirm"
+                    type="email"
+                    name="emailConfirm"
+                    placeholder={t('form.email_confirm', currentLang)}
+                    value={formData.emailConfirm}
+                    onChange={handleChange}
+                    disabled={isSubmitting}
+                    autoComplete="off"
+                    required
+                    aria-invalid={Boolean(fieldErrors.emailConfirm)}
+                    aria-describedby={fieldErrors.emailConfirm ? 'emailConfirm-error' : undefined}
+                  />
+                  {fieldErrors.emailConfirm && (
+                    <p className="error-text" id="emailConfirm-error" role="alert">{fieldErrors.emailConfirm}</p>
                   )}
                 </div>
 

@@ -93,6 +93,7 @@ export default function EventDetail({ event, currentLang }) {
     firstName: '',
     lastName: '',
     email: '',
+    emailConfirm: '',
     phone: '',
     telegramId: '',
     comment: '',
@@ -163,6 +164,10 @@ export default function EventDetail({ event, currentLang }) {
       [name]: value,
     }));
 
+    if (name === 'email' && fieldErrors.emailConfirm) {
+      setFieldErrors((previous) => ({ ...previous, emailConfirm: null }));
+    }
+
     if (fieldErrors[name]) {
       setFieldErrors((previous) => ({
         ...previous,
@@ -202,6 +207,15 @@ export default function EventDetail({ event, currentLang }) {
     setError(null);
     setFieldErrors({});
     setSuccess(false);
+
+    // Client-side only: confirmation value is never sent to the API
+    if (formData.email.trim().toLowerCase() !== formData.emailConfirm.trim().toLowerCase()) {
+      setFieldErrors({
+        emailConfirm: t('form.validation_email_mismatch', currentLang),
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     // In manual registration model, capacity is informational only.
@@ -265,6 +279,7 @@ export default function EventDetail({ event, currentLang }) {
         firstName: '',
         lastName: '',
         email: '',
+        emailConfirm: '',
         phone: '',
         telegramId: '',
         comment: '',
@@ -598,6 +613,29 @@ export default function EventDetail({ event, currentLang }) {
                   </div>
 
                   <div className="form-group">
+                    <label className="form-label" htmlFor="emailConfirm">
+                      {t('form.email_confirm', currentLang)}
+                    </label>
+                    <input
+                      id="emailConfirm"
+                      type="email"
+                      name="emailConfirm"
+                      placeholder={t('form.email_confirm', currentLang)}
+                      value={formData.emailConfirm}
+                      onChange={handleChange}
+                      disabled={isSubmitting || capacityStatus?.is_full}
+                    maxLength={254}
+                      autoComplete="off"
+                      required
+                      aria-invalid={Boolean(fieldErrors.emailConfirm)}
+                      aria-describedby={fieldErrors.emailConfirm ? 'emailConfirm-error' : undefined}
+                    />
+                    {fieldErrors.emailConfirm && (
+                      <p className="error-text" id="emailConfirm-error" role="alert">{fieldErrors.emailConfirm}</p>
+                    )}
+                  </div>
+
+                  <div className="form-group">
                     <label className="form-label" htmlFor="phone">
                       {t('form.phone', currentLang)}
                     </label>
@@ -764,9 +802,7 @@ export default function EventDetail({ event, currentLang }) {
             </div>
 
             <p style={{ margin: '15px 0', fontSize: '16px', lineHeight: '1.6' }}>
-              {currentLang === 'fa'
-                ? 'درخواست شما دریافت شد. در صورت نیاز، دیدار از طریق ایمیل با شما تماس خواهد گرفت.'
-                : 'Ihre Anfrage wurde empfangen. Didar wird sich gegebenenfalls per E-Mail bei Ihnen melden.'}
+              {t('event.registration_success_message', currentLang)}
             </p>
 
             <button

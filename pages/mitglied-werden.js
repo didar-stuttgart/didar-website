@@ -12,6 +12,7 @@ export default function Membership({ currentLang }) {
     firstName: '',
     lastName: '',
     email: '',
+    emailConfirm: '',
     phone: '',
     telegramId: '',
     additionalInfo: '',
@@ -34,6 +35,9 @@ export default function Membership({ currentLang }) {
     }));
 
     // Clear field error when user starts typing
+    if (name === 'email' && fieldErrors.emailConfirm) {
+      setFieldErrors(prev => ({ ...prev, emailConfirm: null }));
+    }
     if (fieldErrors[name]) {
       setFieldErrors(prev => ({
         ...prev,
@@ -53,6 +57,15 @@ export default function Membership({ currentLang }) {
     if (!formData.privacyAgreed) {
       setFieldErrors({
         privacyAgreed: t('form.privacy_notice', currentLang),
+      });
+      return;
+    }
+
+
+    // Client-side only: confirmation value is never sent to the API
+    if (formData.email.trim().toLowerCase() !== formData.emailConfirm.trim().toLowerCase()) {
+      setFieldErrors({
+        emailConfirm: t('form.validation_email_mismatch', currentLang),
       });
       return;
     }
@@ -107,6 +120,7 @@ export default function Membership({ currentLang }) {
           firstName: '',
           lastName: '',
           email: '',
+          emailConfirm: '',
           phone: '',
           telegramId: '',
           additionalInfo: '',
@@ -221,6 +235,27 @@ export default function Membership({ currentLang }) {
               />
               {fieldErrors.email && (
                 <p className="error-text">{fieldErrors.email}</p>
+              )}
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="emailConfirm">
+                {t('form.email_confirm', currentLang)}
+              </label>
+              <input
+                id="emailConfirm"
+                type="email"
+                name="emailConfirm"
+                placeholder={t('form.email_confirm', currentLang)}
+                value={formData.emailConfirm}
+                onChange={handleChange}
+                disabled={isSubmitting}
+                autoComplete="off"
+                required
+                aria-invalid={Boolean(fieldErrors.emailConfirm)}
+                aria-describedby={fieldErrors.emailConfirm ? 'emailConfirm-error' : undefined}
+              />
+              {fieldErrors.emailConfirm && (
+                <p className="error-text" id="emailConfirm-error" role="alert">{fieldErrors.emailConfirm}</p>
               )}
             </div>
 

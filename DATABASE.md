@@ -1,424 +1,145 @@
 # DATABASE
 
-This document describes the DIDAR website database schema, tables, and data flow.
-
-## Overview
-
-The database is a Supabase PostgreSQL instance with 9 migrations applied in sequence. All tables have Row-Level Security (RLS) policies to ensure data privacy. Public form submissions use SECURITY DEFINER stored procedures to bypass RLS restrictions.
-
----
-
-## Migration Sequence
-
-Apply migrations in order (they build on each other):
-
-| # | File | Purpose |
-|---|------|---------|
-| 1 | migration_001_registration_verification.sql | Base schema: events, event_registrations, admin_sessions |
-| 2 | migration_002_admin_sessions_rls.sql | Add RLS to admin_sessions, secure admin access |
-| 3 | migration_003_supabase_explicit_grants.sql | Grant Supabase service role permissions |
-| 4 | migration_004_cms_foundation.sql | Add cms_content table for dynamic content |
-| 5 | migration_005_manual_registration_rpc.sql | Create RPC for event registration |
-| 6 | migration_006_fix_rpc_error_propagation.sql | Improve RPC error handling |
-| 7 | migration_007_membership_application_rpc.sql | Create RPC for membership applications |
-| 8 | migration_008_contact_submission_rpc.sql | Create RPC for contact submissions |
-| 9 | migration_009_service_role_grants.sql | Final service role permissions |
-
----
-
-## Database Tables
-
-### 1. events
-
-Stores event definitions with bilingual content and registration settings.
-
-**Columns:**
-```sql
-id BIGSERIAL PRIMARY KEY
-created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-
--- Bilingual content
-title_fa TEXT NOT NULL
-title_de TEXT NOT NULL
-slug TEXT NOT NULL UNIQUE
-description_fa TEXT
-description_de TEXT
-
--- Event metadata
-event_date DATE NOT NULL
-event_time TIME
-location_fa TEXT
-location_de TEXT
-capacity INT
-registration_deadline DATE
-
--- Status management
-registration_open BOOLEAN DEFAULT FALSE (deprecated)
-registration_status TEXT DEFAULT 'not_open' CHECK (registration_status IN ('not_open', 'open', 'closed'))
-published BOOLEAN DEFAULT FALSE
-
--- Media
-image_url TEXT
-```
-
-**Indexes:**
-- `id` (primary key)
-- `slug` (unique, for URL routing)
-- `published` (for listings)
-- `event_date` (for sorting)
-
-**RLS Policies:**
-- Public: SELECT published events only
-- Admin: Full CRUD access
-
-**Status Field Meanings:**
-- `not_open` — Event created but registration not yet opened
-- `open` — Registration currently open
-- `closed` — Registration was open but is now closed
-
----
-
-### 2. event_registrations
-
-Stores user event registrations (form submissions).
-
-**Columns:**
-```sql
-id BIGSERIAL PRIMARY KEY
-event_id BIGINT NOT NULL REFERENCES events(id) ON DELETE CASCADE
-first_name TEXT NOT NULL
-last_name TEXT NOT NULL
-email TEXT NOT NULL
-phone TEXT
-telegram_id TEXT
-comment TEXT
-status TEXT DEFAULT 'new' CHECK (status IN ('new', 'contacted', 'confirmed', 'declined', 'cancelled'))
-cancellation_token_hash TEXT   -- SHA-256 hex of the emailed cancel token (unique when set); never the raw token
-cancelled_at TIMESTAMPTZ       -- set when the registrant self-cancels (migration_012)
-created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-```
-
-**Constraints:**
-- UNIQUE (event_id, email) — One registration per user per event
-
-**Indexes:**
-- `id` (primary key)
-- `event_id` (for filtering by event)
-- `email` (for duplicate checking)
-- `status` (for admin filtering)
-- `created_at` (for sorting)
-
-**RLS Policies:**
-- Public: INSERT only (via RPC)
-- Admin: SELECT, UPDATE
-
----
-
-### 3. membership_applications
-
-Stores membership application form submissions.
-
-**Columns:**
-```sql
-id BIGSERIAL PRIMARY KEY
-first_name TEXT NOT NULL
-last_name TEXT NOT NULL
-email TEXT NOT NULL UNIQUE
-phone TEXT
-telegram_id TEXT
-additional_info TEXT
-status TEXT DEFAULT 'new' CHECK (status IN ('new', 'contacted', 'accepted', 'declined'))
-created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-```
-
-**Constraints:**
-- UNIQUE (email) — One application per email
-
-**Indexes:**
-- `id` (primary key)
-- `email` (unique, for duplicate checking)
-- `status` (for admin filtering)
-- `created_at` (for sorting)
-
-**RLS Policies:**
-- Public: INSERT only (via RPC)
-- Admin: SELECT, UPDATE
-
----
-
-### 4. contact_submissions
-
-Stores contact form submissions.
-
-**Columns:**
-```sql
-id BIGSERIAL PRIMARY KEY
-name TEXT NOT NULL
-email TEXT NOT NULL
-message TEXT NOT NULL
-read BOOLEAN DEFAULT FALSE
-created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-```
-
-**Notes:**
-- No uniqueness constraint on email (multiple messages from same sender allowed)
-- `read` flag tracks if admin has reviewed
-
-**Indexes:**
-- `id` (primary key)
-- `created_at` (for sorting)
-- `read` (for filtering unread submissions)
-
-**RLS Policies:**
-- Public: INSERT only (via RPC)
-- Admin: SELECT, UPDATE
-
----
-
-### 5. admin_sessions
-
-Stores active admin session tokens for authentication.
-
-**Columns:**
-```sql
-id BIGSERIAL PRIMARY KEY
-token_hash TEXT NOT NULL UNIQUE
-user_id TEXT NOT NULL (fixed value, e.g., "admin")
-expires_at TIMESTAMP WITH TIME ZONE NOT NULL
-created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-```
-
-**Indexes:**
-- `id` (primary key)
-- `token_hash` (unique, for session lookup)
-- `expires_at` (for expiration checks)
-- `user_id` (for filtering user sessions)
-
-**RLS Policies:**
-- Public: Deny all access
-- Admin: Full CRUD via authenticated role
-
-**Notes:**
-- Session TTL: 24 hours from creation
-- Expired sessions not auto-deleted; application should clean up
-- Token stored as hash to prevent reading raw tokens from database
-
----
-
-### 6. cms_content
-
-Stores dynamically editable content for pages.
-
-**Columns:**
-```sql
-id BIGSERIAL PRIMARY KEY
-key TEXT NOT NULL UNIQUE (e.g., "homepage.hero.title")
-page TEXT NOT NULL (e.g., "homepage", "about", "membership")
-section TEXT NOT NULL (e.g., "hero", "story", "contact_info")
-item_type TEXT NOT NULL (e.g., "title", "description", "content")
-content_type TEXT NOT NULL (e.g., "text", "long_text", "json")
-value TEXT NOT NULL
-created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-```
-
-**Indexes:**
-- `id` (primary key)
-- `key` (unique, for content lookup)
-- `page` (for filtering by page)
+Supabase (PostgreSQL) data model as defined by the SQL files in `data/` and as used by the code. Where the repository cannot prove what production looks like, this document says so.
+
+> **Source of truth.** `data/schema.sql` + `data/migration_001…012_*.sql` describe the intended schema. Production was also changed by hand at times (see "Schema drift"). Before relying on a column, check the live database (Supabase → Table Editor / SQL editor).
+
+## 1. How to build a database from scratch
+
+The numbered migrations are **not** a complete build script on their own: `migration_001` alters `event_registrations` (created by `schema.sql`), and `admin_sessions` / CMS tables come from migrations 002 / 004. A fresh project needs this order (all in the Supabase SQL editor):
+
+1. `data/schema.sql` — `events`, `event_registrations`, `membership_applications`, `contact_submissions`, indexes, RLS policies and grants for them (includes the migration 010/011/012 columns already).
+2. `migration_001_registration_verification.sql` — legacy verification columns/status values on `event_registrations` and helper `count_verified_registrations()`.
+3. `migration_002_admin_sessions_rls.sql` — `admin_sessions` + deny-all RLS.
+4. `migration_003_supabase_explicit_grants.sql` — explicit REVOKE/GRANT per table.
+5. `migration_004_cms_foundation.sql` — `cms_content`, `organization_settings`, RLS, grants, seed rows (placeholder `[TEST]` values).
+6. `migration_005` → `006` (superseded 7‑arg registration RPC), `007` (membership RPC), `008` (contact RPC), `009` (service_role SELECT grants).
+7. `migration_010_recurring_events.sql`, `migration_011_remaining_capacity.sql`.
+8. `migration_012_registration_self_cancellation.sql` — cancellation columns, `cancelled` status, **replaces** the registration RPC (now 8 args) and adds `cancel_event_registration_manual`.
+
+Not every statement is re-runnable: the `CREATE POLICY` statements in `schema.sql`/`migration_004` fail if the policy already exists. Production was built incrementally; do not re-run files blindly against it.
+
+## 2. Migration history (what each file really does)
 
-**RLS Policies:**
-- Public: SELECT only (read content)
-- Admin: SELECT, INSERT, UPDATE, DELETE (manage content)
-
-**Example Keys:**
-- `homepage.hero.title_de` — Homepage hero title in German
-- `homepage.hero.title_fa` — Homepage hero title in Persian
-- `about.story.content_de` — About section content in German
-- `membership.intro.description_fa` — Membership intro in Persian
-
----
-
-## Row-Level Security (RLS)
-
-All tables have RLS enabled. Policies are organized by role:
-
-### Public Role (Unauthenticated Users)
-
-- **events:** SELECT only (published events)
-- **event_registrations:** INSERT only (via RPC)
-- **membership_applications:** INSERT only (via RPC)
-- **contact_submissions:** INSERT only (via RPC)
-- **admin_sessions:** DENY all
-- **cms_content:** SELECT only (read content)
-
-### Admin Role (Authenticated Users)
-
-- **events:** Full CRUD (create, edit, publish, delete)
-- **event_registrations:** SELECT, UPDATE (view and update status)
-- **membership_applications:** SELECT, UPDATE (view and update status)
-- **contact_submissions:** SELECT, UPDATE (view and mark read)
-- **admin_sessions:** Full CRUD (manage sessions)
-- **cms_content:** Full CRUD (edit content)
-
-### Service Role (Supabase Internal)
-
-- All tables: Full CRUD
-- Used by SECURITY DEFINER RPCs to bypass RLS
-
----
-
-## SECURITY DEFINER Stored Procedures (RPCs)
-
-Public form submissions use RPCs that run with service role permissions:
-
-### insert_event_registration(event_id, first_name, last_name, email, phone, telegram_id, comment)
-
-```sql
--- Validates input
--- Checks for duplicate (event_id + email)
--- Inserts into event_registrations with status='new'
--- Returns registration ID
-```
-
-### insert_membership_application(first_name, last_name, email, phone, telegram_id, additional_info)
-
-```sql
--- Validates input
--- Checks for duplicate email
--- Inserts into membership_applications with status='new'
--- Returns application ID
-```
-
-### insert_contact_submission_manual(name, email, message)
-
-```sql
--- Validates input
--- Inserts into contact_submissions
--- Returns submission ID
-```
-
----
-
-## Data Relationships
-
-```
-events (1) ──── (N) event_registrations
-  │
-  └─ Bilingual content (title_fa, title_de, etc.)
-
-membership_applications
-  └─ Standalone (no foreign keys)
-
-contact_submissions
-  └─ Standalone (no foreign keys)
-
-admin_sessions
-  └─ Tracks active admin logins
-
-cms_content
-  └─ Keyed by page/section/item_type
-```
-
----
-
-## Indexing Strategy
-
-All tables indexed on:
-- Primary key (automatic)
-- Frequently filtered columns (status, page, section)
-- Sort columns (created_at, event_date)
-- Unique constraints (email, slug)
-
----
-
-## Data Retention & Cleanup
-
-### Current Implementation
-
-- No automatic deletion of old submissions
-- Admin manually deletes or archives as needed
-- Contact submissions stored indefinitely
-
-### Recommended Retention Periods
-
-| Data | Duration | Rationale |
-|------|----------|-----------|
-| Event registrations | Until event + 30 days | Allow follow-up, then cleanup |
-| Membership applications | Until response + 30 days | Allow recontact period |
-| Contact submissions | Until response + 14 days | Response period + housekeeping |
-| Admin sessions | Auto-expire 24 hours | Security best practice |
-
-**Note:** These are recommendations; actual retention policy should be decided by owner.
-
----
-
-## Backup & Restore
-
-### Supabase Backups
-
-Supabase automatically backs up the database daily. To restore:
-1. Go to Supabase dashboard → Settings → Backups
-2. Select a backup date
-3. Restore to a new project or overwrite current
-
-### Manual Export
-
-To export data for analysis or archival:
-```bash
-pg_dump [supabase-connection-string] > backup.sql
-```
-
----
-
-## Migration Example
-
-To add a new column to the events table:
-
-1. Create a migration file: `migration_010_add_category_to_events.sql`
-2. Write the ALTER TABLE statement
-3. Deploy to Supabase SQL editor
-4. Update `data/schema.sql` to reflect new schema
-
----
-
-## Troubleshooting
-
-### RLS Permission Denied
-
-- Check that user is authenticated (for admin operations)
-- Verify session token is valid and not expired
-- For public submissions, ensure RPC is used (not direct INSERT)
-
-### Duplicate Key Violation
-
-- For event registrations: Email already registered for this event
-- For memberships: Email already has application
-- For contact: Only an issue if UNIQUE constraint added
-
-### Foreign Key Constraint Violation
-
-- Deleting event cascades to delete registrations
-- Check cascade settings match intended behavior
-
----
-
-## Performance Notes
-
-- In-memory rate limiter used for form submissions
-- No pagination implemented; all queries return full result sets
-- Consider adding pagination for large result sets (1000+ rows)
-- Database-backed rate limiting (vs. in-memory) recommended for multi-instance deployments
-
----
-
-## Related Documentation
-
-- **FORMS.md** — Form validation rules, API endpoints
-- **SECURITY.md** — RLS policies, data privacy
-- **ARCHITECTURE.md** — Database layer design, API integration
+| File | Effect |
+|---|---|
+| `schema.sql` | Base tables, RLS, grants. Header comments record that `registration_status`, `capacity`, `registration_deadline` had to be added to production by hand with `ALTER TABLE` |
+| `migration_001` | Adds `verification_token_hash`, `verification_token_expires_at`, `verified_at` to `event_registrations`; status check now allows `pending, verified, new, contacted, confirmed, declined`; default status `'pending'`; function `count_verified_registrations(BIGINT)`. **Legacy** of the removed verification flow. The RPC sets `'new'` explicitly, so the default no longer matters |
+| `migration_002` | `admin_sessions(id uuid, token_hash, created_at, expires_at, user_id)` + indexes + RLS policy `admin_sessions_deny_public` |
+| `migration_003` | `REVOKE ALL` then minimal `GRANT`s: `events` SELECT to `public, authenticated`; INSERT for `anon` on the three form tables (+ sequence USAGE); nothing on `admin_sessions` |
+| `migration_004` | `cms_content`, `organization_settings` (+ unique key index), public-read-only RLS/grants, seed rows (13 keys, placeholder values) |
+| `migration_005` | RPC `insert_event_registration_manual` (7 args) that swallows errors and returns `NULL` |
+| `migration_006` | Same RPC without the swallowing (errors now propagate, so duplicates are detectable) |
+| `migration_007` | RPC `insert_membership_application_manual` |
+| `migration_008` | RPC `insert_contact_submission_manual` |
+| `migration_009` | `GRANT SELECT` to `service_role` on `admin_sessions`, `event_registrations`, `events` |
+| `migration_010` | `events.event_date` nullable; `events.is_recurring BOOLEAN DEFAULT FALSE` |
+| `migration_011` | `events.remaining_capacity INT` (manual display value only) |
+| `migration_012` | `event_registrations.cancellation_token_hash` (unique partial index), `cancelled_at`, status `cancelled` allowed; drops the 7-arg RPC and recreates it with `cancellation_token_hash_param`; adds `cancel_event_registration_manual(token_hash_param)` |
+| `verify_migration_004.sql` | Read-only verification queries for migration 004 (not a migration) |
+
+## 3. Tables
+
+### `events`
+| Column | Notes |
+|---|---|
+| `id BIGSERIAL PK`, `created_at`, `updated_at` | |
+| `title_fa`, `title_de` (NOT NULL), `slug` (NOT NULL, UNIQUE) | slug is generated by `/api/admin/events` as `title_fa.toLowerCase().replace(/\s+/g,'-')` (so Persian slugs exist, e.g. `بحث-آزاد-با-نیتیو-آلمانی`) |
+| `description_fa`, `description_de`, `location_fa`, `location_de` | |
+| `event_date DATE` (nullable since migration 010), `event_time TIME` | |
+| `capacity INT`, `remaining_capacity INT` | informational only; `remaining_capacity` is set manually in the admin editor |
+| `registration_deadline DATE` | stored; no code enforces it |
+| `is_recurring BOOLEAN` | |
+| `status` | `draft` \| `published` \| `archived` (CHECK) |
+| `registration_status` | `not_open` (default) \| `open` \| `closed` (CHECK) |
+| `registration_open BOOLEAN` | deprecated, still present, ignored by the app |
+| `image_url TEXT`, `admin_notes TEXT` | `admin_notes` is never sent to the public (`lib/events-filter.js`) |
+
+Indexes: `idx_events_date`, `idx_events_status`. RLS: policy `public_read_published_events` (SELECT where `status='published'`).
+
+### `event_registrations`
+`id`, `created_at`, `updated_at`, `event_id → events(id) ON DELETE CASCADE`, `first_name`, `last_name`, `email`, `phone`, `telegram_id`, `comment`, `status` (`new` default via RPC; CHECK after migration 012 allows `pending, verified, new, contacted, confirmed, declined, cancelled`), `admin_notes`, `cancellation_token_hash`, `cancelled_at`, plus the legacy `verification_token_hash`, `verification_token_expires_at`, `verified_at` (migration 001; unused). Constraint `event_registrations_email_unique UNIQUE (event_id, email)` — email is stored lower-cased by the API. Cancelled rows are kept, so the same email cannot register again for that event.
+
+Status values actually used today: `new → contacted → confirmed | declined`, and `cancelled` (set only by the self-cancellation RPC; the admin dropdown can also set it). `pending`/`verified` are legacy and never written.
+
+### `membership_applications`
+`id`, `created_at`, `updated_at`, `first_name`, `last_name`, `email` (UNIQUE), `phone`, `telegram_id`, `additional_info`, `status` (`new`, `contacted`, `accepted`, `declined`), `admin_notes`.
+
+### `contact_submissions`
+`id`, `created_at`, `name`, `email`, `message`, `read BOOLEAN DEFAULT FALSE`, constraint `UNIQUE (email, created_at)`. There is **no admin UI** for this table (read it in the Supabase dashboard); no code reads or sets `read`.
+
+### `admin_sessions`
+`id UUID`, `token_hash` (SHA-256 of the cookie token, indexed, **not** unique-constrained), `created_at`, `expires_at`, `user_id` (always `'admin'`). RLS enabled with a deny-all policy; only the service role (secret key) reads/writes it. No `updated_at` column.
+
+### `cms_content`
+`id`, `key` (UNIQUE), `page`, `section`, `item_type`, `content_type` (`text|textarea|rich_text`), `content_fa`, `content_de` (both NOT NULL), `admin_label`, `admin_help`, `sort_order`, `is_enabled`, `is_locked`, timestamps, `created_by`, `updated_by`. Public may SELECT (RLS policy `cms_public_read_enabled`). **Only these keys are read by the site:** `homepage.hero.title` (fa and de), `homepage.hero.subtitle` (fa; the German subtitle comes from `lib/i18n.js`), `homepage.about.description` (fa, de). Note the migration seeds `homepage.about_card.description`, not `homepage.about.description`, so the about text falls back to i18n unless a row with the exact key exists in production (NOT VERIFIED). Rows containing text that starts with `[` are treated as placeholders and ignored by `pages/index.js`. Because the German hero title is read from the CMS, changing the German title requires editing it in `/admin/content`, not in code.
+
+### `organization_settings`
+Key/value rows (`value_text`, `value_text_fa/_de`, `value_json`, `is_bilingual`, `is_locked`, …) edited through `/admin/settings`. **No public page reads this table** (footer/contact details are hard-coded), so edits there do not change the public site.
+
+### Legacy table referenced by code: `content`
+`/api/admin/content` queries `from('content')`. No migration creates a `content` table; the endpoint is not used by the admin UI. Treat as dead code (existence in production NOT VERIFIED).
+
+## 4. RPC functions (all `SECURITY DEFINER`, `search_path = public`)
+
+| Function | Args | Returns | Granted to |
+|---|---|---|---|
+| `insert_event_registration_manual` | `event_id_param, first_name_param, last_name_param, email_param, phone_param, telegram_id_param, comment_param, cancellation_token_hash_param` (all after the 4th optional) | new id (BIGINT); inserts with status `'new'` | `EXECUTE` to `anon` only |
+| `insert_membership_application_manual` | `first_name_param, last_name_param, email_param, phone_param, telegram_id_param, additional_info_param` | new id | `anon` |
+| `insert_contact_submission_manual` | `name_param, email_param, message_param` | new id | `anon` |
+| `cancel_event_registration_manual` | `token_hash_param` (64 hex chars) | table `out_outcome` (`cancelled`/`already_cancelled`/`invalid`) + registration fields for `cancelled` | `anon` |
+| `count_verified_registrations` | `event_id_param` | count of `verified` rows | not explicitly granted; legacy |
+
+Calling code: `pages/api/registrations/submit.js`, `pages/api/memberships/submit.js`, `pages/api/contact/submit.js`, `pages/api/registrations/cancel.js`. Duplicate handling: the registration API treats an error message containing `duplicate` as 409; the membership API checks Postgres code `23505`.
+
+Important: migration 012 **changed the signature** of `insert_event_registration_manual`. The deployed code calls the 8-argument form, so migration 012 must be applied before deploying code that sends `cancellation_token_hash_param`. (This ordering mistake caused a production outage; see [DEPLOYMENT.md](DEPLOYMENT.md).)
+
+## 5. Permissions and access boundaries
+
+Per the SQL files (production not re-verified here):
+
+| Table | `anon` | `service_role` (admin API) |
+|---|---|---|
+| `events` | SELECT (policy: published only) | SELECT granted explicitly; writes rely on Supabase's default service-role privileges |
+| `event_registrations`, `membership_applications` | `INSERT` + sequence `USAGE`; SELECT/UPDATE/DELETE blocked by grants and `USING (false)` policies | SELECT granted explicitly for registrations; other privileges as above |
+| `contact_submissions` | `INSERT` + sequence `USAGE`; others blocked | default |
+| `admin_sessions` | none | SELECT granted explicitly |
+| `cms_content`, `organization_settings` | SELECT only | default |
+
+Observations to review with the owner:
+- `anon` still holds **direct INSERT** on the three form tables (grant + permissive `WITH CHECK (true)` policy), although the application only uses the RPCs. A direct REST insert by someone with the public key would bypass the API's validation and rate limit, and could set columns such as `status`. Revoking `INSERT` from `anon` (keeping `EXECUTE` on the RPCs) would close this; it is **not** done in the repository SQL. Whether production matches is NOT VERIFIED.
+- The admin API relies on the secret key for every read of personal data; the secret key must never reach the browser (`SUPABASE_SECRET_KEY` is server-only; it is read only in `lib/supabase.js`).
+- Public data: published event rows and enabled CMS rows. `/api/events`, `/veranstaltungen` and `/veranstaltungen/[slug]` strip internal columns via `lib/events-filter.js`, but **`pages/index.js` (the home page) does not call the filter**: its page data contains the full event rows, including `admin_notes` (checked on production on 2026-10-17: the field appears 8 times, all empty). Any text an admin later saves in an event's `admin_notes` would therefore become publicly visible in the home page's embedded data until this is fixed (see [SECURITY.md](SECURITY.md) and [PROJECT_STATE.md](PROJECT_STATE.md)). Personal data (registrations, applications, contact messages) is never publicly readable.
+
+## 6. Schema drift (known)
+
+- `schema.sql` does not define `admin_sessions`, `cms_content`, `organization_settings` (they come from migrations 002/004).
+- The code (`lib/events-filter.js`) whitelists optional event columns `category`, `category_fa/_de`, `event_language(_fa/_de)`, `external_registration_url`, and `[slug].js` renders `external_registration_url` if present. No SQL file creates them and the production `/api/events` response contains none of them, so they do not exist in production as of 2026-10-17 (verified from the public API output; the admin editor does not write them either).
+- `registration_status`, `capacity`, `registration_deadline` were applied to production by hand before being added to `schema.sql`.
+
+## 7. Changing the schema safely
+
+1. Write `data/migration_0NN_<name>.sql` (idempotent where possible: `IF NOT EXISTS`, `DROP … IF EXISTS`; wrap in `BEGIN/COMMIT`).
+2. Update `data/schema.sql` so a fresh database matches.
+3. Apply to production in the Supabase SQL editor **before** deploying code that needs it. Take/confirm a backup first.
+4. If a function signature changes, drop the old signature and re-grant `EXECUTE` (see migration 012 for the pattern).
+5. Update this document.
+
+## 8. Backups, retention, deletion
+
+- Backups are a Supabase feature; the repository has no backup scripts. What plan/retention applies is NOT VERIFIED (check the Supabase dashboard).
+- There is **no automatic retention or deletion** of registrations, applications or contact messages, and no admin "delete" button for them. Deleting an event does not delete data (the admin `DELETE` only archives), but a hard delete of an `events` row in SQL would cascade to its registrations.
+- Retention periods are an owner decision (none are defined in code or in the privacy policy implementation).
+
+## 9. Troubleshooting
+
+| Symptom | Likely cause / check |
+|---|---|
+| Form returns 500 on all forms, Supabase says "Invalid API key" | `NEXT_PUBLIC_SUPABASE_URL` and the publishable key belong to different projects |
+| Registration returns 500 right after a deploy | RPC signature mismatch (migration 012 not applied), or `RESEND`/other env issue — check the function logs |
+| 409 on registration | unique `(event_id, email)` violated (including previously cancelled registrations) |
+| 409 on membership | unique `email` violated |
+| Admin pages show "Unauthorized" | session missing/expired, or `SUPABASE_SECRET_KEY`/`admin_sessions` problem |
+| New event column missing in API | not in the whitelist `PUBLIC_EVENT_FIELDS` of `lib/events-filter.js` or not in the table |
+
+Related: [ARCHITECTURE.md](ARCHITECTURE.md) · [FORMS.md](FORMS.md) · [SECURITY.md](SECURITY.md) · [DEPLOYMENT.md](DEPLOYMENT.md)

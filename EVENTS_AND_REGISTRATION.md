@@ -1,349 +1,110 @@
 # EVENTS AND REGISTRATION
 
-This document describes the event lifecycle and manual event registration workflow.
+How events are stored, published and displayed, and how the **manual registration model** works. Verified against the code on 2026-10-17; "NOT VERIFIED" marks things the repository cannot prove.
 
-## Overview
+Related: [FORMS.md](FORMS.md) · [DATABASE.md](DATABASE.md) · [ADMIN_GUIDE.md](ADMIN_GUIDE.md) · [ARCHITECTURE.md](ARCHITECTURE.md)
 
-Events are created and managed by admins. Users can register for events through a public form. Registration review is manual: no email-verification links, no automatic confirmation of attendance, no automatic capacity enforcement, no waitlists. After a registration is saved, the registrant automatically receives an acknowledgment (receipt) email, and the admin automatically receives a notification email. The receipt does **not** confirm attendance. Admins review registrations and contact users directly. Registrants can cancel through a secure link in the receipt email (see "Self-Cancellation").
-
----
-
-## Event Lifecycle
-
-### 1. Create Event
-
-**Admin action:** `/admin/events` → Create Event
-
-**Form fields:**
-- Title (German & Persian)
-- Description (German & Persian)
-- Date
-- Time (optional)
-- Location (German & Persian)
-- Capacity (informational only, not enforced)
-- Registration status (not_open / open / closed)
-- Image URL
-- Publish (checkbox)
-
-**Database result:** New row in `events` table with `published=false`, `registration_status='not_open'`
-
-### 2. Configure Registration
-
-**Admin action:** Edit event details
-
-**Registration status options:**
-- **not_open** — Event created, registration not yet available
-- **open** — Registration currently open
-- **closed** — Registration was open but is now closed
-
-**Capacity:** Displayed on event page but not enforced. Users can register even if capacity is reached.
-
-### 3. Publish Event
-
-**Admin action:** Check "Publish" checkbox, save
-
-**Database result:** `published=true`
-
-**Effect:** Event appears in `/veranstaltungen` listing and has its own detail page at `/veranstaltungen/[slug]`
-
-### 4. User Registration Period
-
-**Users can register:** Click event → Fill registration form → Submit
-
-**Workflow:**
-1. User visits `/veranstaltungen/[slug]`
-2. User fills event registration form
-3. User clicks submit
-4. Form data POST to `/api/registrations/submit`
-5. Backend validates, saves to database with `status='new'`
-6. Admin notification email is sent (non-blocking)
-7. A receipt (acknowledgment) email is sent to the registrant (non-blocking). It says the registration was *received*, not that attendance is confirmed
-8. User sees success message
-9. Registration appears in admin dashboard
-
-### 5. Admin Review
-
-**Admin action:** `/admin/registrations` → View registrations for event
-
-**What admin sees:**
-- User name, email, phone, Telegram
-- Any optional comments
-- Status (new, contacted, confirmed, declined)
-- Submission date
-- Download CSV export
-
-**Admin actions:**
-- Click registration to view details
-- Update status (new → contacted → confirmed/declined)
-- Export registrations to CSV
-
-### 6. Admin Contacts User
-
-**Outside the website:** Admin uses email/Telegram/phone to contact registrant
-
-**Admin message might say:**
-- Event details confirmed
-- Location, date, time
-- What to bring
-- Questions or special requests
-
-**Registration status updated manually:**
-- "contacted" — Admin has reached out
-- "confirmed" — User confirmed attendance
-- "declined" — User declined or no response
-- "cancelled" — Set automatically when the registrant cancels via the link in the receipt email (not set manually)
-
-### 7. Event Occurs
-
-Event happens on scheduled date/time.
-
-### 8. Archive Event
-
-**Admin action (optional):** Edit event → Toggle "archived" (if implemented)
-
-**Effect:** Event no longer appears in public listing but remains in database for historical records
-
----
-
-## Registration Form
-
-### Fields
-
-| Field | Required | Validation |
-|-------|----------|-----------|
-| First Name | Yes | 1–100 characters |
-| Last Name | Yes | 1–100 characters |
-| Email | Yes | Valid email format |
-| Phone | No | 5–20 characters if provided |
-| Telegram ID | No | @ handle or numeric if provided |
-| Comment | No | ≤1000 characters |
-
-### Duplicate Prevention
-
-- Users cannot register twice for the same event with the same email
-- Attempting duplicate returns validation error
-- User must use different email or clear previous registration (admin action)
-
-### API Endpoint
-
-**POST** `/api/registrations/submit`
-
-**Validation:**
-- Required fields: firstName, lastName, email
-- Email format validation
-- Phone length: 5–20 if provided
-- Telegram: @ prefix or numeric if provided
-- Comment: ≤1000 chars if provided
-
-**Database:**
-- Stored in `event_registrations` table
-- Marked with `status='new'`
-- Associated with correct event via `event_id`
-
-**Response:**
-- 201 (success) with registration ID
-- 400 (validation error) with error details
-- 429 (rate limit exceeded) with Retry-After
-
----
-
-## Registration Status Workflow
-
-### Status Transitions
+## 1. The manual registration model (do not change without owner approval)
 
 ```
-new
-  ↓ (admin action: "I've contacted this person")
-contacted
-  ├─→ confirmed (user confirmed attendance)
-  └─→ declined (user declined or no response)
-
-(any status) ─→ cancelled   (registrant used the cancellation link; set by the system)
+Visitor submits the form
+  → the registration is saved immediately (status "new")
+  → the admin is notified by email
+  → the registrant gets a receipt email ("received", NOT a confirmation)
+  → an admin reviews it and contacts the person manually
 ```
 
-### Status Meanings
+There is **no** email-verification token (the endpoint `/api/registrations/verify` always returns 404 and `pages/registrations/verify.js` only shows a thank-you message for old links), **no** automatic approval or confirmation of attendance, and **no** automatic capacity enforcement or closing. A failed email never rolls back a saved registration.
 
-- **new** — Registration received, not yet reviewed
-- **contacted** — Admin has reached out to user
-- **confirmed** — User confirmed attendance
-- **declined** — User declined or no longer attending
-- **cancelled** — Registrant cancelled via the self-cancellation link. The row is kept (never deleted) with `cancelled_at` set. The `(event_id, email)` unique constraint still applies, so the same email cannot register again for that event.
+## 2. Event data
 
-### Receipt Email and Self-Cancellation
+Table `events` (see [DATABASE.md](DATABASE.md#events)). Fields an admin edits in `/admin/events/[slug]`: titles (FA, DE — both required), descriptions, date (optional) and time, locations, `capacity`, `remaining_capacity`, `registration_deadline`, `image_url`, `status`, `registration_status`, `admin_notes`, and the event type (dated vs. recurring).
 
-- **Receipt email** (to the registrant, in the registration language FA/DE): states the registration was received, that DIDAR may contact them by email or social networks, asks them to check Spam/Junk, and contains the cancellation link. It is an acknowledgment only; it does not confirm attendance or acceptance. Inbox placement is not guaranteed.
-- **Admin notification** (to `DIDAR_NOTIFICATION_EMAIL`): unchanged, plus a cancellation notification (`[DIDAR] Event Registration Cancelled — <event>`) when someone cancels.
-- **Cancellation**: the link opens `/registrations/cancel?token=...`, which only shows a confirmation button; opening it (GET) never changes data. The button sends a POST to `/api/registrations/cancel`. Only a SHA-256 hash of the random token is stored; the raw token exists only in the email. Cancelling twice is harmless and sends no second admin email.
-- Email failures never roll back a registration or a cancellation.
+| Field | Meaning in the code |
+|---|---|
+| `status` | `draft` (hidden), `published` (public), `archived` (hidden; this is what the admin "delete" does) |
+| `registration_status` | `not_open` → "coming soon"; `open` → form shown; `closed` → "registration closed" |
+| `capacity` | number stored/validated (positive integer or empty); **not enforced** |
+| `remaining_capacity` | non-negative integer the admin sets by hand; shown publicly as "ظرفیت باقیمانده / Verbleibende Plätze" when it is a number; purely informational |
+| `registration_deadline` | stored and editable; **no code reads it** (nothing closes registration at the deadline) |
+| `is_recurring` | see categorisation below |
+| `image_url` | `lib/event-image.js` uses it, else a deterministic fallback from `public/images/event-1…5.jpg` |
+| `slug` | created from `title_fa` (lower-cased, spaces → `-`) when the event is **created**; the admin update does not change it. Slugs may be Persian |
 
----
+Dates are stored as `DATE`; display uses `formatDate`/`formatTime` in `lib/i18n.js` (Gregorian calendar for both languages; Persian digits/month names for `fa`; German time as `19:15 Uhr`).
 
-## Event Registration Status vs. User Registration Status
+## 3. Listing and categorisation
 
-**Two different status fields:**
+`lib/events-categorizer.js` splits published events (evaluated at request/ISR time using today's UTC date):
 
-### Event Registration Status (event.registration_status)
+1. no `event_date` → **upcoming** (even if flagged recurring; date-less events sort last)
+2. else `is_recurring` → **recurring**
+3. else `event_date >= today` → **upcoming**
+4. else → **past**
 
-Refers to the event itself:
-- **not_open** — Event created, signup window not yet open
-- **open** — Signup is currently open
-- **closed** — Signup window has closed
+Upcoming events are sorted ascending by date. Practical consequence: the admin editor hides the date field for the "recurring" type, so a recurring event saved without a date is shown in the **upcoming** group, not in "recurring" (migration 010's comment describes a different intent). Treat this as a known quirk until the owner decides.
 
-### User Registration Status (event_registrations.status)
+Where it is used: home page (`/`, up to 6 per group), `/veranstaltungen` (carousels per group), `GET /api/events?category=…`. Pages are ISR (see [ARCHITECTURE.md](ARCHITECTURE.md#4-rendering-and-caching)), so a change can take up to the revalidation time to appear (home/list: up to 1 h normally; detail page: 60 s).
 
-Refers to individual user registrations:
-- **new** — Submitted but not reviewed
-- **contacted** — Admin has been in touch
-- **confirmed** — Attendance confirmed
-- **declined** — Not attending or no response
+## 4. Event detail page and registration form
 
----
+`/veranstaltungen/[slug]` shows the event and, depending on state:
 
-## Capacity & Overflow
+1. event has `external_registration_url` (column does not exist in production today) → link instead of form;
+2. `registration_status = open` and not "full" → the registration form;
+3. past event → "event has passed"; 4. `closed` → closed notice; 5. otherwise "not yet open". Because rule 2 is evaluated first, an event whose date has passed still shows the form while its `registration_status` is `open`; closing it is the admin's job.
 
-### Current Implementation
+The form and its server rules are documented in [FORMS.md](FORMS.md#3-event-registration). The server independently requires `registration_status = 'open'` and a published event, so a stale page cannot register someone for a closed event (HTTP 409).
 
-- Capacity field is **informational only**
-- No automatic capacity enforcement
-- Users can register even if event is full
-- No waitlist system
+## 5. Registration status workflow
 
-### Admin Handling
+`event_registrations.status`:
 
-If event reaches capacity:
-1. Admin manually stops processing new registrations
-2. Admin contacts subsequent registrants to offer alternatives
-3. Admin manually marks overflow registrations as "declined"
+| Status | Set by | Meaning |
+|---|---|---|
+| `new` | system (RPC) | received, not reviewed |
+| `contacted` | admin | admin reached out |
+| `confirmed` | admin | admin confirmed participation (a manual decision) |
+| `declined` | admin | declined / no longer attending |
+| `cancelled` | system (self-cancellation) or admin dropdown | registration withdrawn; row kept with `cancelled_at` |
+| `pending`, `verified` | nobody | legacy values still allowed by the CHECK constraint |
 
-### Future Enhancement
+Admin changes status and notes in `/admin/registrations` (`PATCH /api/admin/registrations/[id]`, which writes whatever `status` it is sent — there is no server-side allow-list).
 
-A future version could:
-- Automatically enforce capacity limits
-- Implement automatic waitlist
-- Send acknowledgment emails
-- Auto-confirm registrations up to capacity
+Duplicates: unique `(event_id, email)`. The same email cannot register twice for the same event, and a **cancelled registration still blocks re-registration** with that email (owner decision pending; releasing it today requires deleting the row in SQL).
 
----
+## 6. Receipt email and self-cancellation
 
-## Email Verification (Disabled)
+**Receipt.** After a successful registration the registrant receives one email (FA or DE according to the page language). It states that the registration *request was received* and is *not a final confirmation* (the registration is confirmed after DIDAR's review), asks to check Spam/Junk, includes a "cancel registration" button, contact details and official links. Wording lives in `COPY` in `lib/registration-receipt-email.js`.
 
-### Current Status
+**Cancellation.**
+1. The email link is `{NEXT_PUBLIC_APP_URL or https://www.didar-stuttgart.com}[/de]/registrations/cancel?token=<43-char token>`.
+2. `pages/registrations/cancel.js` only shows a confirmation button — opening the link (GET) never changes data.
+3. The button sends `POST /api/registrations/cancel {token}` (rate-limited). A malformed token → `404 {status:'invalid'}`; otherwise the RPC `cancel_event_registration_manual` looks up the SHA-256 hash and returns `cancelled`, `already_cancelled` or `invalid`.
+4. First cancellation sets `status='cancelled'`, `cancelled_at`, and the admin receives `[DIDAR] Event Registration Cancelled — <event>`; repeating it is harmless and sends no second email.
+5. Only the hash of the token is stored; the raw token exists only in the emailed link. The token is not an authentication credential for anything else.
 
-The endpoint `/api/registrations/verify` is **disabled and returns HTTP 404**.
+If the receipt cannot be sent (missing `RESEND_API_KEY`, Resend error) the registration still exists but the person has no cancellation link; the admin must handle cancellations manually.
 
-### Why Disabled
+## 7. Capacity
 
-Email verification links:
-- Require transactional email service
-- Complicate user workflow
-- Unnecessary for manual contact model
+Capacity is informational. `GET /api/events/[eventId]/capacity-status` counts rows with status `verified`, which the manual model never writes, so on production it returns `verified_count: 0`, `is_full: false` (checked for event 1 on 2026-10-17: `capacity: 0`). The event page still contains code that would disable the form when `is_full` were true — that branch is effectively dead. If an event is full, an admin sets `remaining_capacity` to 0 and/or closes registration by hand, and contacts the extra registrants.
 
-### Current Workflow
+## 8. Known issues (documented, not fixed)
 
-No verification needed:
-1. User submits form with email
-2. Admin reviews registration
-3. Admin contacts user directly via email/Telegram/phone
-4. Admin confirms details and attendee status
+1. **Event page may "auto-open" registration.** In `getStaticProps` of `pages/veranstaltungen/[slug].js`, if a published event has `registration_status = 'not_open'` the code tries to `UPDATE events SET registration_status='open'` (with the publishable key) and sets the prop to `open` regardless of whether the update persisted. Effects: (a) the page can show an open form while the database still says `not_open` — on 2026-09-28 QA observed exactly this (page open; API answered 409); (b) if the update does persist, an admin's `not_open` is silently overridden. Only `not_open` is affected, not `closed` (per the code). Whether the write ever succeeds for the `anon` role is NOT VERIFIED (migration 003 grants `anon` only SELECT on `events`). Owner decision required; do not change without an explicit request.
+2. `registration_closed` 409 from the API is shown to the user as the "already registered" message.
+3. `capacity-status` never reports full (see §7).
+4. Recurring events without a date appear under "upcoming" (see §3).
+5. `registration_deadline` is not used anywhere.
+6. The admin registrations CSV has an "event" column that reads a non-existent field (`reg.event`), so it is expected to be empty for every row (code inspection; not executed).
+7. `/api/admin/fix-event-status` exists to force `registration_status='open'`; it has no UI in the repository.
 
----
+## 9. Troubleshooting
 
-## Admin Dashboard Features
-
-### Registration List
-
-- View all registrations for all events
-- Filter by event
-- Filter by status (new, contacted, confirmed, declined, cancelled)
-- Sort by submission date, name
-- Search by name or email
-
-### Individual Registration
-
-- Click to view full details
-- All submitted fields displayed
-- Update status with dropdown
-- Add notes or comments (if implemented)
-
-### Bulk Operations
-
-- Export to CSV (all registrations, or filtered subset)
-- Useful for:
-  - External communication tools (mail merge, etc.)
-  - Personal records
-  - Sharing with co-organizers
-
----
-
-## Data Privacy
-
-### What's Collected
-
-- Name, email, phone (optional), Telegram (optional), comment (optional)
-- Associated event
-- Submission timestamp
-
-### How It's Used
-
-- Admin contacts registrant about event details
-- No email list sold or shared externally
-- Retained per owner's data retention policy
-
-### User Rights
-
-- No built-in data export or deletion (future enhancement)
-- Currently: Contact admin to request data deletion
-
----
-
-## Troubleshooting
-
-### User Gets "Already Registered" Error
-
-- User already registered for this event with same email
-- User must:
-  - Use different email, OR
-  - Contact admin to remove old registration
-
-### Admin Can't See Registration
-
-- Ensure event is published (unpublished events can't receive registrations)
-- Check event registration status is "open"
-- Verify registration status is not "new" — filter might be hiding it
-
-### Capacity Shows as Full
-
-- Capacity is informational; users can still register
-- If actual capacity reached, admin must manually:
-  - Stop offering the event
-  - Contact overflow registrants
-  - Mark as "declined" with explanation
-
----
-
-## Best Practices
-
-### For Admins
-
-1. Check registrations daily during signup period
-2. Contact registrants within 48 hours of signup
-3. Confirm attendance 1 week before event
-4. Export registrations for event-day reference
-5. Archive or document registrations after event
-6. Respond to special requests (dietary needs, accessibility, etc.)
-
-### For Users
-
-1. Register with correct email and name
-2. Include relevant information in comment (special needs, etc.)
-3. Respond promptly when admin contacts
-4. Confirm attendance by deadline
-
----
-
-## Related Documentation
-
-- **FORMS.md** — Registration form validation and API details
-- **ARCHITECTURE.md** — Database schema for event_registrations
-- **ADMIN_GUIDE.md** — Admin dashboard walkthrough
-- **DATABASE.md** — event_registrations table schema
+| Problem | Check |
+|---|---|
+| Form missing on a published event | `registration_status` must be `open`; wait up to 60 s for ISR; check `external_registration_url`/past date |
+| "Already registered" | same email already stored for that event (including cancelled) |
+| Registrant says no email arrived | check Spam; check Resend logs and the function logs for `[Receipt Email]`; the registration itself is unaffected |
+| Event changes not visible | ISR delay; list pages can take up to an hour |

@@ -1,8 +1,15 @@
 import { verifyPassword, generateSessionToken } from '@/lib/admin-auth';
 import { createSession } from '@/lib/session-store-db';
 import { validateRequired } from '@/lib/validation';
+import { checkLoginAllowed, recordLoginFailure, clearLoginFailures } from '@/lib/login-throttle';
 
 const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH;
+
+function getClientIp(req) {
+  const fwd = req.headers['x-forwarded-for'];
+  const first = typeof fwd === 'string' ? fwd.split(',')[0].trim() : '';
+  return first || req.socket?.remoteAddress || 'unknown';
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -10,8 +17,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('\n📨 LOGIN REQUEST');
-    const { password } = req.body;
+    const clientId = getClientIp(req);
+    const gate = checkLoginAllowed(clientId);
+    if (!gate.allowed) {
+      res.setHeader('Retry-After', String(gate.retryAfter));
+      return res.status(429).json({ error: 'Too many attempts. Please try again later.' });
+    }
+
+    const { password } = req.body || {};
 
     if (!validateRequired(password, 1, 500)) {
       console.log('❌ LOGIN FAILED: Password empty\n');
@@ -26,6 +39,7 @@ export default async function handler(req, res) {
     }
 
     if (!verifyPassword(password, ADMIN_PASSWORD_HASH)) {
+      recordLoginFailure(clientId);
       console.log('❌ LOGIN FAILED: Wrong password\n');
       return res.status(401).json({ error: 'Authentication failed' });
     }
@@ -34,12 +48,11 @@ export default async function handler(req, res) {
     await createSession(token);
 
     console.log('✅ LOGIN SUCCESS');
-    console.log('🍪 Setting cookie: session_token');
-    console.log('   Token:', token.substring(0, 16) + '...');
-    console.log('   Max-Age: 86400 seconds (24 hours)\n');
+    clearLoginFailures(clientId);
 
-    res.setHeader('Set-Cookie', 
-      `session_token=${token}; Path=/; Max-Age=86400; HttpOnly; SameSite=Lax`
+    const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+    res.setHeader('Set-Cookie',
+      `session_token=${token}; Path=/; Max-Age=86400; HttpOnly; SameSite=Lax${secure}`
     );
 
     return res.status(200).json({

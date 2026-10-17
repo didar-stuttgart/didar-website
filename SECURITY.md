@@ -1,571 +1,112 @@
-# Security Documentation
+# SECURITY
 
-**Last Updated:** September 27, 2026
+What is actually implemented, what is only a manual procedure, and what is a known gap. Verified against the repository and the production site on 2026-10-17. Nothing here is a legal opinion or a guarantee of compliance; legal pages (Impressum, Datenschutz) need owner-reviewed, evidence-based legal review.
 
-## Overview
+**Never write secret values into this repository, into documentation, or into chat/tickets.** Secrets are referred to by variable name only.
 
-DIDAR implements security best practices for protecting user data, admin credentials, and application integrity. This document describes authentication mechanisms, data protection, access control, and incident response procedures.
+Related: [DATABASE.md](DATABASE.md) · [DEPLOYMENT.md](DEPLOYMENT.md) · [FORMS.md](FORMS.md) · [ADMIN_GUIDE.md](ADMIN_GUIDE.md)
 
----
+Legend — **Implemented** (in code, checked) · **Manual** (procedure/dashboard setting) · **Gap** (known weakness or unverified).
 
-## 1. Admin Authentication
+## 1. Secrets and configuration
 
-### Password Hashing
+| Item | Status |
+|---|---|
+| `.env.local` is git-ignored (`.gitignore` covers `.env`, `.env*.local`, `.env.production`, `.env.development`, `.env*.secret`, `*.pem`, `*.key`, `.sessions.json`, `*.csv`, `*.xlsx`) | Implemented |
+| `.env.example` contains only placeholders | Implemented (checked) |
+| Pattern scan of all tracked files and of the Git history for Supabase/Resend/JWT-style keys and private keys (2026-10-17) found no secrets; `.env`/`.env.local` were never committed. Only placeholder strings appear in docs. The scan is pattern-based and cannot prove absence | Implemented / limited evidence |
+| `SUPABASE_SECRET_KEY` only read server-side in `lib/supabase.js`; not prefixed `NEXT_PUBLIC_` | Implemented |
+| `RESEND_API_KEY` only read server-side | Implemented |
+| Key rotation, separate prod/dev secrets, who has dashboard access | Manual / NOT VERIFIED |
+| `scripts/tmp/insert_events.js` and `update-event-descriptions.sh` read secrets from `.env.local` / environment (not stored in them) | Implemented; scripts are one-offs (see [PROJECT_STATE.md](PROJECT_STATE.md)) |
 
-Admin passwords are hashed using PBKDF2 (Password-Based Key Derivation Function 2) with the following configuration:
+## 2. Admin authentication and sessions
 
-```javascript
-// From lib/password.js
-const hashPassword = (password) => {
-  const salt = crypto.randomBytes(32).toString('hex');
-  const hash = crypto.pbkdf2Sync(
-    password,
-    salt,
-    100000,  // iterations
-    64,      // keylen
-    'sha256'
-  ).toString('hex');
-  return `${salt}:${hash}`;
-};
-```
+Implemented (`lib/admin-auth.js`, `lib/session-store-db.js`, `pages/api/auth/*`, `lib/api-middleware.js`):
+- One admin account. Password checked against `ADMIN_PASSWORD_HASH` = `salt:hash`, **PBKDF2-SHA256, 10,000 iterations**, 64-byte key, 16-byte random salt. `scripts/setup-admin.js` enforces a password of ≥ 12 characters with upper/lower/digit/special.
+- Login creates a random 32-byte token, stores only its SHA-256 in `admin_sessions` (24 h expiry) and sets cookie `session_token; Path=/; Max-Age=86400; HttpOnly; SameSite=Lax`.
+- Every `/api/admin/*` route calls `requireAdminSession` (cookie → hash → lookup → expiry check; any error = denied). Expired sessions are deleted when presented. Logout deletes the row.
+- `admin_sessions` has RLS with a deny-all policy and no grants to `anon`/`authenticated`; only the service role reads/writes it.
+- Unauthenticated calls to admin APIs return 401 (checked on production for `/api/admin/events`).
 
-**Key parameters:**
-- **Algorithm:** PBKDF2-SHA256
-- **Iterations:** 100,000 (increases computational cost for brute-force attacks)
-- **Key Length:** 64 bytes (512 bits)
-- **Salt:** 32 random bytes per password
+Fixed on 2026-10-17 (uncommitted until deployed; tested locally): the session cookie gets `Secure` when `NODE_ENV=production` (items 1 below); login is throttled (5 failures per IP per 15 min → HTTP 429, `lib/login-throttle.js`, in-memory per instance); password comparison is constant-time; session-token and cookie-header logging was removed from `login`, `verify`. Remaining gaps / owner decisions:
+1. *(Fixed in code, takes effect on deploy; production cookie flags NOT VERIFIED)* `Secure` flag.
+2. PBKDF2 iteration count (10,000) is far below current guidance. Raising it needs a hash-format change and a new `ADMIN_PASSWORD_HASH` — owner decision.
+3. Login throttle is in-memory per serverless instance, so it slows guessing but is not a global limit.
+4. Auth logging no longer prints token material. Older Vercel logs may still contain 16-character token prefixes; sessions last 24 h, so they have expired.
+5. No CSRF token; protection relies on `SameSite=Lax` and JSON-only endpoints.
+6. Single shared password: no per-user accountability, no password-change feature, no 2FA.
+7. Sessions are not revoked on logout from other devices; "revoke all" is a manual SQL delete (§8).
 
-**Important:** Never store plaintext passwords. Always use `hashPassword()` when creating or updating admin accounts.
+## 3. Database access control
 
-### Session Management
+See [DATABASE.md](DATABASE.md#5-permissions-and-access-boundaries) for the full matrix. Summary:
+- RLS enabled on all tables; public reads limited to published events and enabled CMS rows; personal-data tables are not readable by `anon`. Implemented (per repo SQL; production state NOT re-verified).
+- Public writes go through `SECURITY DEFINER` RPCs executable by `anon`; admin work uses the secret key. Implemented.
+- **Gap:** `anon` still has direct `INSERT` on `event_registrations`, `membership_applications`, `contact_submissions` (grant + permissive policy), so the API's validation/rate-limit can be bypassed by someone holding the public key. The RPCs make this unnecessary; consider revoking.
+- Fixed in code 2026-10-17: the home page strips `admin_notes` from embedded event data (local build verified: 0 occurrences in `/` and `/de`). Production still serves the old payload until deployed; values were empty on 2026-10-17.
+- `getStaticProps` of the event page attempts a database `UPDATE` with the publishable key (see [EVENTS_AND_REGISTRATION.md](EVENTS_AND_REGISTRATION.md#8-known-issues-documented-not-fixed)).
 
-Admin sessions are stored in the `admin_sessions` table with database-backed authentication:
+## 4. Input handling
 
-```sql
-CREATE TABLE admin_sessions (
-  id BIGSERIAL PRIMARY KEY,
-  admin_id BIGINT NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
-  token_hash TEXT NOT NULL UNIQUE,
-  expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
-```
+- Server-side validation on all three forms and login (`lib/validation.js`); trimming; lower-cased emails; length limits (see [FORMS.md](FORMS.md)). Implemented.
+- SQL injection: all database access uses the Supabase client / RPC parameters; no string-built SQL in the application. Implemented.
+- XSS: React escapes rendered values; `dangerouslySetInnerHTML` is not used in `pages/` or `components/`. Emails: `escapeHtml()` is applied to user-supplied values in the admin notification and receipt templates. Implemented. (CMS values are rendered as text by React.)
+- CSV exports prefix cells starting with `=`, `+`, `-`, `@`, tab or CR with `'` (`lib/csv.js`; unit-tested).
+- Client-side checks (including the repeat-email comparison and the membership privacy checkbox) are UX only.
 
-**Session lifecycle:**
-1. Admin submits username and password on `/admin/login`
-2. Server validates credentials against `admins` table using PBKDF2 comparison
-3. Server generates random 64-character session token and stores hash in `admin_sessions`
-4. Token returned to client as HTTP-only secure cookie `session_token`
-5. Client sends cookie with each admin API request
-6. Server validates token hash against `admin_sessions` table before processing request
-7. Session expires after 24 hours (configurable via `ADMIN_SESSION_DURATION_MS`)
+## 5. Abuse protection
 
-**Security properties:**
-- **HTTP-Only Cookie:** Browser JavaScript cannot access the token (prevents XSS token theft)
-- **Secure Flag:** Cookie only transmitted over HTTPS
-- **Database-Backed:** Sessions stored server-side; clients cannot forge valid sessions
-- **Token Hashing:** Server never stores plaintext tokens; only hashes are saved
-- **Automatic Expiration:** Expired sessions become invalid; logout clears cookie
+- Public forms and the cancel endpoint: in-memory per-IP limiter (default 10 requests/60 s) shared across those endpoints. It resets on restart and is per server instance, so it limits casual abuse only. No CAPTCHA/bot protection. `x-forwarded-for` is trusted as sent.
+- Registrations require an open, published event and respect unique `(event_id, email)`.
+- Cancellation tokens: 256-bit random, only the SHA-256 is stored; format-checked (43 URL-safe chars) before any query; opening the link never mutates; invalid/unknown tokens return a uniform `404 invalid`.
 
-### Admin Credentials Initialization
+## 6. Transport, headers, cookies, storage
 
-For first-time admin setup:
+- HTTPS on Vercel; `next.config.js` sets `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 1; mode=block`, `Referrer-Policy: strict-origin-when-cross-origin`; Vercel adds HSTS (observed `max-age=63072000`). No Content-Security-Policy (Gap, optional).
+- Cookies: only the admin `session_token` (admin users). No tracking/analytics cookies are set by the code. Browser storage: `localStorage['didar-lang']` (language choice) only.
+- Fonts are self-hosted by `next/font` at build time (no Google request from the visitor's browser). External links (Instagram, Telegram) are plain outbound links.
 
-```bash
-# Generate password hash locally (never store plaintext)
-node -e "
-const crypto = require('crypto');
-const password = 'your-secure-password';
-const salt = crypto.randomBytes(32).toString('hex');
-const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha256').toString('hex');
-console.log('Hash:', salt + ':' + hash);
-"
-```
+## 7. Privacy and third parties
 
-Then insert into the `admins` table via Supabase dashboard or SQL:
+- **Collected data:** registrations (name, email, optional phone/Telegram/comment, event), membership applications (name, email, optional phone/Telegram/additional info), contact messages (name, email, message). The repeat-email field is never stored or sent. No IP addresses are stored by the application.
+- **Processors:** Supabase (storage), Vercel (hosting, logs), Resend (email). Each admin notification contains the full submission; event registrants additionally receive a receipt email addressed to them.
+- **Privacy policy:** `pages/datenschutz.js` is hard-coded and was **not** changed when the receipt email was introduced. Whether it fully describes the acknowledgment email, Resend, retention and deletion is an owner/legal question (NOT VERIFIED; open item).
+- **Retention/deletion:** no retention periods or deletion tooling exist; no admin delete function; deletion is manual SQL in Supabase. Backups follow Supabase.
+- **Logs contain personal data in two cases:** the "console fallback" of `lib/admin-email.js` (when Resend variables are missing) prints the full submission, and a few error logs print Supabase error objects.
+- Exports (`registrations.csv`, `memberships.csv`) contain personal data; keep them out of Git (ignored) and shared drives.
 
-```sql
-INSERT INTO admins (username, password_hash)
-VALUES ('admin', 'salt:hash');
-```
+## 8. Incident steps
 
----
+**Admin session/password possibly exposed**
+1. Generate a new password hash (`node scripts/setup-admin.js`), update `ADMIN_PASSWORD_HASH` in Vercel, redeploy.
+2. Revoke sessions: `delete from admin_sessions;` in the Supabase SQL editor.
+3. Check recent changes to events/content; restore from backup if needed.
 
-## 2. Row-Level Security (RLS)
+**Supabase keys exposed:** rotate the publishable and secret keys in Supabase, update Vercel variables and `.env.local`, redeploy, review access logs.
 
-All data tables implement Row-Level Security policies to restrict access based on user role:
+**Resend key exposed:** revoke in the Resend dashboard, create a new key, update `RESEND_API_KEY`, redeploy.
 
-### Public Tables (No RLS — User-Facing Data)
+**A secret was committed:** do not just delete the file. Rotate the secret first; history rewriting is a separate, deliberate owner decision.
 
-These tables have RLS enabled but allow public SELECT access for frontend data needs:
+**Personal data leak suspected:** identify the scope, preserve logs, inform the owner immediately; notification duties under GDPR are a legal matter for the owner.
 
-- **events:** Public SELECT; admin INSERT/UPDATE/DELETE
-- **cms_content:** Public SELECT; admin INSERT/UPDATE/DELETE
+## 9. Dependencies
 
-### Restricted Tables (RLS — Protected Data)
+`npm audit --omit=dev` (2026-10-17): 4 findings, none applied yet. **`next` 15.5.25 is affected by two ISR/SSG cache-poisoning advisories (GHSA-4jqv-mc3x-m676, GHSA-mcj8-r9mp-w47p), patched in 15.5.27+; 15.5.28 exists and stays within the `^15.0.0` range.** The site uses ISR, so upgrading `next` is the priority. Also: `postcss` 8.4.31 (nested in `next`, fixed ≥ 8.5.30), `sharp` 0.35.4 (fixed 0.35.5), `source-map-js` 1.2.1 (fixed 1.2.2). Upgrade with `npm install next@15.5.28`, run `npm run build`, test locally, then deploy; this has not been done. The `resend` package is declared but unused.
 
-These tables restrict access to admin role via SECURITY DEFINER functions:
+## 10. Checklist before changing anything security-relevant
 
-- **event_registrations:** Public cannot read/write directly; only via SECURITY DEFINER RPC
-- **membership_applications:** Public cannot read/write directly; only via SECURITY DEFINER RPC
-- **contact_submissions:** Public cannot read/write directly; only via SECURITY DEFINER RPC
-- **admin_sessions:** Admin only; used for session validation
-
-### SECURITY DEFINER Procedures
-
-All public form submissions use SECURITY DEFINER procedures that execute with elevated privileges:
-
-```sql
-CREATE FUNCTION insert_event_registration_manual(
-  p_event_id BIGINT,
-  p_first_name TEXT,
-  p_last_name TEXT,
-  p_email TEXT,
-  p_phone TEXT,
-  p_telegram_id TEXT,
-  p_comment TEXT
-) RETURNS BIGINT
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  v_registration_id BIGINT;
-BEGIN
-  INSERT INTO event_registrations (
-    event_id, first_name, last_name, email, phone, telegram_id, comment, status
-  ) VALUES (
-    p_event_id, p_first_name, p_last_name, p_email, p_phone, p_telegram_id, p_comment, 'new'
-  )
-  RETURNING id INTO v_registration_id;
-  
-  RETURN v_registration_id;
-END;
-$$;
-
--- Grant execution to anon/authenticated roles
-GRANT EXECUTE ON FUNCTION insert_event_registration_manual(...) TO anon, authenticated;
-```
-
-**Benefits:**
-- Public cannot directly INSERT/UPDATE rows (only via RPC)
-- RPC executes with `postgres` role privileges, bypassing RLS
-- Backend validates input before calling RPC
-- Prevents direct SQL injection into table structure
-
----
-
-## 3. Data Privacy
-
-### User Data Collection
-
-DIDAR collects only necessary information for event registration and membership:
-
-**Event Registration:**
-- First name, last name, email, phone (optional), Telegram ID (optional), comment (optional)
-
-**Membership Application:**
-- First name, last name, email, phone (optional), Telegram ID (optional), additional info (optional)
-
-**Contact Form:**
-- Name, email, message
-
-**No automated email addresses, IP addresses, or personal browsing data are stored.**
-
-### Admin Notification Emails (Third-Party Processor)
-
-When a form is submitted successfully, all submitted fields (name, email, phone,
-Telegram ID, comment/message, etc.) are included in an automatic notification email
-sent to the DIDAR admin inbox via **Resend** (a third-party transactional email
-provider), from `noreply@didar-stuttgart.com`. This is in addition to the database
-row created for the submission. No other third party receives this data. Email
-delivery failures do not block or delay the form submission itself (see FORMS.md →
-"Admin Notification Emails" for full behavior).
-
-### Data Retention
-
-- **Event registrations:** Retained indefinitely (admin can manually delete if needed)
-- **Membership applications:** Retained indefinitely (admin can manually delete)
-- **Contact submissions:** Retained indefinitely (admin can manually delete)
-- **Admin sessions:** Automatically expire after 24 hours; expired records can be cleaned up
-
-### Data Export
-
-Admins can export registrations and memberships to CSV via:
-- `/admin/registrations` → "Export CSV" button
-- `/admin/memberships` → "Export CSV" button
-
-Exported files contain only the submission data; no system metadata is included.
-
-### Deleting User Data
-
-To delete a specific registration or membership:
-
-1. Admin logs in to `/admin`
-2. Navigate to Registrations or Memberships
-3. Click the registration/membership to open details
-4. Click "Delete" button (if available)
-5. Confirm deletion
-
-**Note:** Deletion is permanent; there is no undo.
-
----
-
-## 4. Transport Security
-
-### HTTPS Enforcement
-
-All production deployments must use HTTPS:
-
-- **Vercel:** HTTPS enabled by default; automatic HTTPS redirect
-- **Self-hosted:** Configure nginx reverse proxy with SSL certificate
-
-```nginx
-server {
-  listen 443 ssl http2;
-  server_name your-domain.com;
-  
-  ssl_certificate /etc/ssl/certs/your-cert.crt;
-  ssl_certificate_key /etc/ssl/private/your-key.key;
-  
-  location / {
-    proxy_pass http://localhost:3000;
-    proxy_set_header X-Forwarded-For $remote_addr;
-    proxy_set_header X-Forwarded-Proto https;
-  }
-}
-```
-
-### Secure Cookies
-
-Admin session cookies are configured as:
-
-```javascript
-// From pages/api/auth/login.js
-res.setHeader('Set-Cookie', [
-  `session_token=${sessionToken}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=86400`
-]);
-```
-
-- **HttpOnly:** JavaScript cannot access the cookie
-- **Secure:** Only transmitted over HTTPS (browser enforces this)
-- **SameSite=Strict:** Prevents CSRF attacks (cookie only sent in same-site requests)
-- **Max-Age=86400:** 24-hour expiration
-
----
-
-## 5. Rate Limiting
-
-All public forms are protected by rate limiting to prevent spam and brute-force attacks:
-
-**Implementation:**
-- **Location:** `lib/rate-limit.js` and applied via `withRateLimit()` middleware
-- **Mechanism:** Per-IP in-memory counter with sliding window
-- **Default Limit:** 10 requests per 60 seconds per IP
-- **Configuration:**
-  - `RATE_LIMIT_REQUESTS=10` (number of requests allowed)
-  - `RATE_LIMIT_WINDOW_MS=60000` (time window in milliseconds)
-
-**Protected endpoints:**
-- `POST /api/contact/submit` — Contact form
-- `POST /api/memberships/submit` — Membership application
-- `POST /api/registrations/submit` — Event registration
-
-**Rate limit error response:**
-
-```json
-HTTP 429 Too Many Requests
-{
-  "error": "Too many requests. Please try again later.",
-  "retryAfter": 42
-}
-
-Response Header: Retry-After: 42
-```
-
-**Client behavior:** Browsers should wait the specified `retryAfter` seconds before retrying.
-
-### Adjusting Rate Limits
-
-To change rate limiting for production:
-
-```bash
-# .env.production
-RATE_LIMIT_REQUESTS=20        # Allow 20 requests
-RATE_LIMIT_WINDOW_MS=120000   # Per 2 minutes
-```
-
-**Note:** Changes require redeployment (cannot be modified at runtime without restart).
-
----
-
-## 6. Input Validation
-
-All user inputs are validated server-side before processing or storage:
-
-### Contact Form Validation
-
-```javascript
-// lib/validation.js
-export function validateContactForm(data) {
-  const errors = [];
-  
-  if (!validateRequired(data.name, 1, 100))
-    errors.push('Name is required (1-100 characters)');
-  
-  if (!validateEmail(data.email))
-    errors.push('A valid email address is required');
-  
-  if (!validateRequired(data.message, 10, 2000))
-    errors.push('Message is required (10-2000 characters)');
-  
-  return { valid: errors.length === 0, errors };
-}
-```
-
-### Event Registration Validation
-
-```javascript
-export function validateEventRegistration(data) {
-  const errors = [];
-  
-  if (!validateRequired(data.firstName, 1, 100))
-    errors.push('First name is required (1-100 characters)');
-  
-  if (!validateRequired(data.lastName, 1, 100))
-    errors.push('Last name is required (1-100 characters)');
-  
-  if (!validateEmail(data.email))
-    errors.push('A valid email address is required');
-  
-  if (data.phone && !validatePhone(data.phone))
-    errors.push('Phone number is invalid');
-  
-  if (data.telegramId && !validateTelegram(data.telegramId))
-    errors.push('Telegram ID is invalid');
-  
-  return { valid: errors.length === 0, errors };
-}
-```
-
-### Validation Rules
-
-- **Names:** 1-100 characters, required
-- **Email:** Valid format (basic regex), max 254 characters, required
-- **Phone:** 5-20 characters, optional
-- **Telegram:** Starts with @ (2-32 chars) or numeric ID, optional
-- **Message/Comment:** Text length limits (10-2000 for messages, max 1000 for comments)
-
-**All validation happens server-side; client-side validation is for UX only.**
-
----
-
-## 7. SQL Injection Prevention
-
-DIDAR uses parameterized queries (prepared statements) throughout:
-
-```javascript
-// Example: Never concatenate strings into SQL queries
-
-// ❌ VULNERABLE:
-const query = `SELECT * FROM events WHERE id = ${eventId}`;
-
-// ✅ SECURE (using Supabase client):
-const { data, error } = await supabase
-  .from('events')
-  .select('*')
-  .eq('id', eventId);
-```
-
-The Supabase JavaScript client handles all parameterization automatically. Values are never interpolated into SQL strings.
-
----
-
-## 8. XSS (Cross-Site Scripting) Prevention
-
-DIDAR uses Next.js and React with built-in XSS protection:
-
-- **React escaping:** All user data rendered via React is HTML-escaped automatically
-- **No innerHTML:** User data is never inserted via `innerHTML` or `dangerouslySetInnerHTML`
-- **Content Security Policy:** (Optional) Can be configured in `next.config.js` for additional protection
-
-Example:
-
-```javascript
-// ✅ SAFE - React auto-escapes:
-<p>{userSubmittedText}</p>
-
-// ❌ UNSAFE - Never do this with user input:
-<p dangerouslySetInnerHTML={{ __html: userSubmittedText }} />
-```
-
----
-
-## 9. CSRF (Cross-Site Request Forgery) Prevention
-
-DIDAR uses SameSite cookies for CSRF protection:
-
-```javascript
-// From lib/middleware.js
-res.setHeader('Set-Cookie', [
-  `session_token=${sessionToken}; HttpOnly; Secure; SameSite=Strict; Path=/`
-]);
-```
-
-**SameSite=Strict** ensures cookies are only sent to same-site requests, preventing cross-origin form submissions from stealing session tokens.
-
----
-
-## 10. Dependency Security
-
-### Regular Updates
-
-Keep dependencies current to patch security vulnerabilities:
-
-```bash
-npm outdated          # Check for outdated packages
-npm audit             # Check for known vulnerabilities
-npm update            # Update to latest minor/patch versions
-```
-
-### Critical Dependencies
-
-Key security-related dependencies:
-
-- **next:** Framework security updates
-- **react:** Framework updates
-- **@supabase/supabase-js:** Database client security fixes
-- **crypto:** Node.js built-in (no external dependency)
-
-Monitor these packages for security advisories via:
-- GitHub Security Alerts (if repo is on GitHub)
-- npm audit regularly
-- Dependabot (GitHub) or similar service
-
----
-
-## 11. Incident Response
-
-### Security Incident Types
-
-#### Unauthorized Admin Access
-
-**Signs:**
-- Unexpected changes to events or admin settings
-- Admin dashboard access logs (if implemented) show unknown activity
-- Users report seeing old event data
-
-**Response:**
-1. Immediately change all admin passwords via `pages/api/auth/change-password` (if endpoint exists) or via Supabase dashboard
-2. Revoke all active sessions by clearing the `admin_sessions` table (all existing tokens become invalid)
-3. Review recent admin API logs for unauthorized actions
-4. If data was modified, determine scope of changes and recover from backup if needed
-
-```sql
--- Emergency: Invalidate all sessions
-DELETE FROM admin_sessions WHERE expires_at > now();
-```
-
-#### Data Breach (User Submissions)
-
-**Signs:**
-- Registrations/memberships accessible to unauthorized users
-- Contact submissions visible to non-admins
-- Evidence of unauthorized database access
-
-**Response:**
-1. Verify RLS policies on affected tables are still enabled and correct
-2. Review Supabase access logs for unusual database activity
-3. Check that SECURITY DEFINER functions have correct permissions
-4. Notify affected users if personal data was exposed
-5. Consider rotating database credentials
-
-```sql
--- Verify RLS is enabled on protected tables
-SELECT tablename, rowsecurity FROM pg_tables
-WHERE tablename IN ('event_registrations', 'membership_applications', 'contact_submissions');
-```
-
-#### DDoS or Rate Limit Bypass
-
-**Signs:**
-- Spike in requests from specific IP or geographic location
-- Rate limiting not working as expected
-- Server performance degradation
-
-**Response:**
-1. Increase `RATE_LIMIT_REQUESTS` or decrease `RATE_LIMIT_WINDOW_MS` to tighten limits
-2. Deploy rate-limiting reverse proxy (nginx, CloudFlare) if self-hosted
-3. Monitor request logs for patterns
-4. Temporarily block IPs if severe (at nginx or firewall level)
-5. Verify middleware is still applied to endpoints
-
-#### Compromised Secrets (.env)
-
-**Signs:**
-- Evidence that `.env` file (with API keys) was exposed
-- Unauthorized API usage on Supabase or external services
-
-**Response:**
-1. Immediately rotate all secrets:
-   - Supabase API keys → generate new ones in Supabase dashboard
-   - JWT secret → rotate in Supabase settings
-2. Redeploy application with new `.env` values
-3. Review audit logs in Supabase for unauthorized access
-4. Never commit `.env` files to version control
-
----
-
-## 12. Best Practices Checklist
-
-### Development
-
-- [ ] Never commit `.env` files or secrets to version control
-- [ ] Use `.env.example` to document required environment variables (with placeholder values)
-- [ ] Validate all user inputs server-side (not just client-side)
-- [ ] Use parameterized queries (Supabase client does this automatically)
-- [ ] Keep dependencies updated with `npm audit`
-- [ ] Enable HTTPS in production
-
-### Deployment
-
-- [ ] Set `NODE_ENV=production`
-- [ ] Configure secure cookies (HttpOnly, Secure, SameSite)
-- [ ] Enable database RLS policies
-- [ ] Verify SECURITY DEFINER functions have correct permissions
-- [ ] Set appropriate rate limiting values
-- [ ] Enable HTTPS with valid SSL certificate
-- [ ] Configure CORS if needed (currently open for local development)
-
-### Operations
-
-- [ ] Monitor admin login activity
-- [ ] Regularly review database backups (Supabase automatic backups)
-- [ ] Keep admin passwords strong (minimum 12 characters, mixed case, numbers, symbols)
-- [ ] Rotate admin credentials periodically
-- [ ] Monitor application logs for errors or suspicious activity
-- [ ] Review rate-limit metrics to detect attacks
-
-### Incident Response
-
-- [ ] Have a plan to revoke all admin sessions if needed
-- [ ] Know how to rotate database credentials
-- [ ] Have contact info for Supabase support
-- [ ] Document procedures for restoring from backups
-- [ ] Test incident response procedures annually
-
----
-
-## 13. Security Contacts
-
-For security concerns or to report vulnerabilities:
-
-**Note:** DIDAR is currently a demonstration project. For a production deployment, establish a security contact and disclosure policy.
-
----
-
-## Related Documentation
-
-- **DATABASE.md** — RLS policies, table permissions
-- **DEPLOYMENT.md** — Environment variable setup, production configuration
-- **ADMIN_GUIDE.md** — Admin session management, password policies
-
+- [ ] No secret printed or committed
+- [ ] RLS/grants unchanged unless the change is the point; review with [DATABASE.md](DATABASE.md)
+- [ ] Admin API still returns 401 without a session
+- [ ] Email failures still never roll back a saved submission
+- [ ] Manual-registration model preserved
+
+## 11. Open decisions (analysed 2026-10-17, nothing applied)
+
+- **Direct anon INSERT.** `data/schema.sql` / migration 003 grant `INSERT` on the three form tables to `anon` with `WITH CHECK (true)` policies. Application code never inserts directly: all three submit endpoints call the RPCs (`insert_event_registration_manual`, `insert_membership_application_manual`, `insert_contact_submission_manual`), which are `SECURITY DEFINER` with `search_path = public` and executable by `anon`. So the table grants are not needed by the current implementation. Narrowest change: `REVOKE INSERT ON` the three tables (and `USAGE` on their id sequences) `FROM anon`, and drop the three `public_insert_*` policies. Risks: function owner must keep rights (RPCs run as owner, normally unaffected); `capacity-status` reads `event_registrations` with the anon client and already fails/returns nothing useful because anon has no SELECT. Test on a Supabase branch/staging first: submit each form, then confirm a direct anon REST insert returns 401/403. Production grants NOT VERIFIED (migrations 007/008 comments suggest production may already differ from `schema.sql`).
+- **Password hash.** Format is `salt:hash` (hex), PBKDF2-SHA256, 10,000 iterations hard-coded in `lib/admin-auth.js`. Backward-compatible plan: accept two formats, `salt:hash` (legacy, 10k) and `pbkdf2$<iterations>$salt$hash`; keep legacy verification, generate new format in `scripts/setup-admin.js` with ≥ 600,000 iterations; set the new `ADMIN_PASSWORD_HASH` in Vercel only after the code supporting both formats is live; then revoke sessions. Login takes noticeably longer (hundreds of ms) and the handler is already per-request. Needs owner approval and a locally generated hash; no credentials belong in the repo.
+- **Dependencies.** See §9. Upgrade `next` first; the rest follow via `npm audit fix` (review lockfile diff).
+- **CSP.** Needed by the site: own scripts (Next bundles plus inline `__NEXT_DATA__`/bootstrap scripts, so `script-src` needs `'unsafe-inline'` unless nonces are added, which Pages Router static pages do not support), many inline `style=` attributes (`style-src 'unsafe-inline'`), self-hosted fonts via `next/font` (`font-src 'self'`), event images from `/images/*`, and possibly arbitrary https URLs entered as `image_url` in the admin (`img-src 'self' data: https:`), `connect-src 'self'` (the browser only calls own `/api`; Supabase and Resend are server-side only), `frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`. Staged plan: ship as `Content-Security-Policy-Report-Only`, browse all public and admin pages in FA and DE, check the console for violations, then enforce.
+- **`/api/admin/fix-event-status`.** A hard-coded one-off for the slug `e2e-capacity-test-temp-2026-09-25`; no UI or code references it (only docs). It is admin-gated and POST-only. Recommendation: remove in a separate approved change (it adds attack surface for no ongoing purpose).
