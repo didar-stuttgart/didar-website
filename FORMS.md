@@ -75,7 +75,7 @@ All three follow the **manual-review model**: the submission is stored first; an
 
 ## 6. Emails
 
-Provider: **Resend** via its REST API (`fetch`), sender `DIDAR_EMAIL_FROM` (default `DIDAR Stuttgart <noreply@didar-stuttgart.com>`). Variables: `RESEND_API_KEY`, `DIDAR_NOTIFICATION_EMAIL`, `DIDAR_EMAIL_FROM`, optional `NEXT_PUBLIC_APP_URL` (base URL for the cancellation link, default `https://www.didar-stuttgart.com`). No secret values belong in this repository.
+Provider: **Resend** via its REST API (`fetch`), sender `DIDAR_EMAIL_FROM` (default `Didar Stuttgart <noreply@didar-stuttgart.com>`). Variables: `RESEND_API_KEY`, `DIDAR_NOTIFICATION_EMAIL`, `DIDAR_EMAIL_FROM`, optional `NEXT_PUBLIC_APP_URL` (base URL for the cancellation link, default `https://www.didar-stuttgart.com`). No secret values belong in this repository.
 
 | Email | Function | To | Subject | Idempotency-Key |
 |---|---|---|---|---|

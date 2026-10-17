@@ -1,6 +1,6 @@
 ﻿import { requireAdminSession } from '../../../../lib/api-middleware.js';
 import { createAdminClient } from '../../../../lib/supabase.js';
-import { csvCell } from '../../../../lib/csv.js';
+import { buildCsv } from '../../../../lib/csv.js';
 
 export default async function handler(req, res) {
   if (!(await requireAdminSession(req, res))) {
@@ -21,7 +21,7 @@ export default async function handler(req, res) {
     if (error) throw error;
 
     // CSV header
-    const headers = ['Ù†Ø§Ù…', 'Ø§ÛŒÙ…ÛŒÙ„', 'ØªÙ„ÙÙ†', 'ØªÙ„Ú¯Ø±Ø§Ù…', 'Ø±ÙˆÛŒØ¯Ø§Ø¯', 'ÙˆØ¶Ø¹ÛŒØª', 'ØªØ§Ø±ÛŒØ®', 'ÛŒØ§Ø¯Ø¯Ø§Ø´Øª'];
+    const headers = ['نام', 'ایمیل', 'تلفن', 'تلگرام', 'رویداد', 'وضعیت', 'تاریخ', 'یادداشت'];
     const rows = (registrations || []).map((reg) => [
       `${reg.first_name} ${reg.last_name}`,
       reg.email,
@@ -33,9 +33,8 @@ export default async function handler(req, res) {
       reg.admin_notes || '',
     ]);
 
-    // Build CSV with BOM for Excel
-    const bom = 'ï»¿';
-    const csv = bom + [headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\n');
+    // UTF-8 BOM + escaped cells (see lib/csv.js)
+    const csv = buildCsv(headers, rows);
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="registrations.csv"');

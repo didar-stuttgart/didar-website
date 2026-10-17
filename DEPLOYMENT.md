@@ -24,7 +24,7 @@ Set them in Vercel (Project → Settings → Environment Variables) and locally 
 | `ADMIN_PASSWORD_HASH` | yes (admin) | `pages/api/auth/login.js` | `salt:hash` from `node scripts/setup-admin.js`; the script enforces ≥ 12 chars with upper/lower/digit/special |
 | `RESEND_API_KEY` | for email | `lib/admin-email.js`, `lib/registration-receipt-email.js` | missing → receipt skipped; admin notifications fall back to logging submitted data to the console |
 | `DIDAR_NOTIFICATION_EMAIL` | for admin email | `lib/admin-email.js` | recipient of all admin notifications (currently didar.stuttgart@gmail.com per project configuration) |
-| `DIDAR_EMAIL_FROM` | no | both email libs | default `DIDAR Stuttgart <noreply@didar-stuttgart.com>` |
+| `DIDAR_EMAIL_FROM` | no | both email libs | default `Didar Stuttgart <noreply@didar-stuttgart.com>` |
 | `NEXT_PUBLIC_APP_URL` | no | `lib/registration-cancellation.js` | base URL for cancellation links, default `https://www.didar-stuttgart.com`. A preview deployment that does not set it will still emit production links |
 | `RATE_LIMIT_REQUESTS`, `RATE_LIMIT_WINDOW_MS` | no | `lib/rate-limit.js` | defaults 10 and 60000 |
 

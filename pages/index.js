@@ -134,7 +134,7 @@ export default function Home({
       return cmsValue;
     }
     // Fallback to original hardcoded value
-    return currentLang === 'fa' ? 'دیدار' : 'Didar Stuttgart';
+    return currentLang === 'fa' ? 'دیدار' : 'Didar Kulturgemeinschaft';
   };
 
   const getHeroSubtitle = () => {
