@@ -912,8 +912,10 @@ img[loading='lazy'] {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-.event-hero-time-label {
-  margin-top: var(--space-2);
+/* Each label + value pair is one unit (label first, value directly below). */
+.event-hero-item {
+  display: flex;
+  flex-direction: column;
 }
 
 @media (min-width: 900px) {

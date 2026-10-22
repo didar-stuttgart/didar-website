@@ -358,11 +358,18 @@ export default function EventDetail({ event, currentLang }) {
                   {/* COURSE INFORMATION BLOCK */}
                   <div className="mt-8 course-info-block">
                     <div className="course-info-item">
-                      <p className="course-info-label">📅 {currentLang === 'fa' ? 'تاریخ' : 'Datum'}</p>
+                      <p className="course-info-label">📅 {currentLang === 'fa' ? 'تاریخ شروع دوره' : 'Startdatum des Kurses'}</p>
                       <p className="course-info-value">
                         {currentLang === 'fa' ? '۳ نوامبر ۲۰۲۶' : '3. November 2026'}
                       </p>
                     </div>
+
+                    {event.event_time && (
+                      <div className="course-info-item">
+                        <p className="course-info-label">🕒 {currentLang === 'fa' ? 'ساعت شروع دوره' : 'Startzeit des Kurses'}</p>
+                        <p className="course-info-value">{formatTime(event.event_time, currentLang)}</p>
+                      </div>
+                    )}
 
                     <div className="course-info-item">
                       <p className="course-info-label">💶 {currentLang === 'fa' ? 'هزینه دوره' : 'Kursgebühr'}</p>
@@ -375,9 +382,12 @@ export default function EventDetail({ event, currentLang }) {
                     </div>
 
                     <div className="course-info-item">
-                      <p className="course-info-label">📚 {currentLang === 'fa' ? 'قالب' : 'Format'}</p>
+                      <p className="course-info-label">📚 {currentLang === 'fa' ? 'قالب دوره' : 'Kursformat'}</p>
                       <p className="course-info-value">
                         {currentLang === 'fa' ? 'دوره ۱۰ جلسه‌ای' : '10-teiliger Kurs'}
+                      </p>
+                      <p className="course-info-value">
+                        {currentLang === 'fa' ? 'هر هفته، سه‌شنبه‌ها' : 'Jede Woche dienstags'}
                       </p>
                     </div>
                   </div>
@@ -746,14 +756,16 @@ export default function EventDetail({ event, currentLang }) {
                 <div className="event-hero-overlay">
                   {event.event_date ? (
                     <>
-                      <p className="event-hero-date-value">{formatDate(event.event_date, currentLang)}</p>
-                      <p className="event-hero-date-label">{t('event.date', currentLang)}</p>
+                      <div className="event-hero-item">
+                        <p className="event-hero-date-label">{t('event.start_date', currentLang)}</p>
+                        <p className="event-hero-date-value">{formatDate(event.event_date, currentLang)}</p>
+                      </div>
 
                       {event.event_time && (
-                        <>
+                        <div className="event-hero-item">
+                          <p className="event-hero-time-label">{t('event.start_time', currentLang)}</p>
                           <p className="event-hero-time-value">{formatTime(event.event_time, currentLang)}</p>
-                          <p className="event-hero-time-label">{t('event.time', currentLang)}</p>
-                        </>
+                        </div>
                       )}
                     </>
                   ) : (
