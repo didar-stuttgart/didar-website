@@ -105,6 +105,6 @@ Capacity is informational. `GET /api/events/[eventId]/capacity-status` counts ro
 | Problem | Check |
 |---|---|
 | Form missing on a published event | `registration_status` must be `open`; wait up to 60 s for ISR; check `external_registration_url`/past date |
-| "Already registered" | same email already stored for that event (including cancelled) |
+| "Already registered" | same email already has an active (not cancelled) registration for that event; a cancelled one does not block (migration 013) |
 | Registrant says no email arrived | check Spam; check Resend logs and the function logs for `[Receipt Email]`; the registration itself is unaffected |
 | Event changes not visible | ISR delay; list pages can take up to an hour |

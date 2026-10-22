@@ -34,6 +34,11 @@ export default async function handler(req, res) {
     delete registration.cancellation_token_hash;
     return res.status(200).json({ registration });
   } catch (err) {
+    // Re-activating a cancelled registration while another active one exists
+    // for the same event and email violates the partial unique index (migration 013)
+    if (err?.code === '23505') {
+      return res.status(409).json({ error: 'An active registration for this event and email already exists' });
+    }
     console.error('Update registration error:', err);
     return res.status(500).json({ error: 'Failed to update registration' });
   }

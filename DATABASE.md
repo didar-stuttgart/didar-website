@@ -16,6 +16,7 @@ The numbered migrations are **not** a complete build script on their own: `migra
 6. `migration_005` → `006` (superseded 7‑arg registration RPC), `007` (membership RPC), `008` (contact RPC), `009` (service_role SELECT grants).
 7. `migration_010_recurring_events.sql`, `migration_011_remaining_capacity.sql`.
 8. `migration_012_registration_self_cancellation.sql` — cancellation columns, `cancelled` status, **replaces** the registration RPC (now 8 args) and adds `cancel_event_registration_manual`.
+9. `migration_013_allow_reregistration_after_cancel.sql` — replaces the `(event_id, email)` unique constraint with a partial unique index that ignores cancelled rows. DB-only; no application change required.
 
 Not every statement is re-runnable: the `CREATE POLICY` statements in `schema.sql`/`migration_004` fail if the policy already exists. Production was built incrementally; do not re-run files blindly against it.
 
@@ -58,7 +59,7 @@ Not every statement is re-runnable: the `CREATE POLICY` statements in `schema.sq
 Indexes: `idx_events_date`, `idx_events_status`. RLS: policy `public_read_published_events` (SELECT where `status='published'`).
 
 ### `event_registrations`
-`id`, `created_at`, `updated_at`, `event_id → events(id) ON DELETE CASCADE`, `first_name`, `last_name`, `email`, `phone`, `telegram_id`, `comment`, `status` (`new` default via RPC; CHECK after migration 012 allows `pending, verified, new, contacted, confirmed, declined, cancelled`), `admin_notes`, `cancellation_token_hash`, `cancelled_at`, plus the legacy `verification_token_hash`, `verification_token_expires_at`, `verified_at` (migration 001; unused). Constraint `event_registrations_email_unique UNIQUE (event_id, email)` — email is stored lower-cased by the API. Cancelled rows are kept, so the same email cannot register again for that event.
+`id`, `created_at`, `updated_at`, `event_id → events(id) ON DELETE CASCADE`, `first_name`, `last_name`, `email`, `phone`, `telegram_id`, `comment`, `status` (`new` default via RPC; CHECK after migration 012 allows `pending, verified, new, contacted, confirmed, declined, cancelled`), `admin_notes`, `cancellation_token_hash`, `cancelled_at`, plus the legacy `verification_token_hash`, `verification_token_expires_at`, `verified_at` (migration 001; unused). Constraint `event_registrations_email_unique UNIQUE (event_id, email)` — email is stored lower-cased by the API. Cancelled rows are kept. After migration 013 that constraint is replaced by the partial unique index `event_registrations_active_email_unique` on `(event_id, email) WHERE status IS DISTINCT FROM 'cancelled'`: one active registration per event and email, any number of cancelled ones, so a person can register again after cancelling (a new row is inserted; the cancelled row stays as history).
 
 Status values actually used today: `new → contacted → confirmed | declined`, and `cancelled` (set only by the self-cancellation RPC; the admin dropdown can also set it). `pending`/`verified` are legacy and never written.
 
