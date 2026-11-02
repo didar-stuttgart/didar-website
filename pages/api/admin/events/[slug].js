@@ -1,6 +1,7 @@
 import { requireAdminSession } from '../../../../lib/api-middleware.js';
 import { createAdminClient } from '../../../../lib/supabase.js';
 import { validateCustomSlug } from '../../../../lib/event-slug.js';
+import { revalidateEventPages } from '../../../../lib/revalidate-event-pages.js';
 
 export default async function handler(req, res) {
   if (!(await requireAdminSession(req, res))) {
@@ -125,6 +126,8 @@ async function handleUpdateEvent(slug, req, res) {
       }
       throw error;
     }
+
+    await revalidateEventPages(res, [slug, data[0]?.slug]);
     return res.status(200).json({ event: data[0] });
   } catch (err) {
     console.error('Update event error:', err);
@@ -143,6 +146,8 @@ async function handleDeleteEvent(slug, req, res) {
       .select();
 
     if (error) throw error;
+
+    await revalidateEventPages(res, [slug]);
     return res.status(200).json({ success: true, event: data[0] });
   } catch (err) {
     console.error('Archive event error:', err);
