@@ -125,6 +125,21 @@ export default async function handler(req, res) {
     const storagePath = `events/${crypto.randomUUID()}.${detected.extension}`;
     const adminClient = createAdminClient();
 
+    const { data: buckets, error: bucketError } = await adminClient.storage.listBuckets();
+    const bucket = buckets?.find((item) => item.id === EVENT_IMAGE_BUCKET || item.name === EVENT_IMAGE_BUCKET);
+
+    if (bucketError || !bucket) {
+      return res.status(503).json({
+        error: 'Event image storage is not configured. Create the "event-images" Supabase Storage bucket first.',
+      });
+    }
+
+    if (!bucket.public) {
+      return res.status(503).json({
+        error: 'The "event-images" Storage bucket must allow public reads for event images.',
+      });
+    }
+
     const { error: uploadError } = await adminClient.storage
       .from(EVENT_IMAGE_BUCKET)
       .upload(storagePath, buffer, {
