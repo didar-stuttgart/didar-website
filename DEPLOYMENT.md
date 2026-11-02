@@ -9,6 +9,8 @@ Related: [README.md](README.md) · [DATABASE.md](DATABASE.md) · [SECURITY.md](S
 - **Hosting:** Vercel (production response headers show `server: Vercel`, region `fra1`; project under the Vercel team `didar-team`). Domain: `www.didar-stuttgart.com` (the apex redirects with HTTP 308).
 - **Deploy trigger:** pushing to the GitHub repository `didar-Stuttgart/didar-website` branch `main` deploys to production (observed: a push on 2026-10-17 deployed immediately). Branch/preview behaviour and exact Vercel project settings are NOT VERIFIED.
 - **Database:** one Supabase project (PostgreSQL). There is **no staging environment** known to the repository.
+- **Event image storage:** event uploads use the Supabase Storage bucket `event-images`. The repository includes migration 014 to create/configure the public-read bucket with a 5 MB limit and JPEG/PNG/WebP allowlist. The application uploads server-side with `SUPABASE_SECRET_KEY`; there is no public upload permission.
+
 - **Email:** Resend, sending domain `didar-stuttgart.com` (return-path `rsend.didar-stuttgart.com`); the domain must stay verified in Resend.
 - **Build output:** standard `next build`; no custom `vercel.json` in the repository.
 
@@ -47,13 +49,29 @@ npm run build                # needs working Supabase env vars and network acces
 ## 4. Deploying
 
 1. Make sure `npm run build` passes locally.
-2. If the change needs a database migration, **apply it to production first** (§5).
+2. If the change needs a database migration, **apply it to production first** (§5). For event-image uploads, migration 014 must be reviewed and applied before the upload control can work against the production Supabase project.
+
 3. Commit and push to `main` (or merge a PR); Vercel builds and deploys automatically.
 4. Run the post-deploy checks (§6).
 
 Code that depends on a migration must not go out before the migration is applied. On 2026-10-17 the receipt-email code (which calls the 8-argument `insert_event_registration_manual`) was pushed before migration 012 existed in production; every event registration returned 500 until the migration was applied manually. Keep this ordering rule.
 
 ## 5. Database migrations
+
+### Event image Storage setup (migration 014)
+
+The code expects a **public-read, server-write** Supabase Storage bucket named `event-images`.
+
+Before using the admin image uploader in production:
+
+1. Open the production Supabase project and confirm whether an `event-images` bucket already exists.
+2. If it does not exist, review and run `data/migration_014_event_image_storage.sql` in the Supabase SQL editor.
+3. Verify the bucket is public-read, limited to 5 MB, and restricted to JPEG/PNG/WebP.
+4. Do **not** add anon/authenticated upload policies. The app uses `SUPABASE_SECRET_KEY` after validating the admin session.
+5. Existing `events.image_url` values and fallback images remain valid.
+
+The feature branch does not apply this migration automatically.
+
 
 There is no migration runner. Migrations are plain SQL files in `data/` that are pasted into the Supabase SQL editor.
 
