@@ -1,5 +1,9 @@
 import { requireAdminSession } from '../../../../lib/api-middleware.js';
 import { createAdminClient } from '../../../../lib/supabase.js';
+import {
+  generateEventSlug,
+  validateCustomSlug,
+} from '../../../../lib/event-slug.js';
 
 export default async function handler(req, res) {
   if (!(await requireAdminSession(req, res))) {
@@ -76,7 +80,18 @@ async function handleCreateEvent(req, res) {
     }
 
     const adminClient = createAdminClient();
-    const slug = event.title_fa.toLowerCase().replace(/\s+/g, '-');
+    const requestedSlug = typeof event.slug === 'string' ? event.slug.trim() : '';
+
+    let slug;
+    if (requestedSlug) {
+      const validation = validateCustomSlug(requestedSlug);
+      if (!validation.valid) {
+        return res.status(400).json({ error: validation.error });
+      }
+      slug = validation.slug;
+    } else {
+      slug = generateEventSlug(event.title_fa);
+    }
 
     const { data, error } = await adminClient
       .from('events')
@@ -103,7 +118,12 @@ async function handleCreateEvent(req, res) {
       ])
       .select();
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === '23505' && /slug/i.test(error.message || '')) {
+        return res.status(409).json({ error: 'This event URL slug is already in use.' });
+      }
+      throw error;
+    }
     return res.status(200).json({ event: data[0] });
   } catch (err) {
     console.error('Create event error:', err);
