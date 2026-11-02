@@ -4,6 +4,7 @@ import {
   generateEventSlug,
   validateCustomSlug,
 } from '../../../../lib/event-slug.js';
+import { revalidateEventPages } from '../../../../lib/revalidate-event-pages.js';
 
 export default async function handler(req, res) {
   if (!(await requireAdminSession(req, res))) {
