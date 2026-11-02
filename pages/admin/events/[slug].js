@@ -11,6 +11,8 @@ export default function AdminEventEdit() {
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState('');
 
   useEffect(() => {
     const checkSession = async () => {
@@ -24,6 +26,7 @@ export default function AdminEventEdit() {
             setEvent({
               title_fa: '',
               title_de: '',
+              slug: '',
               description_fa: '',
               description_de: '',
               event_date: '',
@@ -55,6 +58,7 @@ export default function AdminEventEdit() {
         if (res.ok) {
           const data = await res.json();
           setEvent(data.event);
+          setImagePreview(data.event.image_url || '');
         }
         setLoading(false);
       } catch (err) {
@@ -68,6 +72,65 @@ export default function AdminEventEdit() {
 
   const handleChange = (field, value) => {
     setEvent((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const fileToBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = String(reader.result || '');
+        resolve(result.includes(',') ? result.split(',')[1] : result);
+      };
+      reader.onerror = () => reject(new Error('Unable to read the selected image.'));
+      reader.readAsDataURL(file);
+    });
+
+  const handleImageUpload = async (file) => {
+    if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('فقط فایل‌های JPG، PNG و WebP مجاز هستند.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('حجم تصویر نباید بیشتر از 5 مگابایت باشد.');
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
+    setUploadingImage(true);
+
+    try {
+      const data = await fileToBase64(file);
+      const res = await fetch('/api/admin/events/upload-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          fileName: file.name,
+          contentType: file.type,
+          data,
+        }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.error || 'خطا در آپلود تصویر');
+      }
+
+      setEvent((prev) => ({ ...prev, image_url: result.publicUrl }));
+      setImagePreview(result.publicUrl);
+      URL.revokeObjectURL(previewUrl);
+    } catch (err) {
+      URL.revokeObjectURL(previewUrl);
+      setImagePreview(event?.image_url || '');
+      alert(err.message || 'خطا در آپلود تصویر');
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const validateEvent = () => {
@@ -152,6 +215,11 @@ export default function AdminEventEdit() {
       return;
     }
 
+    if (uploadingImage) {
+      alert('لطفاً تا پایان آپلود تصویر صبر کنید.');
+      return;
+    }
+
     setSaving(true);
     try {
       const method = slug === 'new' ? 'POST' : 'PATCH';
@@ -164,11 +232,12 @@ export default function AdminEventEdit() {
         body: JSON.stringify({ event }),
       });
 
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
         alert('رویداد با موفقیت ذخیره شد');
         router.push('/admin/events');
       } else {
-        alert('خطا در ذخیره رویداد');
+        alert(data.error || 'خطا در ذخیره رویداد');
       }
     } catch (err) {
       console.error('Failed to save event:', err);
@@ -225,6 +294,28 @@ export default function AdminEventEdit() {
                   placeholder="Deutscher Titel"
                   required
                 />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>آدرس URL رویداد (Slug)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', direction: 'ltr' }}>
+                  <span>/veranstaltungen/</span>
+                  <input
+                    type="text"
+                    value={event.slug || ''}
+                    onChange={(e) => handleChange('slug', e.target.value)}
+                    placeholder="critical-thinking"
+                    style={{ flex: 1 }}
+                  />
+                </div>
+                <p style={{ marginTop: '0.4rem', color: '#666', fontSize: '0.85rem' }}>
+                  فقط یک بخش از مسیر URL وارد کنید؛ مثلاً critical-thinking. در رویداد جدید، خالی گذاشتن این فیلد باعث ساخت خودکار URL از عنوان فارسی می‌شود.
+                </p>
+                {event.slug && (
+                  <p dir="ltr" style={{ marginTop: '0.35rem', color: '#556b2f', fontSize: '0.85rem', wordBreak: 'break-all' }}>
+                    https://www.didar-stuttgart.com/veranstaltungen/{event.slug}
+                  </p>
+                )}
               </div>
 
               <div className={styles.formGroup}>
@@ -344,13 +435,48 @@ export default function AdminEventEdit() {
               <h2>تصویر و تنظیمات</h2>
 
               <div className={styles.formGroup}>
-                <label>آدرس تصویر (URL)</label>
+                <label>تصویر رویداد</label>
+                {imagePreview && (
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <img
+                      src={imagePreview}
+                      alt="پیش‌نمایش تصویر رویداد"
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        maxWidth: '420px',
+                        maxHeight: '240px',
+                        objectFit: 'cover',
+                        borderRadius: '8px',
+                        border: '1px solid #ddd',
+                      }}
+                    />
+                  </div>
+                )}
+
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(e) => handleImageUpload(e.target.files?.[0])}
+                  disabled={uploadingImage}
+                />
+                <p style={{ marginTop: '0.4rem', color: '#666', fontSize: '0.85rem' }}>
+                  JPG، PNG یا WebP، حداکثر ۵ مگابایت.
+                </p>
+
+                <label style={{ display: 'block', marginTop: '0.75rem' }}>یا آدرس تصویر (URL)</label>
                 <input
                   type="url"
                   value={event.image_url || ''}
-                  onChange={(e) => handleChange('image_url', e.target.value)}
-                  placeholder="https://example.com/image.jpg"
+                  onChange={(e) => {
+                    handleChange('image_url', e.target.value);
+                    setImagePreview(e.target.value);
+                  }}
+                  placeholder="/images/my-event.jpg"
                 />
+                <p style={{ marginTop: '0.4rem', color: '#666', fontSize: '0.85rem' }}>
+                  برای فایل‌های داخل پروژه می‌توانید مسیرهایی مثل /images/my-event.jpg را وارد کنید.
+                </p>
               </div>
 
               <div className={styles.formGroup}>
@@ -391,10 +517,10 @@ export default function AdminEventEdit() {
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={saving}
+                disabled={saving || uploadingImage}
                 className={styles.primaryButton}
               >
-                {saving ? 'درحال ذخیره...' : 'ذخیره رویداد'}
+                {uploadingImage ? 'درحال آپلود تصویر...' : saving ? 'درحال ذخیره...' : 'ذخیره رویداد'}
               </button>
               {slug !== 'new' && (
                 <>
