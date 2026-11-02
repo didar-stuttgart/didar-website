@@ -1,5 +1,6 @@
 import { requireAdminSession } from '../../../../lib/api-middleware.js';
 import { createAdminClient } from '../../../../lib/supabase.js';
+import { validateCustomSlug } from '../../../../lib/event-slug.js';
 
 export default async function handler(req, res) {
   if (!(await requireAdminSession(req, res))) {
@@ -84,10 +85,20 @@ async function handleUpdateEvent(slug, req, res) {
     }
 
     const adminClient = createAdminClient();
+    let nextSlug = slug;
+
+    if (typeof event.slug === 'string' && event.slug.trim()) {
+      const validation = validateCustomSlug(event.slug);
+      if (!validation.valid) {
+        return res.status(400).json({ error: validation.error });
+      }
+      nextSlug = validation.slug;
+    }
 
     const { data, error } = await adminClient
       .from('events')
       .update({
+        slug: nextSlug,
         title_fa: event.title_fa,
         title_de: event.title_de,
         description_fa: event.description_fa || '',
@@ -108,7 +119,12 @@ async function handleUpdateEvent(slug, req, res) {
       .eq('slug', slug)
       .select();
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === '23505' && /slug/i.test(error.message || '')) {
+        return res.status(409).json({ error: 'This event URL slug is already in use.' });
+      }
+      throw error;
+    }
     return res.status(200).json({ event: data[0] });
   } catch (err) {
     console.error('Update event error:', err);
