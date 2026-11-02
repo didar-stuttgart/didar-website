@@ -124,6 +124,7 @@ async function handleCreateEvent(req, res) {
       }
       throw error;
     }
+    await revalidateEventPages(res, [data[0]?.slug]);
     return res.status(200).json({ event: data[0] });
   } catch (err) {
     console.error('Create event error:', err);
