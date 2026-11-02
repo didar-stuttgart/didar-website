@@ -310,6 +310,7 @@ export default function AdminEventEdit() {
                 </div>
                 <p style={{ marginTop: '0.4rem', color: '#666', fontSize: '0.85rem' }}>
                   فقط یک بخش از مسیر URL وارد کنید؛ مثلاً critical-thinking. در رویداد جدید، خالی گذاشتن این فیلد باعث ساخت خودکار URL از عنوان فارسی می‌شود.
+                  تغییر slug یک URL قبلی را تغییر می‌دهد و برای URL قبلی redirect خودکار ساخته نمی‌شود.
                 </p>
                 {event.slug && (
                   <p dir="ltr" style={{ marginTop: '0.35rem', color: '#556b2f', fontSize: '0.85rem', wordBreak: 'break-all' }}>
