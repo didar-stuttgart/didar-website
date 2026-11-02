@@ -122,7 +122,7 @@ export default async function handler(req, res) {
       });
     }
 
-    const storagePath = \`events/\${crypto.randomUUID()}.\${detected.extension}\`;
+    const storagePath = `events/${crypto.randomUUID()}.${detected.extension}`;
     const adminClient = createAdminClient();
 
     const { error: uploadError } = await adminClient.storage
