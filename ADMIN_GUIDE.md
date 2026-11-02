@@ -17,9 +17,12 @@ Shows three numbers from `GET /api/admin/stats`: upcoming published events (date
 ## 3. Events (`/admin/events`, `/admin/events/[slug]`)
 
 - **List:** all events, a status filter (draft / published / archived) and registration-status badges; edit and "delete" actions.
-- **Create/Edit** fields: titles FA/DE (both required), descriptions, event type (dated / recurring), date (hidden for recurring), time, locations FA/DE, capacity (empty or integer ≥ 1), remaining capacity (empty or integer ≥ 0), registration deadline, image URL (any URL or `/images/…` path from `public/images`; there is no upload), registration status (`not_open` / `open` / `closed`), event status (`draft` / `published` / …), admin notes.
+- **Create/Edit** fields: titles FA/DE (both required), optional custom event slug, descriptions, event type (dated / recurring), date (hidden for recurring), time, locations FA/DE, capacity (empty or integer ≥ 1), remaining capacity (empty or integer ≥ 0), registration deadline, event image (upload JPG/PNG/WebP up to 5 MB or use an existing image URL/path such as `/images/…`), registration status (`not_open` / `open` / `closed`), event status (`draft` / `published` / …), admin notes.
 - **"Delete"** only archives the event (`status='archived'`); it disappears from the public site, and registrations are kept.
 - New events: if `registration_status` is not supplied it defaults to `open` when the event is published, otherwise `not_open`.
+- **Event URL:** the slug field accepts a single safe path segment such as `critical-thinking`. If left empty when creating an event, the existing automatic slug generation from the Persian title is preserved. Existing slugs do not change unless an admin explicitly edits them. Duplicate slugs are rejected by the API.
+- **Event images:** uploaded images are stored in the Supabase Storage bucket `event-images` and the resulting public URL is saved in `events.image_url`. The upload endpoint is admin-session protected; only JPEG/PNG/WebP images up to 5 MB are accepted. Existing manual image URLs and fallback images remain supported.
+
 - **Important:** the public event page tries to flip `not_open` to `open` on view (known issue in [EVENTS_AND_REGISTRATION.md](EVENTS_AND_REGISTRATION.md#8-known-issues-documented-not-fixed)). Set `closed` (not `not_open`) when you want to stop registrations, and check the public page afterwards.
 - The slug is generated once from the Persian title and cannot be changed in the editor.
 - Public pages refresh via ISR: allow up to a minute for the event page and up to an hour for the home/list pages.
