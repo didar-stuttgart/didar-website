@@ -269,6 +269,8 @@ Reviewed current source from GitHub at baseline `295bd4ee8be2a205de8d2b6e594c577
 6. **Medium / operational integrity:** legacy `/api/admin/fix-event-status` can reopen one hard-coded E2E event, but requires a valid admin session. Keep it until compatibility/dependency impact is confirmed.
 7. **Informational:** `eslint@8.57.1` is EOL. No dependency updates were made.
 
+- **Low / operational reliability, confirmed source issue:** `pages/api/auth/login.js` ignores the boolean result of DB-backed `createSession(token)`. If session insertion fails, source still sends a success response/cookie although later session validation will fail. This failure path was not runtime-tested; no authentication bypass was demonstrated.
+
 ### Changes and deployment decision
 
 Only this documentation section and section 20 of `SECURITY.md` are being added on branch `security/phase-06-source-review`. No application code was modified because build/test execution and runtime validation could not be performed in the available environment. A deployment is **NOT REQUIRED** for these documentation-only changes and must not be triggered for this phase. Preserve the READY Production deployment.
