@@ -189,3 +189,15 @@ The current Production deployment is READY and uses the same `main` commit recor
 - Prevent public reads of `events.admin_notes` using a safe column-level/view design; keep the public event fields required by the site.
 - Preserve manual review: submissions are stored immediately, admin review remains manual, no email verification or automatic attendance confirmation, and email notification failure must not roll back a saved submission.
 - Do not implement any remediation until the read-only Production findings are reviewed and a separate implementation plan is approved.
+
+## 13. Production verification boundary — Supabase Dashboard review (2026-11-03)
+
+The authenticated Supabase Dashboard session identified the DIDAR Production project (`pvvjkypwsbcjiqogrmta`). The SQL Editor was visible, but its execution interface did not enforce a read-only database role or read-only transaction/session. No SQL was entered or executed. No credentials or application records were accessed.
+
+This is a deliberate safety stop: a query being syntactically read-only (for example, a catalog `SELECT`) is not equivalent to an enforced read-only execution boundary when the SQL Editor session can also run unrestricted statements.
+
+Accordingly, effective Production table/column privileges, RLS policies, function ACLs/owners/configuration, migration history, indexes and Storage metadata remain **NOT VERIFIED**. Dashboard project health is not evidence of these controls.
+
+A future Production review requires a separately authorized, technically enforced read-only database identity/session. It should be limited to the required catalog and metadata visibility, with no write privileges and no access to application records. Do not use the ordinary unrestricted SQL Editor session for this investigation. Do not open connection details or expose credentials as a workaround.
+
+No Production database, application, GitHub source code or deployment changes were made during this review.
