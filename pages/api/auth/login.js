@@ -45,7 +45,11 @@ export default async function handler(req, res) {
     }
 
     const token = generateSessionToken();
-    await createSession(token);
+    const sessionCreated = await createSession(token);
+    if (sessionCreated !== true) {
+      console.error('❌ LOGIN ERROR: Session creation failed');
+      return res.status(500).json({ error: 'Internal server error' });
+    }
 
     console.log('✅ LOGIN SUCCESS');
     clearLoginFailures(clientId);
@@ -59,8 +63,8 @@ export default async function handler(req, res) {
       success: true,
       message: 'Logged in successfully',
     });
-  } catch (error) {
-    console.error('❌ LOGIN ERROR:', error);
+  } catch {
+    console.error('❌ LOGIN ERROR: Unexpected login failure');
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
