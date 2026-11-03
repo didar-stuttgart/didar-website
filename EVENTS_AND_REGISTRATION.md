@@ -150,7 +150,7 @@ This final helper commit is present in Production deployment `dpl_9H4DxWc3hT44yf
 
 These are documented, not fixed by this documentation task.
 
-## 9. Registration status reference
+## 11. Registration status reference
 
 Current event-registration states:
 
