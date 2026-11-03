@@ -100,3 +100,65 @@ The current system does **not** use:
 - automatic capacity enforcement.
 
 Use the canonical root documents for current behavior.
+
+## 11. Practical local setup checklist
+
+### Step 1 — prerequisites
+
+- Node.js 18+
+- npm
+- Git
+- access to the intended Supabase project
+- access to Vercel only when deployment work is required
+
+### Step 2 — clone/install
+
+```bash
+git clone https://github.com/didar-Stuttgart/didar-website.git
+cd didar-website
+npm install
+cp .env.example .env.local
+```
+
+### Step 3 — environment
+
+Use the exact variable names in [DEPLOYMENT.md](DEPLOYMENT.md). Required server/client configuration includes Supabase URL and publishable key; admin/email operations require their respective server-side variables. Never paste real values into documentation.
+
+### Step 4 — local admin password
+
+```bash
+node scripts/setup-admin.js
+```
+
+Store the generated value only as `ADMIN_PASSWORD_HASH` in the local environment.
+
+### Step 5 — database
+
+For a new project, apply `data/schema.sql` and migrations 001–014 in order. For an existing project, do not replay the entire history blindly; inspect the live database and apply only the required migration after checking its prerequisites.
+
+Migration 012 must precede code that passes the cancellation-token hash. Migration 013 is required for re-registration after cancellation. Migration 014 is required for the admin event-image bucket.
+
+### Step 6 — run locally
+
+```bash
+npm run dev
+curl http://localhost:3000/api/health
+```
+
+### Step 7 — build/lint
+
+```bash
+npm run lint
+npm run build
+npm run start
+```
+
+The repository does not configure a runnable Jest/test command.
+
+### Step 8 — admin smoke test
+
+Open `/admin/login`, sign in, and verify dashboard/events/registrations access. Test uploads only when the `event-images` bucket is present.
+
+### Step 9 — production boundary
+
+Local setup never proves Production state. Verify Vercel deployment, Supabase migrations/bucket settings and real email delivery separately.
