@@ -132,3 +132,58 @@ Database changes have no automatic down-migration in this repository. Migration 
 - Production deployment state is verified through the Vercel integration.
 - Live rendered HTTP verification was not completed in the previous investigation because direct fetches returned cache-miss errors.
 - Migration 013/014 application to Supabase Production remains NOT VERIFIED.
+
+## 10. Migration application procedure
+
+This repository has no migration runner; SQL files in `data/` are applied manually in Supabase.
+
+For a dependent code change:
+
+1. Read the migration and confirm its ordering assumptions.
+2. Confirm access to the intended Supabase project.
+3. Verify a current backup exists according to the project's actual Supabase plan.
+4. Apply the migration in the Supabase SQL editor.
+5. Run a targeted verification query for the new column/function/index/bucket.
+6. Only then deploy dependent application code.
+7. Record the migration and verification result in project documentation.
+
+For migration 012, verify that the live registration RPC accepts the ⟦BT`cancellation_token_hash_param⟦BT` eighth argument before deploying code that sends it.
+
+For migration 013, verify the partial unique index ⟦BT`event_registrations_active_email_unique⟦BT`.
+
+For migration 014, verify the ⟦BT`event-images⟦BT` bucket is public-read, capped at 5 MB and limited to JPEG/PNG/WebP. Do not create public upload/update/delete policies.
+
+## 11. Troubleshooting
+
+| Symptom | Checks |
+|---|---|
+| All forms fail with 500 | Supabase URL/publishable key, Vercel function logs, current RPCs |
+| Registration fails after a deploy | migration 012 signature, duplicate constraint, form logs |
+| Re-registration after cancellation still gives 409 | migration 013 is likely missing from the target DB |
+| Admin login fails | ⟦BT`ADMIN_PASSWORD_HASH⟦BT`, ⟦BT`SUPABASE_SECRET_KEY⟦BT`, ⟦BT`admin_sessions⟦BT`, login throttle/cookie |
+| Admin API returns Unauthorized | session cookie expiry or DB session validation failure |
+| Event image upload returns 503 | bucket existence/public flag/Storage upload result |
+| Public event data is stale | ISR cache; confirm Production includes event-mutation revalidation when applicable |
+| Email is missing | Resend logs, function logs, sender/domain configuration; HTTP 201 is not delivery evidence |
+
+Never put credentials, tokens, raw environment values or exported personal data into troubleshooting output or documentation.
+
+## 12. Recovery and rollback
+
+- **Application code:** prefer Vercel rollback/redeploy of a known-good deployment or a normal ⟦BT`git revert⟦BT`. Do not rewrite shared history.
+- **Database:** migrations have no general automatic down-migration. A code rollback across migration 012 requires deliberate compatibility work because migration 012 replaces the previous registration RPC signature.
+- **Storage:** do not remove the ⟦BT`event-images⟦BT` bucket or its data merely to roll back application code. First determine whether Production actually depends on it.
+- **Secrets:** rotate compromised credentials at the provider, update Vercel environment variables, redeploy, and invalidate affected sessions where applicable.
+
+No rollback should be assumed safe without checking the migration's actual effects and the current live state.
+
+## 13. Routine maintenance
+
+Useful recurring checks:
+
+- review Resend delivery/error status when forms are active;
+- review Vercel function logs for repeated auth/form failures;
+- review Supabase backups and restore posture according to the actual plan;
+- remove stale ⟦BT`admin_sessions⟦BT` rows if operationally needed;
+- keep CSV exports outside Git and uncontrolled shared folders because they contain personal data;
+- review dependency updates with a local build before Production.
