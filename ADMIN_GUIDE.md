@@ -18,6 +18,8 @@ What the current admin interface does.
 
 Routes: `/admin/events`, `/admin/events/[slug]`.
 
+The event list supports title search plus status filtering (`draft`, `published`, `archived`).
+
 ### Create/edit
 
 The form supports:
@@ -85,7 +87,7 @@ Cancelled registrations remain in history. Because of migration 013, a person ca
 
 Route: `/admin/memberships`.
 
-Statuses: `new`, `contacted`, `accepted`, `declined`.
+Statuses: `new`, `contacted`, `accepted`, `declined`. The page also supports single-row deletion and CSV export via `/api/admin/memberships/export`.
 
 Applications are unique by email.
 
