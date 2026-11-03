@@ -56,3 +56,27 @@ For current behavior use:
 - [DATABASE.md](DATABASE.md)
 - [ADMIN_GUIDE.md](ADMIN_GUIDE.md)
 - the actual files under `pages/`, `lib/` and `data/`
+
+## Current implementation reference
+
+The implemented CMS is smaller than the historical proposal.
+
+### Current public consumers
+
+`pages/index.js` reads these exact keys through `lib/cms-client.js`:
+
+- `homepage.hero.title` — FA and DE.
+- `homepage.hero.subtitle` — FA is read from CMS; German uses the i18n translation.
+- `homepage.about.description` — FA and DE.
+
+Values beginning with `[` are treated by the homepage as placeholders and fall back to i18n.
+
+### Seed mismatch to know about
+
+Migration 004 seeds an older key named `homepage.about_card.description`, while the current homepage reads `homepage.about.description`. Therefore the about-card CMS value affects the public page only when a row with the exact current key exists in the target database. Whether Production has that exact row is **NOT VERIFIED**.
+
+The current CMS editor is at `/admin/content` and saves through `/api/admin/content/cms`.
+
+### Historical architecture
+
+The older plan for broad CMS editing, legal-page CMS migration, centralized organisation config, versioning and audit trails is historical/proposed. Do not describe those capabilities as implemented unless the source code and schema are changed and verified.
