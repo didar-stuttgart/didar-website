@@ -179,3 +179,14 @@ See [SECURITY.md](SECURITY.md), section 15, for the evidence boundary and detail
 - **Application verification — NOT VERIFIED:** public HTTP behavior, admin login/events/content/settings, database-backed admin sessions, public manual workflows, and notification delivery were not tested. No public submissions or database writes were created.
 
 Next step: create a replacement new-format Supabase secret, configure it as a Vercel Production Secret, deploy and verify the app, and only then delete the old Supabase secret. See [SECURITY.md](SECURITY.md), section 16, for the evidence and recovery sequence. Do not mark this issue resolved until configuration, deployment, application behavior, and retirement are verified separately.
+
+
+## 13. Phase 05D execution closeout — 2026-11-03
+
+- **Documentation reconciliation — PASS:** PR #5 merged to `main` as commit `e172f48ea7ebfdb18475b650d57810b993ab9dd7`. The merged documentation changes are limited to `SECURITY.md` and `PROJECT_STATE.md`. No deployment was triggered by the documentation merge.
+- **Production configuration — FAIL:** fresh Vercel metadata still reports Production `SUPABASE_SECRET_KEY` as `encrypted` / `config` with `readable-secret`. Preview remains `sensitive` / `secret` and was not changed.
+- **Credential rotation — BLOCKED / NOT PERFORMED:** no connected Supabase secret-key management action or interactive Dashboard control is available. No replacement was created; the current key remains configured and has not been retired.
+- **Vercel Secret conversion — BLOCKED:** the connected edit schema does not expose `visibility: secret`; no unsupported retry or value-replacement workaround was performed.
+- **Production deployment — NOT PERFORMED:** no deployment was triggered for this blocked credential change. The earlier READY deployment predates remediation.
+- **Application verification — NOT VERIFIED:** no replacement-credential test of public pages, admin login, admin events/content/settings, or database-backed admin operations was possible. No real user records or public submissions were modified. Email delivery is NOT VERIFIED.
+- **Final status — BLOCKED:** production risk remains open. Keep the existing key active until a replacement is configured, deployed and verified; retire it only after those checks pass.
