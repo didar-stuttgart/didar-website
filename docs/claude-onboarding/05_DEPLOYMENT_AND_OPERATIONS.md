@@ -18,3 +18,13 @@ Default branch:
 Production and main are not identical.
 
 Migration 014 is present in Git but its Production application is NOT VERIFIED.
+
+## Safe operational sequence
+
+1. Check [PROJECT_STATE.md](../../PROJECT_STATE.md).
+2. Read [DEPLOYMENT.md](../../DEPLOYMENT.md).
+3. Verify any migration/bucket prerequisite in the target Supabase project.
+4. Deploy dependent code only after the database/storage prerequisite is confirmed.
+5. Verify Vercel READY state and post-deploy health.
+6. Verify real email delivery for email changes.
+7. Record Production evidence separately from repository evidence.
