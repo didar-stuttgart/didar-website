@@ -397,3 +397,48 @@ The existing source-level findings documented in sections 12 and 14 remain open;
 - No code, database, environment variable, deployment, or application data was modified during this verification.
 
 **Phase 05F status:** DUMMY cleanup **PASS**; both existing key entries **UNCHANGED / PASS**; key rotation **INTENTIONALLY DEFERRED BY OWNER DECISION**; latest READY deployment identified **PASS**; live public/admin functionality **NOT VERIFIED**; Production secret visibility risk remains **FAIL / OPEN**.
+
+## 20. Phase 06 source review and Production QA — 2026-11-03
+
+### Scope and evidence boundary
+
+Reviewed current `main` source files through GitHub at baseline `295bd4ee8be2a205de8d2b6e594c577ee8b2ea8d`, including authentication/session modules, public form routes, public event filters, event upload, admin CSV exports, legacy event-status endpoint, headers configuration, migrations 005/008/009/012 and package manifests/lockfile. No Production credentials were decrypted, no SQL was executed, no public forms were submitted, and no application code or data was changed.
+
+The execution environment did not expose the canonical local repository or a runnable checkout, and its network path could not retrieve Production HTTP pages. The connected browser integration is read-only and cannot navigate. Therefore automated build/test commands and live UI/response checks could not be run. This is a tooling limitation, not a successful test result.
+
+### Findings and classification
+
+| ID | Severity | Finding | Classification | Verification |
+|---|---|---|---|---|
+| DIDAR-SEC-01 | High if grants remain active | Migrations grant `anon` direct INSERT on personal-data form tables. | Confirmed source issue | Production grant state **NOT VERIFIED**. |
+| DIDAR-SEC-02 | High if grants remain active | Public SECURITY DEFINER form RPCs do not reproduce all API validation/rate limits, so direct RPC invocation could bypass those checks. Cancellation is a separate token-based flow. | Confirmed source issue; Production impact conditional | Production function ACLs/owners/configuration **NOT VERIFIED**. |
+| DIDAR-SEC-03 | High if grants/policies remain active | Table-level published-event SELECT does not restrict columns in source migrations; `admin_notes` could be requested through direct table access if no live column/view restriction exists. | Confirmed source issue; exploitability conditional | Production grants/RLS/column privileges **NOT VERIFIED**. |
+| DIDAR-SEC-04 | Medium | Form rate limiter is in-memory per server instance; it is not a global abuse limit across serverless instances. | Confirmed source issue/design limitation | Runtime abuse impact not tested. |
+| DIDAR-SEC-05 | Medium | Admin notification fallback logs names, emails, phone/Telegram values, contact messages and other submission fields when Resend configuration is missing. | Confirmed source issue; activation conditional | Whether fallback can execute in Production is **NOT VERIFIED**. |
+| DIDAR-SEC-06 | Medium | `next.config.js` sets nosniff, frame denial, XSS legacy filter and Referrer-Policy, but does not set Content-Security-Policy. | Confirmed source gap | Live response headers **NOT VERIFIED**; CSP compatibility requires testing before adding a policy. |
+| DIDAR-SEC-07 | Medium | PBKDF2-SHA256 remains at 10,000 iterations for the shared admin password. | Confirmed source issue | Safe upgrade needs an explicit compatible credential migration; not changed in this phase. |
+| DIDAR-SEC-08 | Medium / operational integrity | `/api/admin/fix-event-status` is a legacy POST endpoint, admin-session gated, hard-coded to reopen registration for `e2e-capacity-test-temp-2026-09-25`, and returns the updated row. | Confirmed source behavior; Production impact conditional | No current UI reference was established; endpoint was not called or removed. Compatibility impact is unresolved. |
+| DIDAR-SEC-09 | Low / conditional | `lib/admin-email.js` logs the Resend response body on send failure. | Confirmed source behavior | Whether a provider error body can contain sensitive data in this integration is **NOT VERIFIED**. |
+| DIDAR-SEC-10 | Informational | `lib/session-store.js` logs an eight-character session-token prefix, but current auth/session APIs import the DB-backed `lib/session-store-db.js`; the in-memory store appears to be legacy/unused. | Informational / legacy code | Full import graph was not executable in this environment. |
+| DIDAR-SEC-11 | Informational | Session cookie source sets HttpOnly, SameSite=Lax, Secure in Production, Path=/ and 24-hour Max-Age; DB sessions store a SHA-256 token hash and check expiry. Login throttling is in-memory. | Source control present with known limitation | Live cookie headers and auth/session behavior **NOT VERIFIED**. |
+| DIDAR-SEC-12 | Informational | Public event API, homepage props and listing/detail props use an explicit allowlist/strip to exclude `admin_notes`; upload requires an admin session, validates JPEG/PNG/WebP magic bytes and a 5 MiB limit, and uses a UUID storage path; CSV exports require an admin session and use formula-safe cell escaping. | Already resolved in source / source controls present | No live payload, Storage metadata, or admin-export test was performed. |
+| DIDAR-SEC-13 | Informational / potential | Admin login trusts the first `x-forwarded-for` value for per-instance throttling; whether the deployment proxy overwrites this header was not verified. | Potential issue requiring runtime verification | **NOT VERIFIED**. |
+
+### Dependency review
+
+- `package.json` declares Next.js `^15.5.28`; the lockfile resolves `next@15.5.28` and `eslint-config-next@15.5.28`. Current official Next.js security release notes identify 15.5.28 as patched for the October 2026 advisories. The site uses the Pages Router; the App Router-only Server Actions advisory does not match the reviewed route architecture.
+- The lockfile resolves `postcss@8.5.30`; public advisory summaries identify 8.5.23 as the fixed floor for the listed 2026 PostCSS issues. A newer compatible 8.5.x exists, but no automatic upgrade was made.
+- The lockfile resolves `eslint@8.57.1`, which is end-of-life. This is a maintenance/support finding, not by itself proof of an exploitable runtime vulnerability.
+- **Full dependency vulnerability scan — NOT VERIFIED:** `npm audit` and equivalent lockfile-wide scanner were not run because no runnable checkout/package-manager environment was available. No package was upgraded. Compatibility risk of any future upgrade remains to be assessed.
+
+### Production QA and database boundary
+
+- **Production public routes / language switch / event pages / form rendering / public JSON / security headers — NOT VERIFIED.** HTTP retrieval of the production homepage failed with a cache-miss fetch error; direct API/admin paths were inaccessible through the web retrieval tool. The connected browser integration only reads existing tabs and cannot navigate/interact. No repeated retries were made.
+- **Admin login/session, exports, upload and authorization — NOT VERIFIED.** No existing authorized admin session was available in the connected browser context. No authentication bypass was attempted.
+- **Production database read-only connection — BLOCKED.** No technically enforced read-only Production connection was exposed. No SQL Editor query, unrestricted query, personal-record read, or write RPC was used. Production grants, RLS, RPC ACLs/owners, applied migration state, and Storage configuration remain **NOT VERIFIED**.
+- **Current READY deployment baseline:** `dpl_J8HS2NmhbCVyv8LzradmqpgGooZZ`, source commit `9ea770d147750a4ef5be00aefbe2e9549e27772a`. This review did not initiate a deployment.
+- **Deployment recommendation:** do not deploy from this phase. No code fix has been applied or verified. Prioritize a testable patch for conditional PII console fallback and an intentionally designed CSP, then run build/automated checks and live QA in a controlled branch before deployment. Production database findings require enforced read-only verification or an owner-approved separate maintenance procedure.
+
+### Remediation status
+
+No code, dependency, environment, credential, database, or deployment changes were made. No legacy endpoint was removed. Supabase keys remain untouched per owner decision. Existing Phase 05 history above is preserved.
