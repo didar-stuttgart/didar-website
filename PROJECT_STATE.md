@@ -27,7 +27,7 @@ Registration is manual-review:
 | Area | Status |
 |---|---|
 | Repository default branch | Verified: `main` |
-| Main HEAD | Verified: `9ea770d147750a4ef5be00aefbe2e9549e27772a` |
+| Application source baseline before the documentation-only security update | `9ea770d147750a4ef5be00aefbe2e9549e27772a` |
 | Current Production deployment | Verified: READY deployment `dpl_J8HS2NmhbCVyv8LzradmqpgGooZZ` |
 | Current Production source | Verified: branch `main`, commit `9ea770d147750a4ef5be00aefbe2e9549e27772a` |
 | Next.js version | Verified: `^15.5.28` in `package.json` |
@@ -115,6 +115,6 @@ Repository findings (source-confirmed; live Supabase status **NOT VERIFIED**):
 | DIDAR-SEC-05 | SECURITY DEFINER search_path/owner hardening | Configuration confirmed; exploitability not established | NOT VERIFIED |
 | DIDAR-SEC-06 | Cancellation RPC is public but requires a high-entropy bearer token | Design review item | NOT VERIFIED |
 
-The current Production deployment was independently read as READY and is tied to `main` commit `9ea770d147750a4ef5be00aefbe2e9549e27772a`. This does not prove the state of Supabase grants, RLS, function ACLs, function owners or applied migrations.
+The current Production deployment was independently read as READY and is tied to application commit `9ea770d147750a4ef5be00aefbe2e9549e27772a`. The subsequent GitHub commits in this review changed documentation only; no application code was changed. This does not prove the state of Supabase grants, RLS, function ACLs, function owners or applied migrations.
 
 No Production database writes, public write-RPC calls, personal-record reads, code changes or deployments were performed as part of this investigation. The next step is a read-only Supabase catalog/metadata review; see [SECURITY.md](SECURITY.md).
