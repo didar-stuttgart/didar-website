@@ -127,3 +127,22 @@ The intended workflow remains manual:
 - Registration CSV event column is currently empty because it reads `reg.event`.
 - No public-facing organisation-settings consumption.
 - Known event auto-open behavior remains intentionally untouched.
+
+## 11. Safe admin checklist
+
+When processing a real submission, keep the sequence explicit:
+
+1. Open the corresponding admin list.
+2. Review the submitted personal data and comment.
+3. Contact the person through an official DIDAR channel.
+4. Set the status to reflect the manual decision.
+5. Do not treat the receipt email as proof of acceptance.
+6. Do not place sensitive material into `admin_notes`.
+
+Before deleting a registration/membership/contact row, confirm the identity and export only through a controlled location if a backup is required. There is no undo in the admin UI.
+
+## 12. Language and UI behavior
+
+The public site uses Next.js locale routing: Persian has no prefix and German uses `/de`. Admin registrations has its own FA/DE switch. Events/content/settings admin areas are currently Persian-oriented.
+
+For UI changes, verify the relevant route in both locales where applicable; do not assume a source-only check proves RTL/LTR correctness.
