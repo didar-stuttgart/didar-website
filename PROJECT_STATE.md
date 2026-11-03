@@ -147,3 +147,21 @@ Proposed remediation order: (1) protect the Supabase secret in Vercel and review
 All changes must preserve manual submission/review behavior and the rule that notification email failure does not roll back a saved submission. Production verification must use an enforced read-only metadata identity/session, not the unrestricted SQL Editor. See [SECURITY.md](SECURITY.md), section 14, for evidence and verification boundaries.
 
 This was a documentation-only update. No application code, database permissions, Vercel configuration or deployment was changed.
+
+
+## 11. Vercel Production secret-visibility remediation attempt — Phase 05 (2026-11-03)
+
+**Result: BLOCKED. No configuration change was made.**
+
+- Production `SUPABASE_SECRET_KEY` entry `Zfv3GNeII6VXkphc` remains Production-only, `encrypted` / `config`, with `readable-secret`.
+- Separate Preview entry `HXProF48ooiW3Uz2` remains Preview-only and `sensitive` / `secret`.
+- The available safe in-place edit API rejected `type: sensitive` unless `visibility: secret` was also supplied; that visibility field was not exposed by the safe edit interface.
+- No duplicate was created. No secret value was accessed or exposed.
+- No CLI fallback was used because it requires supplying the secret value.
+- No Preview variable, deployment, code, database, Supabase setting, permissions or other environment variable changed.
+
+**Current risk:** Production configuration-read access may still expose the value of this elevated Supabase key. This is not proof of public internet exposure or prior access.
+
+**Next step:** A Vercel project Owner may check for a Dashboard-supported in-place Config → Secret conversion that explicitly preserves the existing value without revealing or re-entering it. If replacement is required, stop and plan a separately authorized, coordinated key rotation after confirming the current key type and its supported retirement process. Do not use CLI, delete/recreate the variable, rotate, revoke or deploy without separate authorization.
+
+See [SECURITY.md](SECURITY.md), section 15, for the evidence boundary and detailed stop conditions. This phase made no application, database, Vercel configuration or deployment changes.
