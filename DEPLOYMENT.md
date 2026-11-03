@@ -147,11 +147,11 @@ For a dependent code change:
 6. Only then deploy dependent application code.
 7. Record the migration and verification result in project documentation.
 
-For migration 012, verify that the live registration RPC accepts the ``cancellation_token_hash_param`` eighth argument before deploying code that sends it.
+For migration 012, verify that the live registration RPC accepts the `cancellation_token_hash_param` eighth argument before deploying code that sends it.
 
-For migration 013, verify the partial unique index ``event_registrations_active_email_unique``.
+For migration 013, verify the partial unique index `event_registrations_active_email_unique`.
 
-For migration 014, verify the ``event-images`` bucket is public-read, capped at 5 MB and limited to JPEG/PNG/WebP. Do not create public upload/update/delete policies.
+For migration 014, verify the `event-images` bucket is public-read, capped at 5 MB and limited to JPEG/PNG/WebP. Do not create public upload/update/delete policies.
 
 ## 11. Troubleshooting
 
@@ -160,7 +160,7 @@ For migration 014, verify the ``event-images`` bucket is public-read, capped at 
 | All forms fail with 500 | Supabase URL/publishable key, Vercel function logs, current RPCs |
 | Registration fails after a deploy | migration 012 signature, duplicate constraint, form logs |
 | Re-registration after cancellation still gives 409 | migration 013 is likely missing from the target DB |
-| Admin login fails | ``ADMIN_PASSWORD_HASH``, ``SUPABASE_SECRET_KEY``, ``admin_sessions``, login throttle/cookie |
+| Admin login fails | `ADMIN_PASSWORD_HASH`, `SUPABASE_SECRET_KEY`, `admin_sessions`, login throttle/cookie |
 | Admin API returns Unauthorized | session cookie expiry or DB session validation failure |
 | Event image upload returns 503 | bucket existence/public flag/Storage upload result |
 | Public event data is stale | ISR cache; confirm Production includes event-mutation revalidation when applicable |
@@ -170,9 +170,9 @@ Never put credentials, tokens, raw environment values or exported personal data 
 
 ## 12. Recovery and rollback
 
-- **Application code:** prefer Vercel rollback/redeploy of a known-good deployment or a normal ``git revert``. Do not rewrite shared history.
+- **Application code:** prefer Vercel rollback/redeploy of a known-good deployment or a normal `git revert`. Do not rewrite shared history.
 - **Database:** migrations have no general automatic down-migration. A code rollback across migration 012 requires deliberate compatibility work because migration 012 replaces the previous registration RPC signature.
-- **Storage:** do not remove the ``event-images`` bucket or its data merely to roll back application code. First determine whether Production actually depends on it.
+- **Storage:** do not remove the `event-images` bucket or its data merely to roll back application code. First determine whether Production actually depends on it.
 - **Secrets:** rotate compromised credentials at the provider, update Vercel environment variables, redeploy, and invalidate affected sessions where applicable.
 
 No rollback should be assumed safe without checking the migration's actual effects and the current live state.
@@ -184,6 +184,6 @@ Useful recurring checks:
 - review Resend delivery/error status when forms are active;
 - review Vercel function logs for repeated auth/form failures;
 - review Supabase backups and restore posture according to the actual plan;
-- remove stale ``admin_sessions`` rows if operationally needed;
+- remove stale `admin_sessions` rows if operationally needed;
 - keep CSV exports outside Git and uncontrolled shared folders because they contain personal data;
 - review dependency updates with a local build before Production.
