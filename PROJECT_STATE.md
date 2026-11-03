@@ -118,3 +118,11 @@ Repository findings (source-confirmed; live Supabase status **NOT VERIFIED**):
 The current Production deployment was independently read as READY and is tied to application commit `9ea770d147750a4ef5be00aefbe2e9549e27772a`. The subsequent GitHub commits in this review changed documentation only; no application code was changed. This does not prove the state of Supabase grants, RLS, function ACLs, function owners or applied migrations.
 
 No Production database writes, public write-RPC calls, personal-record reads, code changes or deployments were performed as part of this investigation. The next step is a read-only Supabase catalog/metadata review; see [SECURITY.md](SECURITY.md).
+
+## 9. Supabase Production verification boundary — 2026-11-03
+
+An authenticated Chrome Dashboard session identified the DIDAR Production project (`pvvjkypwsbcjiqogrmta`). The SQL Editor interface was visible, but it did not enforce a read-only database role or read-only transaction/session. No SQL was entered or executed. This was a deliberate stop because the execution interface also permits unrestricted statements.
+
+Effective Production grants, RLS, column privileges, RPC ACLs/owners/configuration, migration history, indexes and Storage metadata remain **NOT VERIFIED**. A future review requires a separately authorized, technically enforced read-only database identity/session; no credentials, connection details or application records should be accessed as a workaround.
+
+No Production database, application code, GitHub application source or deployment changes were made during this review. This documentation update does not change the application deployment baseline.
