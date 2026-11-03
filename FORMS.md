@@ -105,42 +105,42 @@ Use only addresses you control for permanent form tests.
 
 ## 7A. Field-level validation reference
 
-Server validation is implemented in ⟦BT`lib/validation.js⟦BT`:
+Server validation is implemented in ``lib/validation.js``:
 
 | Form | Field | Rule |
 |---|---|---|
 | Event | first/last name | required, 1–100 characters |
 | Event | email | required, regex-valid, <=254 characters |
 | Event | phone | optional, 5–20 characters |
-| Event | Telegram | optional; ⟦BT`@handle⟦BT` length 2–32 or digits |
+| Event | Telegram | optional; ``@handle`` length 2–32 or digits |
 | Event | comment | optional, <=1000 characters |
 | Membership | first/last name | required, 1–100 characters |
 | Membership | email | required, regex-valid, <=254 characters |
 | Membership | phone | optional, 5–20 characters |
-| Membership | Telegram | optional; ⟦BT`@handle⟦BT` length 2–32 or digits |
+| Membership | Telegram | optional; ``@handle`` length 2–32 or digits |
 | Membership | additional info | optional, <=1000 characters |
 | Contact | name | required, 1–100 characters |
 | Contact | email | required, regex-valid, <=254 characters |
 | Contact | message | required, 10–2000 characters |
 
-The hidden event-registration ⟦BT`eventId⟦BT` must be a JavaScript number. The hidden ⟦BT`language⟦BT` value is used to select FA/DE receipt and event-title wording.
+The hidden event-registration ``eventId`` must be a JavaScript number. The hidden ``language`` value is used to select FA/DE receipt and event-title wording.
 
 ## 7B. Error and duplicate semantics
 
-- Validation failures return HTTP 400 with ⟦BT`details: [...]⟦BT`.
+- Validation failures return HTTP 400 with ``details: [...]``.
 - Event not found/unpublished returns 404.
-- Closed event registration returns 409 with ⟦BT`errorType: registration_closed⟦BT`.
-- Active duplicate registration returns 409 with ⟦BT`errorType: duplicate_email⟦BT`.
+- Closed event registration returns 409 with ``errorType: registration_closed``.
+- Active duplicate registration returns 409 with ``errorType: duplicate_email``.
 - Membership duplicate email returns 409.
 - Email failure after a successful database write does not alter the HTTP success response.
 
 ## 7C. Email operations
 
-Resend is called directly over HTTPS. Admin notification messages use ⟦BT`DIDAR_EMAIL_FROM⟦BT` (defaulting in code to ⟦BT`Didar Stuttgart <noreply@didar-stuttgart.com>⟦BT`) and ⟦BT`DIDAR_NOTIFICATION_EMAIL⟦BT` as the recipient.
+Resend is called directly over HTTPS. Admin notification messages use ``DIDAR_EMAIL_FROM`` (defaulting in code to ``Didar Stuttgart <noreply@didar-stuttgart.com>``) and ``DIDAR_NOTIFICATION_EMAIL`` as the recipient.
 
-Notification helpers use stable idempotency keys such as ⟦BT`registration-<id>⟦BT`, ⟦BT`membership-<id>⟦BT`, ⟦BT`contact-<id>⟦BT` and ⟦BT`registration-cancellation-<id>⟦BT`.
+Notification helpers use stable idempotency keys such as ``registration-<id>``, ``membership-<id>``, ``contact-<id>`` and ``registration-cancellation-<id>``.
 
-The registrant receipt has its own ⟦BT`registration-receipt-<id>⟦BT` idempotency key. It is an acknowledgment only, includes the cancellation link, and never represents final attendance confirmation.
+The registrant receipt has its own ``registration-receipt-<id>`` idempotency key. It is an acknowledgment only, includes the cancellation link, and never represents final attendance confirmation.
 
 There is no retry queue in the repository. A failed send is observable through logs/Resend only; the database record remains the source of truth.
 
@@ -151,9 +151,9 @@ When required email configuration is missing, the current admin-email helpers fa
 Use addresses you control.
 
 1. Submit a valid event registration and confirm HTTP 201.
-2. Confirm the row exists with status ⟦BT⟦BT`new⟦BT`.
+2. Confirm the row exists with status ```new``.
 3. Check admin notification and registrant receipt in the actual inbox/Resend evidence.
 4. Open the cancellation link without confirming: GET must not cancel.
-5. Use the confirmation action and verify status becomes ⟦BT⟦BT`cancelled⟦BT`.
+5. Use the confirmation action and verify status becomes ```cancelled``.
 6. Re-register the same email only after confirming migration 013 is present in the target database.
 7. For membership/contact, verify the row and admin notification; there is no submitter confirmation email.
