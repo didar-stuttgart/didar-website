@@ -233,3 +233,18 @@ Next step: create a replacement new-format Supabase secret, configure it as a Ve
 - The environment listing showed no other Vercel `securityIssues` flags beyond the Production Supabase secret warning and no hidden Production environment entries.
 
 No application code, database, environment variable, deployment, or application data was changed during Phase 05F. Only this status documentation is updated. See [SECURITY.md](SECURITY.md), section 19, for details and evidence boundaries.
+
+
+## 16. Phase 07 focused application fixes — 2026-11-03
+
+| Check | Status | Evidence |
+|---|---|---|
+| PII-free admin notification fallback/failure logging | **PASS — locally verified** | The four functions in `lib/admin-email.js` now log only a submission identifier, notification type, normalized category, and optional numeric status; focused checks covered configuration, rejected-provider, and thrown-request paths. |
+| Notification non-rollback behavior | **PASS — source and focused checks** | Notification functions still catch their own failures; each public caller invokes them only after its database write or completed cancellation. |
+| Failed database session creation | **PASS — locally verified** | Login returns generic 500 and neither clears login failures nor sets `session_token` when `createSession()` returns false or throws. Success behavior remains intact when it returns exactly `true`. |
+| Lockfile install and lint | **PASS** | `npm ci --no-audit --no-fund` completed; `npm run lint` completed with 13 pre-existing warnings and no errors. |
+| Production build | **PASS — isolated local build** | `npm run build` compiled and generated output using local-only placeholder public Supabase values; no real credentials, database access, or deployment was used. A temporary tracing-root setting was removed after the check. |
+| Production dependency audit | **PASS — completed; findings open** | `npm audit --omit=dev --json`: 3 low, 5 moderate, 0 high, 0 critical. Findings are in the existing Resend dependency chain; major upgrade not applied in this focused phase. |
+| Production behavior and email delivery | **NOT VERIFIED** | No deployment, real submission, login, database operation, or Resend delivery test was performed. |
+
+Phase 06 PR #6 remains separate and open. This Phase 07 work changes no Supabase key, Vercel environment value/configuration, database migration/permission/data, or Production deployment. The documented event-registration reopen issue remains unchanged.

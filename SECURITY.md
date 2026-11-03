@@ -107,8 +107,8 @@ Current runtime HTTP re-verification of the live page was not completed in the l
 
 Potential personal-data leakage remains possible when:
 
-- Resend variables are missing and email helpers fall back to logging submitted data;
-- error logs include Supabase error objects.
+- other application error logs include Supabase error objects;
+- a future change weakens the constrained notification-failure logging described in section 20.
 
 Retention periods and deletion policy are still owner/legal decisions.
 
@@ -397,3 +397,26 @@ The existing source-level findings documented in sections 12 and 14 remain open;
 - No code, database, environment variable, deployment, or application data was modified during this verification.
 
 **Phase 05F status:** DUMMY cleanup **PASS**; both existing key entries **UNCHANGED / PASS**; key rotation **INTENTIONALLY DEFERRED BY OWNER DECISION**; latest READY deployment identified **PASS**; live public/admin functionality **NOT VERIFIED**; Production secret visibility risk remains **FAIL / OPEN**.
+
+
+## 20. Phase 07 focused application fixes and local verification — 2026-11-03
+
+**Scope status: IMPLEMENTED and locally verified. Production runtime verification remains NOT VERIFIED.** This section records the focused fixes after the earlier Phase 06 source finding; it does not revise the historical Phase 05/06 records.
+
+### Fix A — notification logging
+
+All fallback, non-2xx provider-response, and thrown-request paths in `lib/admin-email.js` now emit only a fixed log message with a submission identifier, notification type, normalized failure category, and (when available) numeric HTTP status. They do not log submitted names, email addresses, phone numbers, messages, event details, raw Resend bodies, API keys, headers, or thrown error objects/messages.
+
+The four notification functions still catch their own notification failures. Their existing callers invoke them only after a successful database write or completed cancellation, so a notification failure continues not to roll back the manual submission workflow. No public confirmation email or automated registration behavior was added.
+
+### Fix B — database-backed session creation
+
+`pages/api/auth/login.js` now requires `createSession(token) === true` before clearing login-throttle state, setting `session_token`, or returning a successful login. A false return or thrown session-creation failure returns the existing generic HTTP 500 response and does not expose the underlying database detail through the handler log. `lib/session-store-db.js`, password hashing, expiry, and cookie attributes are unchanged.
+
+### Verification and boundaries
+
+- **PASS — focused checks:** an isolated temporary harness exercised all four notification functions for missing configuration, provider rejection, and thrown requests; it asserted that logs contained only the normalized metadata. It also exercised login success plus session-creation false and throw cases, confirming no success cookie or throttle reset on either failure path.
+- **PASS — lockfile install and lint:** `npm ci --no-audit --no-fund` completed from `package-lock.json`; `npm run lint` completed with only the repository's existing warnings (13 warnings, no lint errors).
+- **PASS — production build:** `npm run build` compiled and generated the build output using temporary local-only placeholder public Supabase values. No real Supabase credentials, database, or application data were used. A temporary output-tracing-root setting was needed solely because an unrelated parent lockfile caused Next to traverse an inaccessible parent directory; that setting was removed afterward.
+- **PASS — production dependency audit completed:** `npm audit --omit=dev --json` reported 3 low and 5 moderate findings, with no high or critical finding. The reported chain starts at direct dependency `resend@3.5.0`; the available automated fix is the semver-major `resend@6.37.0`, which is outside this focused fix and was not applied.
+- **NOT VERIFIED:** Production deployment, runtime form submission, live Resend delivery, and Production log contents were not exercised. No Production environment variable, Supabase key, database schema/permission/data, or deployment was changed.
