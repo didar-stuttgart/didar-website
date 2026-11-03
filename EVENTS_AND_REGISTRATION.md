@@ -190,3 +190,18 @@ If the receipt email was not delivered, the saved registration still exists but 
 | Cancel link appears to do nothing | GET is intentionally non-mutating; press the page's confirmation action |
 | Event image differs between pages | inspect `events.image_url` and `lib/event-image.js`; Production should also have the mutation revalidation helper |
 | Event change is stale on the homepage/list | normal ISR is up to 1 hour; current Production additionally revalidates after admin mutations |
+
+## 10A. Implementation touchpoints
+
+- Public event detail: `pages/veranstaltungen/[slug].js`
+- Public registration: `pages/api/registrations/submit.js`
+- Public cancellation: `pages/registrations/cancel.js` + `pages/api/registrations/cancel.js`
+- Receipt email: `lib/registration-receipt-email.js`
+- Cancellation token: `lib/registration-cancellation.js`
+- Image resolution: `lib/event-image.js`
+- Custom slug validation: `lib/event-slug.js`
+- Admin event CRUD: `pages/api/admin/events/index.js`, `pages/api/admin/events/[slug].js`
+- Admin image upload: `pages/api/admin/events/upload-image.js`
+- Production-only current ISR mutation helper: `lib/revalidate-event-pages.js`
+
+The last item is intentionally not present on `main`; it is documented here because it is part of the current Production deployment.
