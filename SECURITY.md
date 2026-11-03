@@ -201,3 +201,39 @@ Accordingly, effective Production table/column privileges, RLS policies, functio
 A future Production review requires a separately authorized, technically enforced read-only database identity/session. It should be limited to the required catalog and metadata visibility, with no write privileges and no access to application records. Do not use the ordinary unrestricted SQL Editor session for this investigation. Do not open connection details or expose credentials as a workaround.
 
 No Production database, application, GitHub source code or deployment changes were made during this review.
+
+
+## 14. Personal-data protection investigation — 2026-11-03
+
+Investigation 03 reviewed the deployed application source baseline and Vercel Production configuration metadata. No user records, runtime logs, credentials, Production SQL, form submissions or write RPCs were accessed. Effective Supabase Production grants/RLS/function ACLs remain **BLOCKED / NOT VERIFIED** because no enforced read-only database identity/session was available.
+
+### Confirmed findings and boundaries
+
+| ID | Finding | Evidence status | Production interpretation |
+|---|---|---|---|
+| DIDAR-PD-01 | `SUPABASE_SECRET_KEY` is configured in Vercel Production as a readable configuration value (Vercel metadata marks it `readable-secret`). | Production configuration metadata observed | **FAIL — access-control exposure risk.** This is not evidence of public internet exposure. Members permitted to read configuration values may obtain an RLS-bypassing key. |
+| DIDAR-PD-02 | Public table-level SELECT on `events` has no source-level column restriction for `admin_notes`. | Repository SQL confirmed | **FAIL source / BLOCKED Production.** Direct PostgREST column exposure depends on live grants/policies. |
+| DIDAR-PD-03 | Anonymous direct INSERT is granted on the three form tables with permissive INSERT policies. | Repository SQL confirmed | **FAIL source / BLOCKED Production.** This may bypass API validation/rate limiting and permit caller-supplied writable fields on new rows; it does not establish reads of existing records. |
+| DIDAR-PD-04 | Public form RPCs are executable by `anon` and do not independently reproduce all API validation. | Repository migrations/functions reviewed | **FAIL source / BLOCKED Production.** Direct RPC invocation may bypass API validation/rate limiting if grants remain active. |
+| DIDAR-PD-05 | Email fallback path logs complete submission payloads when notification configuration is unavailable. | Conditional source behavior confirmed | **FAIL conditional source / NOT VERIFIED runtime.** Production invocation and log contents were not inspected. |
+| DIDAR-PD-06 | Reviewed admin API routes require the database-backed admin session before creating the admin client. | Application source reviewed | **PASS source only.** Does not establish runtime behavior or database policy state. |
+
+Repository SQL intends to deny public SELECT/UPDATE/DELETE on `event_registrations`, `membership_applications`, `contact_submissions` and public access to `admin_sessions`. This is a source-level finding only; it is not proof of effective Production permissions.
+
+The application filters `events.admin_notes` from its known public API/page payloads, but frontend filtering does not secure direct database/PostgREST access. Public event queries use `select('*')` before filtering; Production browser payloads were not fetched.
+
+CSV exports contain personal data and administrative notes but are protected by the reviewed admin-session checks and neutralize spreadsheet formulas. Cancellation-token hashes are not returned by reviewed list/update endpoints. The cancellation RPC remains a separate bearer-token workflow: the raw token is generated from 32 random bytes, only its SHA-256 hash is stored, and a token holder can cancel the corresponding registration and receive limited details.
+
+### Remediation order — proposed, not implemented
+
+1. Convert `SUPABASE_SECRET_KEY` to a non-readable Vercel Secret, review who can read Production configuration, and rotate the key if prior access cannot be ruled out. Verify admin APIs after any approved rotation/deployment.
+2. Prevent public direct reads of `events.admin_notes` using a safe public view or explicit safe-column query design, while preserving public event pages and admin editing.
+3. Remove unnecessary direct `anon` INSERT privileges and sequence usage only after Preview validation confirms the server API path works.
+4. Move public RPC execution behind validated server-side API access, or prove each retained public RPC independently enforces all required rules; then restrict `anon` EXECUTE.
+5. Replace fallback payload logging with non-PII operational metadata (for example, submission ID and failure category), without changing the rule that email failure must not roll back a saved submission.
+
+Do not read personal records or runtime logs to prove these findings. Production database verification must use a separately authorized, technically enforced read-only metadata identity/session; the ordinary unrestricted Supabase SQL Editor is not acceptable.
+
+Preserve DIDAR's manual registration model: submissions are saved immediately, reviewed manually, and notification email failures do not roll back successful database writes. No verification email, automatic public confirmation, or automatic capacity enforcement is to be reintroduced.
+
+No remediation was implemented by this investigation. No application code, database permissions, schema, Vercel configuration or deployment was changed.
