@@ -142,3 +142,52 @@ Email helpers swallow send failures. A failed email does not roll back a saved s
 - The homepage strips `admin_notes` before embedding event data.
 
 Known gaps and unresolved decisions are maintained in [SECURITY.md](SECURITY.md) and [PROJECT_STATE.md](PROJECT_STATE.md).
+
+## 9. Request/response operational details
+
+### Public forms
+
+The three public form APIs are rate-limited by an in-memory IP limiter. Default is 10 requests per 60 seconds; `RATE_LIMIT_REQUESTS` and `RATE_LIMIT_WINDOW_MS` can override the defaults. The limiter is per server instance, not a global Vercel-wide quota.
+
+Server validation lives in `lib/validation.js` and is authoritative. Client-side repeat-email confirmation is UX-only and is not stored.
+
+### Registration response semantics
+
+- Invalid event id: HTTP 400.
+- Missing/unpublished event: HTTP 404.
+- `registration_status !== 'open'`: HTTP 409 with `errorType: registration_closed`.
+- Duplicate active event/email: HTTP 409 with `errorType: duplicate_email`.
+- Validation failure: HTTP 400 with a `details` array.
+- Successful save: HTTP 201.
+- Email failure does not turn a successful database insert into an error.
+
+### Admin registration filter
+
+`GET /api/admin/registrations?eventId=<positive integer>` filters server-side. The admin UI sorts the loaded result set locally by date, name or status. The CSV exporter is not limited by the selected event filter.
+
+### Admin event archive
+
+`DELETE /api/admin/events/[slug]` does not delete the row. It updates `status='archived'`. Registrations remain associated with the event.
+
+## 10. Source-to-behavior map
+
+| Behavior | Primary source |
+|---|---|
+| Locale/direction | `next.config.js`, `pages/_app.js`, `lib/i18n.js` |
+| Public form validation | `lib/validation.js` |
+| Public form rate limiting | `lib/middleware.js`, `lib/rate-limit.js` |
+| Admin login/session | `pages/api/auth/*.js`, `lib/admin-auth.js`, `lib/session-store-db.js` |
+| Public registration insert | `pages/api/registrations/submit.js` + migration 012 RPC |
+| Self-cancellation | `pages/api/registrations/cancel.js` + migration 012 RPC |
+| Re-registration uniqueness | migration 013 |
+| Event image upload | `pages/api/admin/events/upload-image.js` + migration 014 |
+| Event image display | `lib/event-image.js`, EventCard, event detail page |
+| Custom slug handling | `lib/event-slug.js`, admin event APIs |
+| Public event-field filtering | `lib/events-filter.js` |
+| Public event grouping | `lib/events-categorizer.js` |
+| Homepage CMS fallback | `lib/cms-client.js`, `pages/index.js` |
+| Admin CMS editing | `pages/admin/content.js`, `pages/api/admin/content/cms.js` |
+| Organization settings | `pages/admin/settings.js`, `pages/api/admin/settings/organization.js` |
+| Production event ISR refresh | `lib/revalidate-event-pages.js` on the current Production commit |
+
+The Production revalidation helper is not in `main` yet, so source inspection from `main` and Production behavior can differ until the branches converge.
