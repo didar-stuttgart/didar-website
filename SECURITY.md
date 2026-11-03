@@ -38,7 +38,7 @@ Open risks remain:
 - login throttling is not global across Vercel instances;
 - one shared admin password means no per-user accountability;
 - no 2FA;
-- no CSRF token; current endpoints rely on SameSite=Lax + JSON-only requests.
+- no dedicated CSRF token; current browser requests rely on the SameSite=Lax cookie policy and the existing same-origin request patterns.
 
 ## 3. Database access
 
