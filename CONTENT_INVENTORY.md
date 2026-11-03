@@ -35,3 +35,28 @@ The original 2026 content inventory proposed moving a much larger set of content
 ## 5. Route/content map
 
 Use [ARCHITECTURE.md](ARCHITECTURE.md) for the current route map and [ADMIN_GUIDE.md](ADMIN_GUIDE.md) for what the admin can actually edit.
+
+## Current implementation inventory
+
+This file is an inventory, not a roadmap. The current source-of-truth for each content class is:
+
+| Content class | Current source |
+|---|---|
+| Navigation/UI labels | `lib/i18n.js` and admin i18n |
+| Homepage hero/about editable subset | `cms_content` via `lib/cms-client.js` |
+| Events | Supabase `events` table |
+| Event images | `events.image_url` or deterministic fallback images |
+| About page narrative | `pages/ueber-uns.js` |
+| Founders | `pages/ueber-uns.js` with `public/images/Avid.jpg` and `public/images/Danial.jpg` |
+| Membership/contact copy | page source + `lib/i18n.js` |
+| Impressum/Datenschutz | hard-coded page source; owner-approved facts only |
+| Organization settings | `organization_settings`, but current public pages do not consume these values |
+| Repository images | `public/images` |
+
+### Current CMS keys
+
+Only the homepage keys listed in [CMS_ARCHITECTURE.md](CMS_ARCHITECTURE.md) are verified as public consumers in code. Other `cms_content` rows may be editable in the admin UI without changing a public page.
+
+### Historical/proposed material
+
+Older sections that recommend moving all legal/about/footer content into a CMS, adding content versioning, or expanding `organization_settings` are proposals, not current implementation. Keep them explicitly labeled historical if retained.
