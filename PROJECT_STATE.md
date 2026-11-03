@@ -190,3 +190,16 @@ Next step: create a replacement new-format Supabase secret, configure it as a Ve
 - **Production deployment — NOT PERFORMED:** no deployment was triggered for this blocked credential change. The earlier READY deployment predates remediation.
 - **Application verification — NOT VERIFIED:** no replacement-credential test of public pages, admin login, admin events/content/settings, or database-backed admin operations was possible. No real user records or public submissions were modified. Email delivery is NOT VERIFIED.
 - **Final status — BLOCKED:** production risk remains open. Keep the existing key active until a replacement is configured, deployed and verified; retire it only after those checks pass.
+
+
+## 14. Phase 05E access and execution update — 2026-11-03
+
+- **GitHub state — PASS:** current `main` HEAD is `11ef0cc708b6c2495a8f2a91837d437755cb0051`; Phase 05D documentation sections remain present.
+- **Vercel access — PASS:** connected account is a team OWNER. This is not a team-role authorization failure. The connected edit action does not support Secret visibility and the integration exposes no delete-variable operation; Chrome access is read-only.
+- **Supabase access — BLOCKED:** correct Production project `pvvjkypwsbcjiqogrmta` is active/healthy. Connected Supabase actions do not include project secret-key create/delete operations; Chrome access is read-only. No Management API key-management credential is available in the connected tools.
+- **Production configuration — FAIL:** Production `SUPABASE_SECRET_KEY` remains `encrypted` / `config` with `readable-secret`; Preview remains `sensitive` / `secret`.
+- **Deployment — FAIL / recovery:** latest Production deployment `dpl_7RAFEr3sFX1E5AXYFAMSkzJv78wF` is CANCELED on docs commit `11ef0cc708b6c2495a8f2a91837d437755cb0051`. Previous READY deployment `dpl_J8HS2NmhbCVyv8LzradmqpgGooZZ` on application commit `9ea770d147750a4ef5be00aefbe2e9549e27772a` remains available.
+- **Incidental Vercel placeholder — cleanup required:** an empty-value Production-only `DUMMY` Secret variable (ID `BLJwGaFJm5594d6h`) was unintentionally created while checking the create-variable operation. It is unused; no deployment consumed it. The connected tool has no delete operation. Delete this exact placeholder in Vercel Project Settings → Environment Variables.
+- **Rotation — NOT PERFORMED:** no replacement key was created or installed; old key remains active.
+- **Application QA — NOT VERIFIED:** no replacement deployment exists to test. No user records or public submissions were changed. Email delivery remains NOT VERIFIED.
+- **Overall — BLOCKED:** Production risk remains open. Required manual Dashboard actions: delete the empty `DUMMY` placeholder; create a second Supabase secret API key without retiring the old one; add it directly to the Vercel Production variable as Secret. Do not paste the key into chat. Then re-run metadata verification, deployment, application QA, and old-key retirement.
