@@ -137,3 +137,14 @@ Do not rewrite Git history as the first response to an exposed secret.
 - decide whether to remove dead legacy code;
 - remove `/api/admin/fix-event-status` when owner-approved;
 - legal/privacy review of the current email and data-handling model.
+
+## 4A. Response security headers
+
+`next.config.js` currently sets these headers for all paths:
+
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+- `X-XSS-Protection: 1; mode=block`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+
+There is no CSP configured in the current repository. Treat header changes as security-sensitive and verify them in a rendered browser/network response.
