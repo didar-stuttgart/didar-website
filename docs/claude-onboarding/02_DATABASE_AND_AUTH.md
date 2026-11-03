@@ -19,3 +19,17 @@ Important recent migrations:
 - 014: event-image Storage bucket configuration
 
 Production application of 013/014 is NOT VERIFIED.
+
+## Migration-specific checks
+
+Before modifying registration code:
+
+- confirm migration 012's eight-argument RPC exists in the target database;
+- confirm migration 013's partial unique index if re-registration behavior matters;
+- never infer Production migration state from Git alone.
+
+Before modifying admin auth:
+
+- inspect `lib/admin-auth.js` for password/session behavior;
+- inspect `lib/session-store-db.js` for DB session behavior;
+- keep `SUPABASE_SECRET_KEY` server-only.
