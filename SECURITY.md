@@ -377,9 +377,9 @@ Owner action required: create a second Supabase secret key in the DIDAR Producti
 
 ### Deployment state
 
-- **Latest Production deployment — CANCELED:** `dpl_52mC3UXw8eac9uCZUxJ2Z7PrnhLy`, source commit `ac637b1784d02006227cf754aa29d066d1a83dc4` (`main`).
-- **Latest READY Production deployment — PASS:** `dpl_J8HS2NmhbCVyv8LzradmqpgGooZZ`, source commit `9ea770d147750a4ef5be00aefbe2e9549e27772a` (`main`). Its deployment metadata lists the production aliases `www.didar-stuttgart.com` and `didar-stuttgart.com`.
-- No deployment was initiated by this verification. The READY deployment predates this review and does not demonstrate that the Production key visibility risk is resolved.
+- **Documentation-only Production deployments — CANCELED:** at the initial deployment check, the newest record was `dpl_52mC3UXw8eac9uCZUxJ2Z7PrnhLy` on docs commit `ac637b1784d02006227cf754aa29d066d1a83dc4`. The two focused documentation commits recorded below also produced canceled Production deployment records; none became READY.
+- **Latest READY Production deployment — PASS:** `dpl_J8HS2NmhbCVyv8LzradmqpgGooZZ`, source commit `9ea770d147750a4ef5be00aefbe2e9549e27772a` (`main`). Its deployment metadata lists the production aliases `www.didar-stuttgart.com` and `didar-stuttgart.com`. A final read of READY deployments confirmed this remains the latest READY Production deployment.
+- No deployment was manually initiated by this verification. The READY deployment predates this review and does not demonstrate that the Production key visibility risk is resolved.
 
 ### Website and application verification
 
