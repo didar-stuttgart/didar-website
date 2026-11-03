@@ -325,3 +325,40 @@ A fresh Vercel environment metadata read (without decrypting values) confirms:
 ### Required safe continuation
 
 Use a supported Supabase Dashboard/Management API path to create a second new-format secret key while retaining the current key; configure that replacement as a Vercel Production Secret using an interface that explicitly supports Secret visibility; deploy and verify the public and admin paths; then retire the old key and verify retirement metadata. Preserve the existing Preview variable and all manual submission workflows. Do not claim resolution until all four gates—Production Secret metadata, new READY deployment, application verification, and old-key retirement—are independently PASS.
+
+
+## 18. Phase 05E access and execution update — 2026-11-03
+
+**Overall status: BLOCKED.** Fresh metadata was read without decrypting environment values.
+
+### Current state
+
+- GitHub `main` HEAD: `11ef0cc708b6c2495a8f2a91837d437755cb0051`.
+- Production `SUPABASE_SECRET_KEY` entry `Zfv3GNeII6VXkphc`: Production, `encrypted` / `config`, `readable-secret`.
+- Preview `SUPABASE_SECRET_KEY` entry `HXProF48ooiW3Uz2`: Preview, `sensitive` / `secret`, unchanged.
+- Latest Production deployment `dpl_7RAFEr3sFX1E5AXYFAMSkzJv78wF` on documentation commit `11ef0cc708b6c2495a8f2a91837d437755cb0051`: `CANCELED`.
+- Previous known-good Production deployment `dpl_J8HS2NmhbCVyv8LzradmqpgGooZZ`: `READY`, application commit `9ea770d147750a4ef5be00aefbe2e9549e27772a`.
+
+### Access capability
+
+- Vercel authenticated account is a team `OWNER`; team-role authorization is not the blocker. The connected Vercel environment API supports listing, creating and editing variables, but the edit operation schema does not expose Secret visibility and no delete-variable operation is available. The connected browser interface is read-only.
+- The connected Supabase integration identifies the active DIDAR Production project `pvvjkypwsbcjiqogrmta`, but exposes no project secret API-key create/delete operation. The connected browser interface is read-only and currently shows the SQL Editor, not an API-key management form.
+- No Supabase Management API token or key-management permission was made available through the connected integrations. No secret value was requested, decrypted, copied, or recorded.
+
+### Incidental empty placeholder requiring cleanup
+
+During capability testing, a Vercel create-variable call created an unintended empty-value placeholder:
+- Name: `DUMMY`
+- Variable ID: `BLJwGaFJm5594d6h`
+- Target: Production
+- Type/visibility: `sensitive` / `secret`
+- Value: empty
+- It is not referenced by application code and no deployment was made using it.
+
+The connected Vercel integration has no delete-variable action, so this placeholder could not be removed through the available tool. Delete this exact `DUMMY` variable in Vercel Project → Settings → Environment Variables. Do not change the two `SUPABASE_SECRET_KEY` entries as part of that cleanup.
+
+### Rotation and verification
+
+No replacement Supabase key was created, no Production secret was installed, no new successful Production deployment was made, and the existing Supabase key was not retired. Public and admin application behavior under a replacement credential remains **NOT VERIFIED**. The prior READY deployment remains the recovery point. Do not revoke the old key until a replacement deployment and application verification pass.
+
+Owner action required: create a second Supabase secret key in the DIDAR Production project's API Keys settings while retaining the old key; then configure the replacement directly in Vercel as a Production-only Secret. Do not send the value through chat, email, GitHub, logs, or screenshots. Once the owner confirms those Dashboard actions are complete, verify metadata, deploy, test, and retire the old key only after successful application verification.
