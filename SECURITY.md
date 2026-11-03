@@ -49,10 +49,13 @@ Implemented boundaries:
 - public submissions use SECURITY DEFINER RPCs;
 - admin APIs use the secret key only after application session validation.
 
-Known hardening opportunity:
+Repository-level findings (Production database state remains **NOT VERIFIED**):
 
-- direct anon INSERT privileges still exist in repository SQL for the three public form tables even though the application uses RPCs;
-- revoking those grants would narrow the public database surface, but this requires deliberate database testing and is not part of this documentation task.
+- `anon` has direct table-level INSERT grants on `event_registrations`, `membership_applications` and `contact_submissions`; the corresponding RLS INSERT policies use `WITH CHECK (true)`. Table-level INSERT is not restricted to only the public form fields, so caller-supplied administrative columns may also be set when the grants and policies are active.
+- `anon` has EXECUTE on the public form `SECURITY DEFINER` RPCs. These functions perform inserts but do not independently enforce all Next.js business validation, including event publication and registration-open checks. Direct RPC calls therefore bypass application validation and per-instance API rate limiting.
+- `events` has a table-level SELECT grant to `public`, while its RLS policy filters rows to published events. This is row-level, not column-level, protection: `admin_notes` is not excluded from direct table reads by that policy. Homepage filtering only protects the homepage payload; it does not revoke direct PostgREST/database column access.
+
+These are confirmed in repository SQL, not confirmed in Supabase Production. Do not attempt public writes or read real records to verify them. Use read-only catalog/privilege queries against Production. Remediation requires an explicit migration plan and compatibility testing; do not apply grants/revokes or change the manual-registration workflow as part of an investigation.
 
 ## 4. Input and output handling
 
@@ -148,3 +151,41 @@ Do not rewrite Git history as the first response to an exposed secret.
 - `Referrer-Policy: strict-origin-when-cross-origin`
 
 There is no CSP configured in the current repository. Treat header changes as security-sensitive and verify them in a rendered browser/network response.
+
+
+## 12. Security investigation — repository findings (2026-11-03)
+
+The following findings were checked against the current `main` source and SQL. **Source-confirmed does not mean Production-exploitable**: live PostgreSQL grants, RLS policies, function definitions and ownership have not yet been inspected.
+
+| ID | Finding | Source status | Production status |
+|---|---|---|---|
+| DIDAR-SEC-01 | Direct anonymous INSERT on the three form tables | Confirmed | NOT VERIFIED |
+| DIDAR-SEC-02 | Anonymous EXECUTE on public form SECURITY DEFINER RPCs | Confirmed | NOT VERIFIED |
+| DIDAR-SEC-03 | Public table-level SELECT can include `events.admin_notes` for published rows | Confirmed | NOT VERIFIED |
+| DIDAR-SEC-04 | Public API rate limiting is in-memory and per server instance | Confirmed | Source behavior confirmed; live abuse impact not tested |
+| DIDAR-SEC-05 | SECURITY DEFINER functions use `search_path = public`; ownership/schema hardening is not established | Confirmed configuration; exploitability not established | NOT VERIFIED |
+| DIDAR-SEC-06 | Anonymous cancellation RPC is protected by a high-entropy bearer token hash | Confirmed design; review item, not a demonstrated vulnerability | NOT VERIFIED |
+
+### DIDAR-SEC-01 — Direct anonymous INSERT
+
+Migration 003 grants `INSERT` on all three form tables to `anon`; the corresponding RLS INSERT policies permit rows with `WITH CHECK (true)`. The grant is table-level, not restricted to a column allowlist. If active in Production, an anonymous caller may supply writable administrative columns at INSERT time (for example, registration/application status, `admin_notes`, or contact `read`). This does not grant UPDATE or SELECT on existing personal-data rows.
+
+### DIDAR-SEC-02 — Public form RPC execution
+
+Migrations 005–008 and 012 grant `anon` EXECUTE on the form insert functions and cancellation function. The current insert functions are SECURITY DEFINER. The event-registration, membership and contact insert functions do not independently reproduce all Next.js validation and business rules. If the grants are active in Production, direct RPC calls can bypass API validation and the API's per-instance rate limiter. The cancellation function is a separate token-based workflow: the caller must possess the random cancellation token; do not classify it as equivalent to unauthenticated form insertion.
+
+### DIDAR-SEC-03 — Published event column exposure
+
+Migration 003 grants `SELECT` on the `events` table to `public` and `authenticated`. The RLS policy limits visible rows to `status = 'published'`, but does not limit columns. The table contains `admin_notes`. The homepage removes that field from its own public payload, but that application-level filtering does not prevent a direct table query from requesting the column. Production exposure depends on the live grant and policy state and whether the column contains sensitive content; no live records were read.
+
+### Evidence boundary and next step
+
+The current Production deployment is READY and uses the same `main` commit recorded below. Supabase Production catalog/ACL/RLS state is **NOT VERIFIED**. The next safe step is a read-only metadata review of table grants, column privileges, RLS policies, function ACLs/owners/configuration, schema CREATE privileges and migration history. Do not perform INSERT/UPDATE/DELETE, call public write RPCs, read personal records, or modify Production during that review.
+
+### Remediation direction — not authorized or implemented
+
+- Remove unnecessary direct `anon` table INSERT privileges and associated sequence privileges, after verifying all callers and the current API path.
+- Restrict public RPC execution to the server role and have the validated Next.js APIs call them with server-side credentials, **or** retain narrowly scoped public RPCs only if their SQL validation is independently sufficient. Choose only after reviewing runtime dependencies and preserving the manual workflow.
+- Prevent public reads of `events.admin_notes` using a safe column-level/view design; keep the public event fields required by the site.
+- Preserve manual review: submissions are stored immediately, admin review remains manual, no email verification or automatic attendance confirmation, and email notification failure must not roll back a saved submission.
+- Do not implement any remediation until the read-only Production findings are reviewed and a separate implementation plan is approved.
