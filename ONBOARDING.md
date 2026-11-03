@@ -62,7 +62,7 @@ Before changing anything:
 - verify UI changes in a browser;
 - keep secrets out of code and documentation.
 
-## 11. Practical first-task workflow
+## 8. Practical first-task workflow
 
 For a new developer or AI coding agent, use this sequence:
 
