@@ -187,3 +187,16 @@ Useful recurring checks:
 - remove stale `admin_sessions` rows if operationally needed;
 - keep CSV exports outside Git and uncontrolled shared folders because they contain personal data;
 - review dependency updates with a local build before Production.
+
+## 10A. Operational source map
+
+- Environment loading: `.env.example`, `lib/supabase.js`
+- Admin password setup: `scripts/setup-admin.js`
+- Admin authentication: `pages/api/auth/login.js`, `lib/admin-auth.js`
+- Public notification email: `lib/admin-email.js`
+- Registrant receipt: `lib/registration-receipt-email.js`
+- Cancellation token/email: `lib/registration-cancellation.js`
+- Public rate limiting: `lib/rate-limit.js`
+- Health check: `pages/api/health.js`
+
+For a deployment incident, start from this source map and then check the corresponding Vercel/Supabase/Resend evidence.
