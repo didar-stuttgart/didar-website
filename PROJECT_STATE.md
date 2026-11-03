@@ -126,3 +126,24 @@ An authenticated Chrome Dashboard session identified the DIDAR Production projec
 Effective Production grants, RLS, column privileges, RPC ACLs/owners/configuration, migration history, indexes and Storage metadata remain **NOT VERIFIED**. A future review requires a separately authorized, technically enforced read-only database identity/session; no credentials, connection details or application records should be accessed as a workaround.
 
 No Production database, application code, GitHub application source or deployment changes were made during this review. This documentation update does not change the application deployment baseline.
+
+
+## 10. Personal-data protection investigation — 2026-11-03
+
+Investigation 03 reviewed the deployed application source baseline and Vercel Production configuration metadata. No user records, runtime logs, credentials, Production SQL, form submissions or write RPCs were accessed. Effective Supabase Production grants/RLS/function ACLs remain **BLOCKED / NOT VERIFIED** because an enforced read-only database identity/session was unavailable.
+
+Key results:
+
+- **FAIL — Vercel configuration access risk:** `SUPABASE_SECRET_KEY` is configured as a readable Production configuration value (`readable-secret`). This is not evidence of public internet exposure, but Vercel members with configuration-read access may obtain a key that bypasses RLS. Remediation proposed: make it a non-readable Secret, review configuration access, and rotate if prior access cannot be ruled out.
+- **FAIL — source-level potential exposure:** `events` has public table-level SELECT without a source-level column restriction for `admin_notes`. Frontend filtering does not prevent direct PostgREST column reads. Live applicability remains BLOCKED.
+- **FAIL — source-level write-boundary risks:** `anon` has direct INSERT grants on the three form tables and EXECUTE grants on public form RPCs. If active, these can bypass API validation/rate limiting; direct table INSERT may permit caller-supplied writable administrative fields on new rows. This does not establish anonymous reads of existing user records.
+- **FAIL — conditional PII logging:** the email fallback path logs complete submission payloads when notification configuration is unavailable. Production runtime invocation/log contents were not inspected.
+- **PASS — source-level admin API gate:** reviewed admin routes validate the database-backed admin session before creating the admin client. This is not a runtime verification.
+
+The repository SQL intends to deny public reads/updates/deletes on registration, membership and contact tables, and public access to admin sessions. Effective Production grants, RLS, column privileges, function ACLs, views, Storage metadata and browser payloads remain **NOT VERIFIED**.
+
+Proposed remediation order: (1) protect the Supabase secret in Vercel and review configuration access; (2) prevent direct public reads of `events.admin_notes`; (3) remove unnecessary direct anonymous table INSERT after Preview validation; (4) restrict public RPC execution after moving calls behind validated server APIs; (5) remove PII from fallback logs. No remediation was implemented.
+
+All changes must preserve manual submission/review behavior and the rule that notification email failure does not roll back a saved submission. Production verification must use an enforced read-only metadata identity/session, not the unrestricted SQL Editor. See [SECURITY.md](SECURITY.md), section 14, for evidence and verification boundaries.
+
+This was a documentation-only update. No application code, database permissions, Vercel configuration or deployment was changed.
