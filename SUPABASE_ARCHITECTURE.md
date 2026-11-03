@@ -73,3 +73,23 @@ See [DATABASE.md](DATABASE.md) and [EVENTS_AND_REGISTRATION.md](EVENTS_AND_REGIS
 Older versions of this document described direct table INSERTs, future-phase admin auth and admin-manually-sent confirmation emails. Those descriptions are historical and must not be used as the current implementation reference.
 
 For current behavior use the canonical root documents.
+
+## 7. RLS and grant boundary
+
+The access model is intentionally split:
+
+- public published-event/CMS reads use the publishable Supabase client;
+- public form submissions use narrow SECURITY DEFINER RPCs;
+- personal-data tables are not publicly readable;
+- admin APIs validate the application session before using `SUPABASE_SECRET_KEY`;
+- `admin_sessions` is server-only.
+
+The repository still grants direct `anon` INSERT on the three form tables. That is a known hardening opportunity because it can bypass API-level validation/rate limiting. Do not change grants as part of unrelated work.
+
+## 8. Schema-dependent operational checks
+
+- Migration 012: verify the eight-argument `insert_event_registration_manual` function.
+- Migration 013: verify `event_registrations_active_email_unique`.
+- Migration 014: verify the `event-images` bucket, public-read flag, 5 MB limit and JPEG/PNG/WebP allowlist.
+
+Repository SQL describes intended state. It does not prove live Production state.
