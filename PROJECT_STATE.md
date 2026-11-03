@@ -233,3 +233,44 @@ Next step: create a replacement new-format Supabase secret, configure it as a Ve
 - The environment listing showed no other Vercel `securityIssues` flags beyond the Production Supabase secret warning and no hidden Production environment entries.
 
 No application code, database, environment variable, deployment, or application data was changed during Phase 05F. Only this status documentation is updated. See [SECURITY.md](SECURITY.md), section 19, for details and evidence boundaries.
+
+## 16. Phase 06 security verification and Production QA — 2026-11-03
+
+### Execution boundary
+
+Reviewed current source from GitHub at baseline `295bd4ee8be2a205de8d2b6e594c577ee8b2ea8d`. No local runnable checkout/package-manager environment or interactive browser navigation was available. Production HTTP retrieval failed; no repeated retries were made. No SQL was executed, no personal records were read, no write RPCs/forms were invoked, and no app/config/data/deployment changes were made.
+
+### Source review results
+
+| Area | Status | Evidence / limitation |
+|---|---|---|
+| Admin password/session design | **Source reviewed; runtime NOT VERIFIED** | Shared PBKDF2-SHA256 hash at 10,000 iterations; DB-backed SHA-256 session-token hash; 24-hour expiry; HttpOnly/SameSite=Lax cookie and Secure in Production; per-instance login throttle. |
+| Public form validation and rate limiting | **Source reviewed** | Server-side validators and in-memory per-instance IP limiter are present. Limiter is not global across serverless instances. Direct RPC and table grants remain conditional Production risks. |
+| Public event API and page props | **Source controls present; runtime NOT VERIFIED** | API uses `filterPublicEvents`; homepage strips `admin_notes`; listing/detail pages use public event allowlists. Live payload inspection unavailable. |
+| Direct table access / `events.admin_notes` | **NOT VERIFIED in Production** | Repository migrations describe table-level SELECT and public form write/RPC grants; effective live grants, RLS, column privileges and RPC ACLs were not inspected. |
+| Personal-data logging / email fallback | **Confirmed source issue** | `lib/admin-email.js` logs submission PII in console fallback when Resend settings are missing. Production activation is **NOT VERIFIED**. |
+| Upload validation | **Source controls present; Storage NOT VERIFIED** | Admin-session gate, 5 MiB maximum, JPEG/PNG/WebP magic-byte check, UUID path. Bucket existence/public flag and live route behavior not tested. |
+| CSV export | **Source controls present; runtime NOT VERIFIED** | Export endpoints call `requireAdminSession`; `lib/csv.js` prefixes spreadsheet formula-leading cells and quotes CSV fields. No export was requested/downloaded. |
+| Legacy `/api/admin/fix-event-status` | **Confirmed source behavior; runtime NOT VERIFIED** | Admin-session-gated POST reopens a hard-coded E2E event slug. No current UI dependency was found in the reviewed source; removal was avoided because compatibility was not established. |
+| Security headers / CSP | **FAIL — source gap** | `next.config.js` has nosniff, X-Frame-Options DENY, XSS legacy filter and Referrer-Policy, but no CSP. Live response headers unavailable; CSP compatibility requires testing. |
+| Dependencies | **Partial review; full scan NOT VERIFIED** | Lockfile resolves Next.js 15.5.28, PostCSS 8.5.30, ESLint 8.57.1. Next.js 15.5.28 is listed as patched in the October 2026 release; PostCSS 8.5.30 is above the reported fixed floor 8.5.23 for listed 2026 advisories; ESLint 8.57.1 is EOL. No upgrades made; npm audit not run. |
+| Public production QA | **NOT VERIFIED** | Homepage, language switch, events listing/detail, form rendering, public JSON and response headers could not be retrieved/visually inspected. |
+| Admin production QA | **NOT VERIFIED** | No existing authorized admin session and no interactive browser control; no auth bypass attempted. |
+| Read-only database inspection | **BLOCKED** | No technically enforced read-only Production connection available. No unrestricted SQL Editor, personal-record read, or write RPC used. |
+| Deployment | **PASS — preserved baseline** | No deployment initiated. READY baseline remains `dpl_J8HS2NmhbCVyv8LzradmqpgGooZZ`, source commit `9ea770d147750a4ef5be00aefbe2e9549e27772a`. |
+
+### Findings and recommended next actions
+
+1. **High, conditional on Production grants:** direct anonymous form-table INSERT and public SECURITY DEFINER RPC execution can bypass parts of API validation/rate limiting if the repository-described grants are active. Live impact **NOT VERIFIED**.
+2. **High, conditional on Production grants/policies:** direct table SELECT may expose `events.admin_notes` if no live column/view restriction exists. The public API/page source uses allowlists, but direct Supabase access remains **NOT VERIFIED**.
+3. **Medium, confirmed source issue:** `lib/admin-email.js` console fallback logs personal submission details when Resend config is absent. Production activation **NOT VERIFIED**.
+4. **Medium, confirmed source gap:** CSP is absent from `next.config.js`. Do not add a broad policy without checking inline scripts, Next.js runtime requirements and production behavior.
+5. **Medium, confirmed source limitation:** 10,000 PBKDF2 iterations and per-instance login/form throttles remain.
+6. **Medium / operational integrity:** legacy `/api/admin/fix-event-status` can reopen one hard-coded E2E event, but requires a valid admin session. Keep it until compatibility/dependency impact is confirmed.
+7. **Informational:** `eslint@8.57.1` is EOL. No dependency updates were made.
+
+### Changes and deployment decision
+
+Only this documentation section and section 20 of `SECURITY.md` are being added on branch `security/phase-06-source-review`. No application code was modified because build/test execution and runtime validation could not be performed in the available environment. A deployment is **NOT REQUIRED** for these documentation-only changes and must not be triggered for this phase. Preserve the READY Production deployment.
+
+Overall Phase 06 status: **NOT VERIFIED** for required live QA and Production database controls; confirmed source findings remain open. This phase is not an overall PASS.
