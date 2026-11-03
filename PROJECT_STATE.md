@@ -248,3 +248,34 @@ No application code, database, environment variable, deployment, or application 
 | Production behavior and email delivery | **NOT VERIFIED** | No deployment, real submission, login, database operation, or Resend delivery test was performed. |
 
 Phase 06 PR #6 remains separate and open. This Phase 07 work changes no Supabase key, Vercel environment value/configuration, database migration/permission/data, or Production deployment. The documented event-registration reopen issue remains unchanged.
+
+
+## 17. Phase 08 security closeout and owner pause — 2026-11-03
+
+**Current state:** PR #7 remains open and mergeable at commit `fb6a97bd1b40971e7ae995358771567f41caff87` (branch `security/phase-07-focused-fixes`). No merge or Production deployment was performed as part of this closeout.
+
+| Check | Status | Evidence |
+|---|---|---|
+| `npm ci` | **PASS** | Completed in isolated checkout. |
+| `npm run lint` | **PASS** | `package.json` now uses `eslint .`; 13 existing warnings, 0 errors. |
+| Isolated `npm run build` | **FAIL / ENVIRONMENT BLOCKED** | `next/font` could not fetch Google Fonts because the isolated environment returned `EACCES`; no environment-specific workaround was committed. |
+| Vercel Preview | **PASS** | Deployment for `fb6a97b` reported READY and alias assigned. |
+| Preview visual/authenticated QA | **NOT VERIFIED** | Vercel Authentication blocked access; no bypass was attempted. |
+| PR #7 source/diff review | **PASS — review only** | Open, mergeable, HEAD `fb6a97b`; four Phase 07 files plus `package.json`. Security fixes reported intact. |
+| Production personal-data access controls | **NOT VERIFIED** | No enforced read-only Supabase metadata session was available; no production records or write paths were accessed. |
+
+### Security items intentionally left open
+
+- Vercel Production `SUPABASE_SECRET_KEY` remains `config` / `readable-secret`; the previously recorded owner decision to defer key rotation remains in force.
+- Production `ADMIN_PASSWORD_HASH` visibility requires a separate least-privilege review.
+- Anonymous table INSERT grants, public form RPC execution, and possible direct `events.admin_notes` access are confirmed in repository SQL; their effective Production state is **NOT VERIFIED**.
+- PII-safe notification logging and failed-session-creation handling are implemented and locally checked; Production runtime behavior and Resend delivery remain **NOT VERIFIED**.
+- Previous production dependency audit reported 3 low and 5 moderate findings, no high/critical, in the Resend dependency chain. No Resend upgrade was made.
+- Preview visual QA, Production public/admin behavior, effective database ACL/RLS/RPC state, Storage configuration, and evidence of actual email delivery remain **NOT VERIFIED**.
+- No evidence of a personal-data breach was established by the reviewed work. This is not proof that unauthorized access has never occurred.
+
+### Owner scope decision
+
+Further security investigation and remediation are **PAUSED at the owner's request**. Do not continue database, Vercel, authentication, dependency, or deployment changes unless the owner explicitly reopens this work. Preserve the manual registration/membership/contact workflows and do not alter Production data or permissions as part of a future read-only review.
+
+See [SECURITY.md](SECURITY.md), section 21, for the full evidence boundary and remaining risks.
