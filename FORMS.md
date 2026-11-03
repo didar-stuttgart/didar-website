@@ -157,3 +157,17 @@ Use addresses you control.
 5. Use the confirmation action and verify status becomes ``cancelled`.
 6. Re-register the same email only after confirming migration 013 is present in the target database.
 7. For membership/contact, verify the row and admin notification; there is no submitter confirmation email.
+
+## 7E. Form implementation source map
+
+- Validation: `lib/validation.js`
+- Rate limiting: `lib/rate-limit.js`
+- Event registration API: `pages/api/registrations/submit.js`
+- Membership API: `pages/api/memberships/submit.js`
+- Contact API: `pages/api/contact/submit.js`
+- Cancellation API: `pages/api/registrations/cancel.js`
+- Admin notifications: `lib/admin-email.js`
+- Registrant receipt: `lib/registration-receipt-email.js`
+- Cancellation token: `lib/registration-cancellation.js`
+
+Rate-limit defaults are 10 requests / 60 seconds and can be overridden by `RATE_LIMIT_REQUESTS` and `RATE_LIMIT_WINDOW_MS`.
