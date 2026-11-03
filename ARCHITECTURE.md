@@ -191,3 +191,20 @@ Server validation lives in `lib/validation.js` and is authoritative. Client-side
 | Production event ISR refresh | `lib/revalidate-event-pages.js` on the current Production commit |
 
 The Production revalidation helper is not in `main` yet, so source inspection from `main` and Production behavior can differ until the branches converge.
+
+## 3A. Public page source map
+
+| Route | Primary file |
+|---|---|
+| `/` | `pages/index.js` |
+| `/veranstaltungen` | `pages/veranstaltungen/index.js` |
+| `/veranstaltungen/[slug]` | `pages/veranstaltungen/[slug].js` |
+| `/kontakt` | `pages/kontakt.js` |
+| `/mitglied-werden` | `pages/mitglied-werden.js` |
+| `/ueber-uns` | `pages/ueber-uns.js` |
+| `/impressum` | `pages/impressum.js` |
+| `/datenschutz` | `pages/datenschutz.js` |
+| `/registrations/cancel` | `pages/registrations/cancel.js` |
+| `/registrations/verify` | `pages/registrations/verify.js` (legacy) |
+
+Use this table as the starting point for route-local UI/content changes; the API ownership map is separate.
