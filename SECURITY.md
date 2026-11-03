@@ -424,6 +424,8 @@ The execution environment did not expose the canonical local repository or a run
 | DIDAR-SEC-12 | Informational | Public event API, homepage props and listing/detail props use an explicit allowlist/strip to exclude `admin_notes`; upload requires an admin session, validates JPEG/PNG/WebP magic bytes and a 5 MiB limit, and uses a UUID storage path; CSV exports require an admin session and use formula-safe cell escaping. | Already resolved in source / source controls present | No live payload, Storage metadata, or admin-export test was performed. |
 | DIDAR-SEC-13 | Informational / potential | Admin login trusts the first `x-forwarded-for` value for per-instance throttling; whether the deployment proxy overwrites this header was not verified. | Potential issue requiring runtime verification | **NOT VERIFIED**. |
 
+| DIDAR-SEC-14 | Low / operational reliability | Login awaits `createSession(token)` but does not check its boolean result; the DB-backed helper returns `false` on insert failure, after which login source still sets a cookie and returns success. The session would then fail validation. | Confirmed source issue | Runtime failure path not tested; no authentication bypass demonstrated. |
+
 ### Dependency review
 
 - `package.json` declares Next.js `^15.5.28`; the lockfile resolves `next@15.5.28` and `eslint-config-next@15.5.28`. Current official Next.js security release notes identify 15.5.28 as patched for the October 2026 advisories. The site uses the Pages Router; the App Router-only Server Actions advisory does not match the reviewed route architecture.
