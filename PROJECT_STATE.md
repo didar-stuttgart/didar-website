@@ -27,27 +27,23 @@ Registration is manual-review:
 | Area | Status |
 |---|---|
 | Repository default branch | Verified: `main` |
-| Main HEAD | Verified: `0c6cb98d288e6e0ee026a6ba902cc76e913b3e09` |
-| Current Production deployment | Verified: READY deployment `dpl_9H4DxWc3hT44yfK5giN2g5DhvGaJ` |
-| Current Production source | Verified: branch `feature/event-upload-custom-slugs`, commit `0b1379e...` |
+| Main HEAD | Verified: `9ea770d147750a4ef5be00aefbe2e9549e27772a` |
+| Current Production deployment | Verified: READY deployment `dpl_J8HS2NmhbCVyv8LzradmqpgGooZZ` |
+| Current Production source | Verified: branch `main`, commit `9ea770d147750a4ef5be00aefbe2e9549e27772a` |
 | Next.js version | Verified: `^15.5.28` in `package.json` |
 | Custom event slug implementation | Verified in source |
 | Event image upload implementation | Verified in source |
 | Event image Storage migration file | Verified in repository |
-| Event mutation revalidation helper | Verified on current Production commit |
+| Event mutation revalidation helper | NOT PRESENT in current `main` / Production source snapshot |
 | Registration self-cancellation flow | Verified in source |
 | Partial unique index migration for re-registration | Verified in repository SQL |
 | Homepage `admin_notes` stripping | Verified in source |
 
-## 3. Recent Production/source relationship
+## 3. Current Production/source relationship
 
-`main` and the currently deployed feature branch are not identical.
+The current READY Production deployment uses branch `main` at commit `9ea770d147750a4ef5be00aefbe2e9549e27772a`, matching the current GitHub default-branch HEAD at the time of this snapshot.
 
-The Production deployment uses `0b1379e...`, which adds `lib/revalidate-event-pages.js` and wires it into event create/update/archive APIs.
-
-The default `main` commit `0c6cb98...` does not contain that final revalidation helper commit.
-
-Do not document these states as equivalent until the feature branch is merged.
+The file `lib/revalidate-event-pages.js` is not present in this `main` snapshot, and the current admin event API files do not import a revalidation helper. Do not describe event-mutation ISR revalidation as implemented in the current Production source without new evidence.
 
 ## 4. NOT VERIFIED
 
@@ -69,16 +65,19 @@ Do not document these states as equivalent until the feature branch is merged.
 5. `registration_deadline` is stored but unused.
 6. Registration CSV event column reads `reg.event` and is empty.
 7. `/api/admin/fix-event-status` is a hard-coded legacy admin endpoint.
-8. Direct anon INSERT grants remain in repository SQL.
-9. PBKDF2 remains at 10,000 iterations.
-10. No global login throttle or CAPTCHA.
-11. No CSP.
-12. Some legacy/dead code remains.
+8. Direct anon INSERT grants remain in repository SQL; public form RPCs are also executable by `anon`.
+9. The `events` table grant/RLS combination is row-restricted but not column-restricted; `admin_notes` is not excluded from direct table reads by the policy.
+10. PBKDF2 remains at 10,000 iterations.
+11. No global login throttle or CAPTCHA.
+12. No CSP.
+13. Event mutation revalidation helper is absent from current `main` / Production source snapshot.
+14. Some legacy/dead code remains.
 
 ## 6. Owner decisions pending
 
 - password-hash migration strategy;
-- revoke direct anon INSERT privileges;
+- verify Production database grants/RLS/RPC ACLs read-only, then decide whether to revoke direct anon INSERT and public RPC EXECUTE;
+- prevent public direct reads of `events.admin_notes` without breaking public event reads;
 - personal-data retention/deletion policy;
 - privacy/legal review of current receipt email and processors;
 - remove the hard-coded fix endpoint;
@@ -101,3 +100,21 @@ Authoritative:
 - this file
 
 Supplementary files intentionally point back to this set instead of maintaining independent architectural claims.
+
+
+## 8. Security investigation snapshot — 2026-11-03
+
+Repository findings (source-confirmed; live Supabase status **NOT VERIFIED**):
+
+| ID | Finding | Source status | Production status |
+|---|---|---|---|
+| DIDAR-SEC-01 | Direct anonymous INSERT on three public form tables | Confirmed | NOT VERIFIED |
+| DIDAR-SEC-02 | Anonymous EXECUTE on public form SECURITY DEFINER RPCs | Confirmed | NOT VERIFIED |
+| DIDAR-SEC-03 | Table-level public SELECT may include `events.admin_notes` for published rows | Confirmed | NOT VERIFIED |
+| DIDAR-SEC-04 | Public API rate limiting is per-instance/in-memory | Confirmed | Source behavior confirmed |
+| DIDAR-SEC-05 | SECURITY DEFINER search_path/owner hardening | Configuration confirmed; exploitability not established | NOT VERIFIED |
+| DIDAR-SEC-06 | Cancellation RPC is public but requires a high-entropy bearer token | Design review item | NOT VERIFIED |
+
+The current Production deployment was independently read as READY and is tied to `main` commit `9ea770d147750a4ef5be00aefbe2e9549e27772a`. This does not prove the state of Supabase grants, RLS, function ACLs, function owners or applied migrations.
+
+No Production database writes, public write-RPC calls, personal-record reads, code changes or deployments were performed as part of this investigation. The next step is a read-only Supabase catalog/metadata review; see [SECURITY.md](SECURITY.md).
