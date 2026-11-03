@@ -132,3 +132,17 @@ Read [EVENTS_AND_REGISTRATION.md](EVENTS_AND_REGISTRATION.md). Event images, slu
 ### Before changing email behavior
 
 Read [FORMS.md](FORMS.md) and inspect `lib/admin-email.js` / `lib/registration-receipt-email.js`. Public submissions must remain saved even when email delivery fails.
+
+### Environment-name quick reference
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_SECRET_KEY` — server-only
+- `ADMIN_PASSWORD_HASH` — server-only
+- `RESEND_API_KEY` — server-only
+- `DIDAR_NOTIFICATION_EMAIL`
+- `DIDAR_EMAIL_FROM`
+- `NEXT_PUBLIC_APP_URL` — optional base URL for public links
+- `RATE_LIMIT_REQUESTS` / `RATE_LIMIT_WINDOW_MS` — optional public-form limiter overrides
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for purpose and deployment-specific handling.
