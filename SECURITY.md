@@ -300,3 +300,28 @@ No deployment or runtime verification occurred in this phase. Do not mark the Pr
 Keep the current working credential active until the replacement is configured and tested. Use an interface that supports creating a new Supabase secret key and setting Vercel visibility to Secret, then deploy and verify before retiring the existing key. If a failed deployment occurs, preserve the old key and previous READY deployment for recovery. Do not claim remediation complete until the Production variable metadata shows Secret, a new Production deployment is READY and uses it, application behavior is verified, and old-key retirement is separately confirmed.
 
 Evidence references: [Supabase API keys](https://supabase.com/docs/guides/getting-started/api-keys), [Supabase key migration](https://supabase.com/docs/guides/getting-started/migrating-to-new-api-keys), and [Vercel environment variables](https://vercel.com/docs/environment-variables).
+
+
+## 17. Phase 05D execution closeout — 2026-11-03
+
+**Overall status: BLOCKED.** The documentation reconciliation was merged to `main` in commit `e172f48ea7ebfdb18475b650d57810b993ab9dd7` (PR #5). This merge did not trigger or request a Production deployment.
+
+### Rechecked Production configuration
+
+A fresh Vercel environment metadata read (without decrypting values) confirms:
+
+- `SUPABASE_SECRET_KEY` Production entry `Zfv3GNeII6VXkphc`: target `production`, type `encrypted`, visibility `config`, security issue `readable-secret`.
+- `SUPABASE_SECRET_KEY` Preview entry `HXProF48ooiW3Uz2`: target `preview`, type `sensitive`, visibility `secret`, no security issue.
+- No environment variable was changed and no value was decrypted or supplied.
+
+### Execution boundary
+
+- The connected Vercel edit action still has no `visibility` input; its schema cannot submit the required Config-to-Secret visibility change. The earlier unsupported edit attempt was not repeated.
+- The connected Supabase actions expose no secret API-key create/delete operation. The connected browser integration exposes tab reading only, not Dashboard interaction. No Management API credential with key-management scope is available through the connected integrations.
+- No replacement Supabase key was created. No Vercel Production value was replaced. The existing key remains configured and was not retired.
+- No Production deployment was initiated. The previously observed READY deployment predates this remediation and is not evidence of the new credential configuration.
+- Application verification (public routes, admin login, admin sections, database-backed admin operations) remains **NOT VERIFIED** for a replacement credential. No test submissions or user records were created or modified. Actual notification email delivery remains **NOT VERIFIED**.
+
+### Required safe continuation
+
+Use a supported Supabase Dashboard/Management API path to create a second new-format secret key while retaining the current key; configure that replacement as a Vercel Production Secret using an interface that explicitly supports Secret visibility; deploy and verify the public and admin paths; then retire the old key and verify retirement metadata. Preserve the existing Preview variable and all manual submission workflows. Do not claim resolution until all four gates—Production Secret metadata, new READY deployment, application verification, and old-key retirement—are independently PASS.
