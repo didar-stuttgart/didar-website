@@ -120,14 +120,14 @@ The upload endpoint uses `createAdminClient()` and therefore the server-side sec
 
 ## 7. Permissions
 
-The intended repository model is:
+The repository SQL currently defines:
 
-- `events`: public SELECT of published rows;
-- personal-data tables: public INSERT/RPC path but no public SELECT/UPDATE/DELETE;
+- `events`: table-level SELECT for `public` and `authenticated`, with RLS restricting rows to published events; the policy does not restrict columns, so `admin_notes` remains requestable through direct table access unless a separate column/view restriction exists in the live database;
+- personal-data tables: direct `anon` INSERT grants and SECURITY DEFINER RPCs, with RLS policies blocking public SELECT/UPDATE/DELETE;
 - admin APIs: server-only secret-key access after application session validation;
-- `admin_sessions`: service-role only.
+- `admin_sessions`: no grants to public/anon/authenticated; server-side service-role access.
 
-A known hardening opportunity is revoking direct `anon` INSERT grants on the three form tables while keeping the RPCs. Do not change that casually; see [SECURITY.md](SECURITY.md).
+The direct form-table INSERT grants are broader than the application path requires and may allow caller-supplied administrative fields at insertion time. Public RPC execution also bypasses Next.js validation and API rate limiting unless SQL independently enforces the relevant rules. These are source-level findings only; Production ACL/RLS/function state is **NOT VERIFIED**. See [SECURITY.md](SECURITY.md).
 
 ## 8. Production verification boundary
 
@@ -235,3 +235,36 @@ Backups, retention and deletion policies are not defined by this repository; rec
 | Organization settings | `pages/api/admin/settings/organization.js`, `organization_settings` |
 
 When a schema change affects one of these paths, inspect both the application source and the numbered migration before deployment.
+
+
+## 15. Security review notes — 2026-11-03
+
+This section records repository-level facts only. It does not assert that the same grants or policies are active in Supabase Production.
+
+### Direct form-table INSERT
+
+Migration 003 grants table-level `INSERT` to `anon` on:
+
+- `event_registrations`
+- `membership_applications`
+- `contact_submissions`
+
+The RLS INSERT policies in `schema.sql` use `WITH CHECK (true)`. Because the grant is table-level, it is not limited to the fields shown in the public forms. If active in Production, callers may be able to set writable administrative fields while creating a row. This is not permission to read or update existing rows.
+
+### Public RPCs
+
+The current repository grants `anon` EXECUTE on the public form SECURITY DEFINER functions:
+
+- `insert_event_registration_manual`
+- `insert_membership_application_manual`
+- `insert_contact_submission_manual`
+
+The functions do not independently implement every validation/business rule enforced by the Next.js APIs. Direct invocation may therefore bypass application validation and API rate limiting if the grants are active. The cancellation RPC is a distinct token-based operation and must be evaluated separately.
+
+### Published event column access
+
+Migration 003 grants table-level SELECT on `events` to `public` and `authenticated`. RLS limits rows to published events but does not restrict columns. Since `events.admin_notes` is an administrative column, the repository's grant/policy combination does not itself prevent a direct query from requesting it. Homepage response filtering is not a substitute for database-level column protection.
+
+### Production verification status
+
+The live Supabase grants, column privileges, RLS policies, RPC ACLs/definitions/owners and migration history are **NOT VERIFIED**. Verify them using catalog-only SELECT queries. Do not test by inserting rows, invoking write RPCs, or reading personal-data records in Production.
