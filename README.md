@@ -93,3 +93,42 @@ Required environment variables and migration ordering are documented in [DEPLOYM
 - Do not modify known issues unless explicitly requested.
 
 See [PROJECT_STATE.md](PROJECT_STATE.md) for the current status and unresolved decisions.
+
+## Developer quick reference
+
+### Public request paths
+
+- `GET /api/events?category=all|recurring|upcoming|past`
+- `GET /api/events/[eventId]/capacity-status`
+- `POST /api/registrations/submit`
+- `POST /api/registrations/cancel`
+- `/api/registrations/verify` is disabled and returns 404
+- `POST /api/memberships/submit`
+- `POST /api/contact/submit`
+- `GET /api/health`
+
+### Admin/auth request paths
+
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `POST /api/auth/verify`
+- `GET /api/admin/stats`
+- `GET, POST /api/admin/events`
+- `GET, PATCH, DELETE /api/admin/events/[slug]`
+- `POST /api/admin/events/upload-image`
+- `GET /api/admin/registrations` with optional `?eventId=<id>`
+- `PATCH, DELETE /api/admin/registrations/[id]`
+- `GET /api/admin/registrations/export`
+- membership/contact/content/settings endpoints are listed in [ARCHITECTURE.md](ARCHITECTURE.md#5-api-routes)
+
+### Before changing database-dependent code
+
+Read [DATABASE.md](DATABASE.md) and the relevant numbered migration first. A migration file existing in Git does not prove that Production has received it. This matters especially for migrations 012–014.
+
+### Before changing event rendering
+
+Read [EVENTS_AND_REGISTRATION.md](EVENTS_AND_REGISTRATION.md). Event images, slugs, registration status, the known auto-open issue and ISR revalidation are intentionally coupled behaviors.
+
+### Before changing email behavior
+
+Read [FORMS.md](FORMS.md) and inspect `lib/admin-email.js` / `lib/registration-receipt-email.js`. Public submissions must remain saved even when email delivery fails.
