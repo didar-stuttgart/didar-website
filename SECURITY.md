@@ -362,3 +362,38 @@ The connected Vercel integration has no delete-variable action, so this placehol
 No replacement Supabase key was created, no Production secret was installed, no new successful Production deployment was made, and the existing Supabase key was not retired. Public and admin application behavior under a replacement credential remains **NOT VERIFIED**. The prior READY deployment remains the recovery point. Do not revoke the old key until a replacement deployment and application verification pass.
 
 Owner action required: create a second Supabase secret key in the DIDAR Production project's API Keys settings while retaining the old key; then configure the replacement directly in Vercel as a Production-only Secret. Do not send the value through chat, email, GitHub, logs, or screenshots. Once the owner confirms those Dashboard actions are complete, verify metadata, deploy, test, and retire the old key only after successful application verification.
+
+## 19. Phase 05F non-destructive verification and owner decision — 2026-11-03
+
+**Scope decision:** key rotation is intentionally deferred by the owner, not an implementation failure. Do not create, replace, modify, reconfigure, change visibility of, or revoke either existing `SUPABASE_SECRET_KEY` entry. This decision supersedes earlier sections that proposed owner key-rotation actions; those sections remain historical records of prior attempts.
+
+### Environment metadata — rechecked without decrypting values
+
+- **DUMMY cleanup — PASS:** a fresh complete environment-variable listing contains no `DUMMY` entry; `hiddenProductionEnvCount=0`. The previously documented placeholder ID `BLJwGaFJm5594d6h` is absent. No variable was deleted or changed in this verification run.
+- **Production key — unchanged:** ID `Zfv3GNeII6VXkphc`, target `production`, type `encrypted`, visibility `config`, security issue `readable-secret`.
+- **Preview key — unchanged:** ID `HXProF48ooiW3Uz2`, target `preview`, type `sensitive`, visibility `secret`, no reported security issues.
+- Neither value was decrypted or displayed. No Supabase API key was created, replaced, modified, or revoked. Key rotation is **INTENTIONALLY DEFERRED BY OWNER DECISION**.
+- **Remaining configuration risk — FAIL / OPEN:** Production configuration-read access may expose the elevated Supabase secret. This metadata finding is not evidence of public internet exposure or proof of prior access. The owner explicitly chose to retain this configuration for now.
+
+### Deployment state
+
+- **Latest Production deployment — CANCELED:** `dpl_52mC3UXw8eac9uCZUxJ2Z7PrnhLy`, source commit `ac637b1784d02006227cf754aa29d066d1a83dc4` (`main`).
+- **Latest READY Production deployment — PASS:** `dpl_J8HS2NmhbCVyv8LzradmqpgGooZZ`, source commit `9ea770d147750a4ef5be00aefbe2e9549e27772a` (`main`). Its deployment metadata lists the production aliases `www.didar-stuttgart.com` and `didar-stuttgart.com`.
+- No deployment was initiated by this verification. The READY deployment predates this review and does not demonstrate that the Production key visibility risk is resolved.
+
+### Website and application verification
+
+- **Runtime error scan — PASS (limited):** Vercel reported no grouped runtime errors for the project in the preceding seven-day window.
+- **Public routes and rendered UI — NOT VERIFIED:** attempted page retrieval through the available web interface failed; outbound DNS/network access from the execution container was unavailable. The connected browser integration is read-only and cannot navigate or interact with the site.
+- **Admin login, events, content, settings, session behavior, and unauthenticated access boundaries — NOT VERIFIED:** no interactive browser access was available. No login attempts, form submissions, database writes, or other application-data changes were performed.
+- **Notification email delivery — NOT VERIFIED:** no email was sent as part of this read-only check. A clean grouped runtime-error summary is not proof of email delivery or absence of unaggregated application issues.
+
+### Other security findings reviewed
+
+The existing source-level findings documented in sections 12 and 14 remain open; effective Production database grants, RLS, column privileges, RPC ACLs/owners, migration state, and browser payloads remain **NOT VERIFIED**. No SQL was executed and no database permission was changed.
+
+- **Additional configuration review item — NOT VERIFIED:** Production `ADMIN_PASSWORD_HASH` is also listed with Vercel `config` visibility. This metadata alone does not establish who can read it or whether it has been accessed. No environment variables other than the explicitly protected key entries were changed; assess its least-privilege visibility separately before any configuration change.
+- The environment listing reported no other Vercel `securityIssues` flags beyond the Production `SUPABASE_SECRET_KEY` `readable-secret` finding and showed no hidden Production environment entries.
+- No code, database, environment variable, deployment, or application data was modified during this verification.
+
+**Phase 05F status:** DUMMY cleanup **PASS**; both existing key entries **UNCHANGED / PASS**; key rotation **INTENTIONALLY DEFERRED BY OWNER DECISION**; latest READY deployment identified **PASS**; live public/admin functionality **NOT VERIFIED**; Production secret visibility risk remains **FAIL / OPEN**.
