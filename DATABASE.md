@@ -198,12 +198,12 @@ Repository schema is not proof of live schema. The repository historically conta
 
 For migration 013, verify:
 
-⟦BT`sql
+``sql
 select indexname, indexdef
 from pg_indexes
 where tablename = 'event_registrations'
   and indexname = 'event_registrations_active_email_unique';
-⟦BT`
+``
 
 For migration 014, verify the Storage bucket and its public/size/MIME settings in the target Supabase project. The migration file alone is not evidence of live state.
 
