@@ -219,3 +219,19 @@ For migration 014, verify the Storage bucket and its public/size/MIME settings i
 | Form returns 429 | per-instance rate limiter has reached its configured threshold |
 
 Backups, retention and deletion policies are not defined by this repository; record Production/Supabase evidence before making operational claims.
+
+## 11A. Database-dependent application touchpoints
+
+| Behavior | Source |
+|---|---|
+| Event registration insert | `pages/api/registrations/submit.js` |
+| Self-cancellation | `pages/api/registrations/cancel.js` |
+| Membership insert | `pages/api/memberships/submit.js` |
+| Contact insert | `pages/api/contact/submit.js` |
+| Admin session store | `lib/session-store-db.js`, `admin_sessions` |
+| Admin event CRUD | `pages/api/admin/events/index.js`, `pages/api/admin/events/[slug].js` |
+| Event image Storage | `pages/api/admin/events/upload-image.js`, migration 014 |
+| CMS content | `pages/api/admin/content/cms.js`, `cms_content` |
+| Organization settings | `pages/api/admin/settings/organization.js`, `organization_settings` |
+
+When a schema change affects one of these paths, inspect both the application source and the numbered migration before deployment.
