@@ -1,131 +1,202 @@
 # DEPLOYMENT
 
-Setup, environment, deployment, migrations, verification and recovery. Verified against the repository on 2026-10-17. Where something can only be confirmed in a dashboard (Vercel, Supabase, Resend), it is marked NOT VERIFIED.
+Deployment, environment variables, migration ordering and verification.
 
-Related: [README.md](README.md) · [DATABASE.md](DATABASE.md) · [SECURITY.md](SECURITY.md) · [FORMS.md](FORMS.md)
+## 1. Current deployment model
 
-## 1. Current setup
+- Hosting: Vercel.
+- Repository: `didar-Stuttgart/didar-website`.
+- Default branch: `main`.
+- Standard production workflow: changes merged to `main` are deployed by the connected Vercel project.
+- There is no repository-defined staging Supabase environment.
 
-- **Hosting:** Vercel (production response headers show `server: Vercel`, region `fra1`; project under the Vercel team `didar-team`). Domain: `www.didar-stuttgart.com` (the apex redirects with HTTP 308).
-- **Deploy trigger:** pushing to the GitHub repository `didar-Stuttgart/didar-website` branch `main` deploys to production (observed: a push on 2026-10-17 deployed immediately). Branch/preview behaviour and exact Vercel project settings are NOT VERIFIED.
-- **Database:** one Supabase project (PostgreSQL). There is **no staging environment** known to the repository.
-- **Event image storage:** event uploads use the Supabase Storage bucket `event-images`. The repository includes migration 014 to create/configure the public-read bucket with a 5 MB limit and JPEG/PNG/WebP allowlist. The application uploads server-side with `SUPABASE_SECRET_KEY`; there is no public upload permission.
+### Current Production evidence
 
-- **Email:** Resend, sending domain `didar-stuttgart.com` (return-path `rsend.didar-stuttgart.com`); the domain must stay verified in Resend.
-- **Build output:** standard `next build`; no custom `vercel.json` in the repository.
+As of the documentation audit:
+
+- Vercel project: `didar-website`
+- Production deployment: `dpl_9H4DxWc3hT44yfK5giN2g5DhvGaJ`
+- source branch: `feature/event-upload-custom-slugs`
+- source commit: `0b1379e471c9a9a03053bcacc5ceae58250ec91e`
+- state: READY
+- aliases include `www.didar-stuttgart.com`
+
+This is **not the same commit as `main`**. The latest production deployment includes the event mutation revalidation helper that is not yet in `main`.
 
 ## 2. Environment variables
 
-Set them in Vercel (Project → Settings → Environment Variables) and locally in `.env.local` (never committed). Names verified by searching the code; **never put values in documentation, tickets or chat**.
+Never document actual values.
 
-| Variable | Required | Used by | Notes |
-|---|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | yes | `lib/supabase.js` | the code throws at import time without it |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | yes | `lib/supabase.js` | must belong to the **same** project as the URL, otherwise every request fails with "Invalid API key" (appears as generic 500s on all forms) |
-| `SUPABASE_SECRET_KEY` | yes (admin) | `createAdminClient()` | server-only; bypasses RLS; admin login/sessions and all `/api/admin/*` need it |
-| `ADMIN_PASSWORD_HASH` | yes (admin) | `pages/api/auth/login.js` | `salt:hash` from `node scripts/setup-admin.js`; the script enforces ≥ 12 chars with upper/lower/digit/special |
-| `RESEND_API_KEY` | for email | `lib/admin-email.js`, `lib/registration-receipt-email.js` | missing → receipt skipped; admin notifications fall back to logging submitted data to the console |
-| `DIDAR_NOTIFICATION_EMAIL` | for admin email | `lib/admin-email.js` | recipient of all admin notifications (currently didar.stuttgart@gmail.com per project configuration) |
-| `DIDAR_EMAIL_FROM` | no | both email libs | default `Didar Stuttgart <noreply@didar-stuttgart.com>` |
-| `NEXT_PUBLIC_APP_URL` | no | `lib/registration-cancellation.js` | base URL for cancellation links, default `https://www.didar-stuttgart.com`. A preview deployment that does not set it will still emit production links |
-| `RATE_LIMIT_REQUESTS`, `RATE_LIMIT_WINDOW_MS` | no | `lib/rate-limit.js` | defaults 10 and 60000 |
+Required names:
 
-`NODE_ENV` / `VERCEL_ENV` appear in `.env.example` but are not read by the application code. `.env.example` still carries some outdated comments ("Phase 3+/Phase 5"); the table above is authoritative. After changing any variable in Vercel, redeploy for it to take effect.
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_SECRET_KEY`
+- `ADMIN_PASSWORD_HASH`
+- `RESEND_API_KEY` for email
+- `DIDAR_NOTIFICATION_EMAIL` for admin email
+- `DIDAR_EMAIL_FROM`
+- optional `NEXT_PUBLIC_APP_URL`
+- optional `RATE_LIMIT_REQUESTS`
+- optional `RATE_LIMIT_WINDOW_MS`
 
-## 3. Local development and checks
+After changing Vercel environment variables, redeploy.
+
+## 3. Local checks
 
 ```bash
 npm install
-cp .env.example .env.local   # fill in real values
-npm run dev                  # FA: http://localhost:3000  DE: http://localhost:3000/de
-npm run lint                 # warnings only at the time of writing (img elements, hook deps)
-npm run build                # needs working Supabase env vars and network access
+cp .env.example .env.local
+npm run lint
+npm run build
+npm run start
 ```
 
-- A cold `next build` can take several minutes on slow machines (a warm cache took ~10 s of compilation plus page generation on 2026-10-17).
-- **Automated tests:** none are runnable. `__tests__/auth.test.js` imports `@jest/globals`, but Jest is neither a dependency nor configured and `package.json` has no `test` script. Verification today is manual (see §6).
-- Never point a local `.env.local` at the production Supabase project when testing destructive actions; there is no staging database.
+The build requires working Supabase variables because pages are generated against the database.
 
-## 4. Deploying
+There is no runnable automated Jest suite configured in `package.json`.
 
-1. Make sure `npm run build` passes locally.
-2. If the change needs a database migration, **apply it to production first** (§5). For event-image uploads, migration 014 must be reviewed and applied before the upload control can work against the production Supabase project.
+## 4. Migration ordering
 
-3. Commit and push to `main` (or merge a PR); Vercel builds and deploys automatically.
-4. Run the post-deploy checks (§6).
+Code that depends on a migration must not be deployed before the migration is applied in the target database.
 
-Code that depends on a migration must not go out before the migration is applied. On 2026-10-17 the receipt-email code (which calls the 8-argument `insert_event_registration_manual`) was pushed before migration 012 existed in production; every event registration returned 500 until the migration was applied manually. Keep this ordering rule.
+The repository contains migrations 001–014. Migration 012 is especially important because it changes the registration RPC signature.
 
-## 5. Database migrations
+### Migration 013
 
-### Event image Storage setup (migration 014)
+Purpose: allow re-registration after cancellation.
 
-The code expects a **public-read, server-write** Supabase Storage bucket named `event-images`.
+Production status: **NOT VERIFIED** in this documentation task.
 
-Before using the admin image uploader in production:
+### Migration 014
 
-1. Open the production Supabase project and confirm whether an `event-images` bucket already exists.
-2. If it does not exist, review and run `data/migration_014_event_image_storage.sql` in the Supabase SQL editor.
-3. Verify the bucket is public-read, limited to 5 MB, and restricted to JPEG/PNG/WebP.
-4. Do **not** add anon/authenticated upload policies. The app uses `SUPABASE_SECRET_KEY` after validating the admin session.
-5. Existing `events.image_url` values and fallback images remain valid.
+Purpose: configure the `event-images` Storage bucket.
 
-The feature branch does not apply this migration automatically.
+Expected bucket configuration:
 
+- name/id `event-images`
+- public reads
+- 5 MB file limit
+- JPEG/PNG/WebP allowlist
+- no anon/authenticated upload policy
 
-There is no migration runner. Migrations are plain SQL files in `data/` that are pasted into the Supabase SQL editor.
+Production status: **NOT VERIFIED**.
 
-1. Confirm a recent backup exists (Supabase dashboard; plan/retention NOT VERIFIED).
-2. Read the file; check whether it is re-runnable (most newer ones use `IF NOT EXISTS`, `DROP … IF EXISTS`, `BEGIN/COMMIT`).
-3. Run it in the SQL editor of the **production** project.
-4. Verify, for example:
-   ```sql
-   select proname, pronargs from pg_proc
-   where proname in ('insert_event_registration_manual','cancel_event_registration_manual',
-                     'insert_membership_application_manual','insert_contact_submission_manual');
-   select column_name from information_schema.columns
-   where table_name = 'event_registrations' order by 1;
-   ```
-   (`insert_event_registration_manual` must show 8 arguments after migration 012.)
-5. Then deploy the dependent code.
+The upload endpoint itself checks the bucket at runtime and returns 503 if it is missing or not public.
 
-Full order for a new database and the effect of each file: [DATABASE.md](DATABASE.md#1-how-to-build-a-database-from-scratch). There are no "down" migrations.
+## 5. Normal deployment procedure
 
-## 6. Post-deployment verification checklist
+1. Review source and current Git status.
+2. Run the relevant lint/build checks.
+3. Apply any required DB/Storage migration before deploying dependent code.
+4. Commit and push/merge the intended branch.
+5. Wait for Vercel READY state.
+6. Run post-deploy checks.
 
-1. `GET /api/health` → `200 {"status":"healthy",…}` (reads the `events` table; `503` on failure).
-2. Home page in FA (`/`) and DE (`/de`): hero text, events present; language toggle keeps the route.
-3. An event detail page renders; a registration form appears only for `open` events.
-4. Submit **one** registration with an address you control (events registrations are permanent and the address cannot be reused for that event): expect the success modal, a row in Supabase, the admin notification email, the receipt email (check Spam), and that the cancel link opens the confirmation page (do not click confirm unless you intend to cancel).
-5. Membership and contact forms: one test each with your own address (membership addresses are unique and permanent).
-6. Admin: login, dashboard numbers, registrations list. 
-7. Check the Vercel function logs for errors and Resend → Emails for delivery. HTTP 201 from an API **does not prove** an email was delivered.
-8. For email-related changes, open the received message in Gmail → "Show original" and confirm SPF/DKIM/DMARC pass.
+## 6. Post-deploy verification
 
-## 7. Troubleshooting production
+Minimum checks:
 
-| Symptom | Where to look |
+1. `GET /api/health`.
+2. Home page FA/DE.
+3. Events list and a published event detail page.
+4. Admin login and a protected admin API.
+5. One controlled form submission if the change touches forms.
+6. Resend delivery evidence for email changes.
+7. Vercel runtime logs for errors.
+
+For UI changes, source inspection is insufficient; verify the rendered page.
+
+HTTP 201 from a form endpoint is not proof that an email reached an inbox.
+
+## 7. Event image rollout
+
+Before using the admin uploader against Production:
+
+1. Verify whether `event-images` exists in the Production Supabase project.
+2. If missing, review/apply `data/migration_014_event_image_storage.sql`.
+3. Verify public-read, size and MIME settings.
+4. Do not add public upload/update/delete policies.
+5. Upload an image with an authenticated admin session and confirm the resulting `events.image_url`.
+
+This documentation task does not claim the bucket is live.
+
+## 8. Rollback
+
+Code rollback should prefer a Vercel rollback or `git revert`.
+
+Database changes have no automatic down-migration in this repository. Migration 012 is not backward-compatible with pre-012 registration code without restoring the older RPC deliberately.
+
+## 9. Current verification limits
+
+- Production deployment state is verified through the Vercel integration.
+- Live rendered HTTP verification was not completed in the previous investigation because direct fetches returned cache-miss errors.
+- Migration 013/014 application to Supabase Production remains NOT VERIFIED.
+
+## 10. Migration application procedure
+
+This repository has no migration runner; SQL files in `data/` are applied manually in Supabase.
+
+For a dependent code change:
+
+1. Read the migration and confirm its ordering assumptions.
+2. Confirm access to the intended Supabase project.
+3. Verify a current backup exists according to the project's actual Supabase plan.
+4. Apply the migration in the Supabase SQL editor.
+5. Run a targeted verification query for the new column/function/index/bucket.
+6. Only then deploy dependent application code.
+7. Record the migration and verification result in project documentation.
+
+For migration 012, verify that the live registration RPC accepts the `cancellation_token_hash_param` eighth argument before deploying code that sends it.
+
+For migration 013, verify the partial unique index `event_registrations_active_email_unique`.
+
+For migration 014, verify the `event-images` bucket is public-read, capped at 5 MB and limited to JPEG/PNG/WebP. Do not create public upload/update/delete policies.
+
+## 11. Troubleshooting
+
+| Symptom | Checks |
 |---|---|
-| All forms return 500 | Vercel function logs; "Invalid API key" → Supabase URL/key mismatch (§2) |
-| Only event registration returns 500 | RPC signature vs. code (§4); duplicate/unique errors are 409 not 500 |
-| Admin cannot log in | `ADMIN_PASSWORD_HASH` set? `SUPABASE_SECRET_KEY` valid? logs from `/api/auth/login` |
-| No notification email | `RESEND_API_KEY`/`DIDAR_NOTIFICATION_EMAIL` set? Resend dashboard; domain verification; logs contain `[Admin Email]` lines (a "console fallback" line means the variables are missing) |
-| Receipt email missing | `[Receipt Email]` log lines; Spam; Resend dashboard |
-| Page content stale | ISR windows (60 s event page, up to 1 h home/list) |
-| Build fails on Vercel | build log; Supabase env vars present at build time (pages are pre-rendered against the database) |
+| All forms fail with 500 | Supabase URL/publishable key, Vercel function logs, current RPCs |
+| Registration fails after a deploy | migration 012 signature, duplicate constraint, form logs |
+| Re-registration after cancellation still gives 409 | migration 013 is likely missing from the target DB |
+| Admin login fails | `ADMIN_PASSWORD_HASH`, `SUPABASE_SECRET_KEY`, `admin_sessions`, login throttle/cookie |
+| Admin API returns Unauthorized | session cookie expiry or DB session validation failure |
+| Event image upload returns 503 | bucket existence/public flag/Storage upload result |
+| Public event data is stale | ISR cache; confirm Production includes event-mutation revalidation when applicable |
+| Email is missing | Resend logs, function logs, sender/domain configuration; HTTP 201 is not delivery evidence |
 
-## 8. Rollback and recovery
+Never put credentials, tokens, raw environment values or exported personal data into troubleshooting output or documentation.
 
-- **Code:** in Vercel, promote/redeploy an earlier successful deployment (standard Vercel feature; not exercised for this project) or `git revert` the offending commit and push. Prefer `git revert`; do **not** rewrite `main`'s history.
-- **Database:** no automated rollback. Migration 012 is not backward compatible with the pre-012 code (it drops the 7-argument RPC), so rolling code back past that point requires restoring the old function from `migration_006` in SQL — do this only deliberately and re-test registration.
-- **Data:** Supabase backups (dashboard). Test restores are NOT VERIFIED.
-- **Secrets compromised:** see [SECURITY.md](SECURITY.md#8-incident-steps).
+## 12. Recovery and rollback
 
-## 9. Regular maintenance
+- **Application code:** prefer Vercel rollback/redeploy of a known-good deployment or a normal `git revert`. Do not rewrite shared history.
+- **Database:** migrations have no general automatic down-migration. A code rollback across migration 012 requires deliberate compatibility work because migration 012 replaces the previous registration RPC signature.
+- **Storage:** do not remove the `event-images` bucket or its data merely to roll back application code. First determine whether Production actually depends on it.
+- **Secrets:** rotate compromised credentials at the provider, update Vercel environment variables, redeploy, and invalidate affected sessions where applicable.
 
-| Task | How often |
-|---|---|
-| Check `DIDAR_NOTIFICATION_EMAIL` inbox and Spam | daily while forms are active |
-| `npm audit` / dependency updates (test locally with `npm run build` first) | monthly |
-| Review Supabase backups and Resend domain status | quarterly |
-| Delete expired rows from `admin_sessions` (`delete from admin_sessions where expires_at < now()`) | occasionally; nothing cleans them automatically except on a failed login-validation of that specific expired token |
+No rollback should be assumed safe without checking the migration's actual effects and the current live state.
+
+## 13. Routine maintenance
+
+Useful recurring checks:
+
+- review Resend delivery/error status when forms are active;
+- review Vercel function logs for repeated auth/form failures;
+- review Supabase backups and restore posture according to the actual plan;
+- remove stale `admin_sessions` rows if operationally needed;
+- keep CSV exports outside Git and uncontrolled shared folders because they contain personal data;
+- review dependency updates with a local build before Production.
+
+## 10A. Operational source map
+
+- Environment loading: `.env.example`, `lib/supabase.js`
+- Admin password setup: `scripts/setup-admin.js`
+- Admin authentication: `pages/api/auth/login.js`, `lib/admin-auth.js`
+- Public notification email: `lib/admin-email.js`
+- Registrant receipt: `lib/registration-receipt-email.js`
+- Cancellation token/email: `lib/registration-cancellation.js`
+- Public rate limiting: `lib/rate-limit.js`
+- Health check: `pages/api/health.js`
+
+For a deployment incident, start from this source map and then check the corresponding Vercel/Supabase/Resend evidence.

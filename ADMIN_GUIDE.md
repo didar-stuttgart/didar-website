@@ -1,77 +1,150 @@
 # ADMIN GUIDE
 
-What the admin panel actually does today (checked against `pages/admin/*` and `pages/api/admin/*` on 2026-10-17), including its limits. The panel UI is in Persian. For the underlying APIs see [ARCHITECTURE.md](ARCHITECTURE.md#5-api-routes); for the review workflow see [EVENTS_AND_REGISTRATION.md](EVENTS_AND_REGISTRATION.md).
+What the current admin interface does.
 
-## 1. Signing in
+## 1. Login
 
-- URL: `/admin/login` (production: `https://www.didar-stuttgart.com/admin/login`). There is a **single shared admin password**; no usernames, no password-reset or change feature.
-- The password is verified against the `ADMIN_PASSWORD_HASH` environment variable (format `salt:hash`, PBKDF2-SHA256, 10,000 iterations, produced by `node scripts/setup-admin.js`). Changing the password means generating a new hash and updating the environment variable, then redeploying/restarting.
-- A successful login stores a hashed session token in the `admin_sessions` table and sets the cookie `session_token` (HttpOnly, `SameSite=Lax`, `Path=/`, 24 h). Logout (`/admin` → logout button) deletes the session row.
-- Every admin page checks the session with `POST /api/auth/verify` and redirects to the login if invalid; every admin API route re-checks it.
-- Never share the password in chat/email and never paste it into tools or documents. If it may have leaked, generate a new hash and delete all rows in `admin_sessions` (see [SECURITY.md](SECURITY.md#8-incident-steps)).
+- URL: `/admin/login`
+- One shared admin password, stored as `ADMIN_PASSWORD_HASH`.
+- Successful login creates a DB-backed session in `admin_sessions`.
+- Cookie: `session_token`, HttpOnly, SameSite=Lax; Production adds Secure.
+- There is no password-reset UI, per-user admin account model, or 2FA.
 
-## 2. Dashboard (`/admin`)
+## 2. Dashboard
 
-Shows three numbers from `GET /api/admin/stats`: upcoming published events (date ≥ today), registrations created in the last 7 days, membership applications created in the last 7 days, plus cards linking to events, registrations, memberships, content and settings. (There is no contact-message count.)
+`/admin` shows counts for upcoming published events, recent registrations and recent membership applications.
 
-## 3. Events (`/admin/events`, `/admin/events/[slug]`)
+## 3. Events
 
-- **List:** all events, a status filter (draft / published / archived) and registration-status badges; edit and "delete" actions.
-- **Create/Edit** fields: titles FA/DE (both required), optional custom event slug, descriptions, event type (dated / recurring), date (hidden for recurring), time, locations FA/DE, capacity (empty or integer ≥ 1), remaining capacity (empty or integer ≥ 0), registration deadline, event image (upload JPG/PNG/WebP up to 5 MB or use an existing image URL/path such as `/images/…`), registration status (`not_open` / `open` / `closed`), event status (`draft` / `published` / …), admin notes.
-- **"Delete"** only archives the event (`status='archived'`); it disappears from the public site, and registrations are kept.
-- New events: if `registration_status` is not supplied it defaults to `open` when the event is published, otherwise `not_open`.
-- **Event URL:** the slug field accepts a single safe path segment such as `critical-thinking`. If left empty when creating an event, the existing automatic slug generation from the Persian title is preserved. Existing slugs do not change unless an admin explicitly edits them. Duplicate slugs are rejected by the API.
-- **Event images:** uploaded images are stored in the Supabase Storage bucket `event-images` and the resulting public URL is saved in `events.image_url`. The upload endpoint is admin-session protected; only JPEG/PNG/WebP images up to 5 MB are accepted. Existing manual image URLs and fallback images remain supported.
+Routes: `/admin/events`, `/admin/events/[slug]`.
 
-- **Important:** the public event page tries to flip `not_open` to `open` on view (known issue in [EVENTS_AND_REGISTRATION.md](EVENTS_AND_REGISTRATION.md#8-known-issues-documented-not-fixed)). Set `closed` (not `not_open`) when you want to stop registrations, and check the public page afterwards.
-- The slug is generated once from the Persian title and cannot be changed in the editor.
-- Public pages refresh via ISR: allow up to a minute for the event page and up to an hour for the home/list pages.
-- `admin_notes` are never shown on the event page or list, but see the known leak on the home page in [SECURITY.md](SECURITY.md#2-admin-authentication-and-sessions): **do not put sensitive text into event `admin_notes`**.
+The event list supports title search plus status filtering (`draft`, `published`, `archived`).
 
-## 4. Registrations (`/admin/registrations`)
+### Create/edit
 
-- Lists all registrations (newest first) with the event title, applicant details, status, comment, timestamps; sorting by date / name / status. There is **no event or status filter and no search** (use the browser's find, or the CSV).
-- Change status via the dropdown (`new`, `contacted`, `confirmed`, `declined`, `cancelled`); this saves immediately. Existing `admin_notes` are displayed, but the page has no field to edit them (the API supports it).
-- `cancelled` normally appears on its own when a registrant uses the link in the receipt email (you also receive "[DIDAR] Event Registration Cancelled — …").
-- **Export:** "CSV" downloads `registrations.csv` (all rows). Columns: name, email, phone, Telegram, event, status, date, notes. Known defect: the event column is expected to be empty (it reads a field that does not exist). Cells are quoted but not protected against spreadsheet formulas.
-- The cancellation token hash is removed from every admin response.
-- Workflow: read the notification email → open the list → contact the person by email/Telegram/phone from DIDAR's official accounts → set `contacted` → later `confirmed` or `declined`. Confirmation of attendance is always your decision; the automatic receipt does not confirm anything.
+The form supports:
 
-**Filter by event:** the dropdown above the list (default *All events*) is filled from the events table and filters on the server (`GET /api/admin/registrations?eventId=<id>`); the sort dropdown works within the filtered list. The CSV export always contains all registrations.
+- title FA/DE
+- optional custom slug
+- descriptions FA/DE
+- dated vs recurring
+- date/time
+- locations FA/DE
+- capacity
+- remaining capacity
+- registration deadline
+- event image upload or manual image URL/path
+- registration status
+- event status
+- admin notes
 
-**Deleting:** every registration, membership application and contact message has a *Delete* button. A dialog shows who/what will be deleted; confirming permanently removes only that one row (`DELETE /api/admin/<registrations|memberships|contact>/<id>`). The row disappears from the list only after the server confirms. There is no undo; the CSV export is a way to keep a copy first.
+### Custom slug behavior
 
-**Language:** `/admin/...` is Persian (RTL), `/de/admin/...` is German (LTR); the FA/Deutsch switch in each page header changes it. The events, content and settings pages are still Persian only.
+- New event + blank slug -> automatic slug from Persian title.
+- New event + custom slug -> validated and stored.
+- Existing event + non-empty slug -> URL changes to the new slug.
+- Existing event + blank/omitted slug -> current slug is preserved.
+- Duplicate slug -> HTTP 409.
+- There is no automatic redirect from the previous slug.
 
-## 5. Memberships (`/admin/memberships`)
+### Image upload
 
-Same pattern: list, status dropdown (`new`, `contacted`, `accepted`, `declined`), displayed notes, CSV export (`/api/admin/memberships/export`). Applications are unique per email. Membership is free of charge according to the privacy text; terms, benefits and decisions are handled manually by the team.
+The upload endpoint is `POST /api/admin/events/upload-image`.
 
-## 6. Contact messages
+- Admin session required.
+- JPEG, PNG and WebP only.
+- Maximum 5 MB.
+- Server validates the binary signature.
+- Upload target: Supabase Storage bucket `event-images`.
+- The returned public URL is saved in `events.image_url` when the event is saved.
 
-`/admin/contact` lists the messages stored in `contact_submissions` (name, email, message, date) and lets you delete a single message. New messages still also arrive as `[DIDAR] New Contact Message` emails. There is no reply or status feature.
+The upload endpoint returns 503 if the bucket is missing or not public-read. Whether the bucket exists in Production is **NOT VERIFIED**.
 
-## 7. Content (`/admin/content`)
+### Event mutation caching
 
-Edits rows of `cms_content` (filter by page, grouped by section, FA and DE text per row, save per row). Only three keys affect the public site: `homepage.hero.title` (FA and DE), `homepage.hero.subtitle` (FA), `homepage.about.description` (FA, DE) — and the seed rows still contain `[TEST]` placeholders unless production differs (NOT VERIFIED). Text starting with `[` is ignored by the home page. Everything else on the site (About, Impressum, Datenschutz, footer, contact details) is hard-coded in the repository and can only be changed in code. Because the German hero title comes from this table, e.g. changing the wording of the German title is done here.
+The current Production deployment explicitly revalidates the home page, event list and affected event detail path after successful create/update/archive mutations. This is implemented in `lib/revalidate-event-pages.js`.
 
-## 8. Settings (`/admin/settings`)
+## 4. Registrations
 
-Edits `organization_settings` rows (including a managers list). **No public page reads these values**, so changes do not alter the website. Treat this page as non-functional until the owner decides what it should drive. (`/api/admin/settings` is an unused in-memory leftover.)
+Route: `/admin/registrations`.
 
-## 9. Daily/weekly routine (suggested)
+The page supports:
 
-1. Check the notification inbox (`DIDAR_NOTIFICATION_EMAIL`); also check Spam for `noreply@didar-stuttgart.com`.
-2. Open registrations/memberships, process `new` rows, update statuses.
-3. For full events: set `remaining_capacity` to 0 and set `registration_status = closed`.
-4. Export CSVs only when needed; keep exports out of Git and cloud-sync folders you do not control (they contain personal data).
+- event filter dropdown;
+- sorting within the loaded result set;
+- status changes;
+- viewing submitted fields and admin notes;
+- CSV export;
+- single-row deletion.
 
-## 10. Troubleshooting
+There is no full-text search and no dedicated status filter.
 
-| Problem | Likely cause |
-|---|---|
-| Login fails with "Admin password not configured" | `ADMIN_PASSWORD_HASH` unset or still the placeholder |
-| Login succeeds but pages redirect back | session row not created (check `SUPABASE_SECRET_KEY`, `admin_sessions`), cookie blocked |
-| Changes not visible publicly | ISR delay; CMS key not one of the three used |
-| Event shows "open" though set to "not open" | the auto-open behaviour described above |
-| Can't find a contact message | `/admin/contact`; it may have been deleted |
+Status values used by the UI are `new`, `contacted`, `confirmed`, `declined`, `cancelled`.
+
+Cancelled registrations remain in history. Because of migration 013, a person can register again after cancellation.
+
+## 5. Memberships
+
+Route: `/admin/memberships`.
+
+Statuses: `new`, `contacted`, `accepted`, `declined`. The page also supports single-row deletion and CSV export via `/api/admin/memberships/export`.
+
+Applications are unique by email.
+
+## 6. Contact
+
+Route: `/admin/contact`.
+
+Admins can view and delete stored contact submissions. There is no built-in reply workflow.
+
+## 7. Content
+
+Route: `/admin/content`.
+
+The admin edits rows in `cms_content`. Only a small set of CMS keys currently affect the public homepage. Most other visible site text remains code-managed.
+
+See [CMS_ARCHITECTURE.md](CMS_ARCHITECTURE.md).
+
+## 8. Settings
+
+Route: `/admin/settings`.
+
+The page edits `organization_settings`, but current public pages do not read this table. Treat it as non-public configuration until that is changed deliberately.
+
+## 9. Operating workflow
+
+The intended workflow remains manual:
+
+1. Check admin notification email.
+2. Review new registrations/memberships.
+3. Contact people through official DIDAR channels.
+4. Update status.
+5. For full events, manually set `remaining_capacity=0` and/or `registration_status=closed`.
+6. Keep CSV exports out of Git and uncontrolled shared storage.
+
+## 10. Known admin limitations
+
+- One shared admin password.
+- No admin search across all registration fields.
+- Registration CSV event column is currently empty because it reads `reg.event`.
+- No public-facing organisation-settings consumption.
+- Known event auto-open behavior remains intentionally untouched.
+
+## 11. Safe admin checklist
+
+When processing a real submission, keep the sequence explicit:
+
+1. Open the corresponding admin list.
+2. Review the submitted personal data and comment.
+3. Contact the person through an official DIDAR channel.
+4. Set the status to reflect the manual decision.
+5. Do not treat the receipt email as proof of acceptance.
+6. Do not place sensitive material into `admin_notes`.
+
+Before deleting a registration/membership/contact row, confirm the identity and export only through a controlled location if a backup is required. There is no undo in the admin UI.
+
+## 12. Language and UI behavior
+
+The public site uses Next.js locale routing: Persian has no prefix and German uses `/de`. Admin registrations has its own FA/DE switch. Events/content/settings admin areas are currently Persian-oriented.
+
+For UI changes, verify the relevant route in both locales where applicable; do not assume a source-only check proves RTL/LTR correctness.

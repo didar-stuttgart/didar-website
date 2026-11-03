@@ -1,41 +1,63 @@
 # DIDAR Website
 
-Website of **DIDAR — Iranische Kulturgemeinschaft Stuttgart / انجمن فرهنگی هنری اشتوتگارت**, a bilingual (Persian RTL / German LTR) site for presenting events, taking event registrations, membership applications and contact messages, with a private admin panel.
+DIDAR — Iranische Kulturgemeinschaft Stuttgart / انجمن فرهنگی هنری اشتوتگارت.
+
+The website is bilingual: Persian (fa, RTL, default) and German (de, LTR, /de prefix). It presents events, accepts event registrations, membership applications and contact messages, and provides a private admin panel.
 
 - Production: https://www.didar-stuttgart.com/
 - Repository: https://github.com/didar-Stuttgart/didar-website
-- Hosting: Vercel (deployed from GitHub; see [DEPLOYMENT.md](DEPLOYMENT.md) for what is and is not verified)
+- Default branch: main
+- Canonical technical documentation: this file plus ARCHITECTURE.md, DATABASE.md, FORMS.md, EVENTS_AND_REGISTRATION.md, ADMIN_GUIDE.md, DEPLOYMENT.md, SECURITY.md, PROJECT_STATE.md
 
-> **Read this first.** DIDAR uses **manual** registration workflows on purpose: a submission is saved immediately and an admin reviews and contacts people by hand. There is no email-verification token, no automatic approval, and no automatic capacity enforcement. Do not reintroduce those. Details: [EVENTS_AND_REGISTRATION.md](EVENTS_AND_REGISTRATION.md), [FORMS.md](FORMS.md).
+> **Registration model:** DIDAR intentionally uses manual-review workflows. Public submissions are saved first; admins review and contact people manually. There is no email-verification flow, automatic approval/confirmation, or automatic capacity enforcement. Event registration receipts are acknowledgments, not confirmations. Do not reintroduce the removed verification architecture.
 
-## Documentation map
+## Current implementation
 
-| Document | Purpose |
+| Area | Current implementation |
 |---|---|
-| [README.md](README.md) | This entry point: setup, commands, structure |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | How the system fits together: routing, rendering, i18n, API, data flow |
-| [DATABASE.md](DATABASE.md) | Verified tables, migrations, RPCs, grants/RLS, how to change the schema |
-| [FORMS.md](FORMS.md) | The three public forms end to end (UI → API → DB → email) |
-| [EVENTS_AND_REGISTRATION.md](EVENTS_AND_REGISTRATION.md) | Event model/lifecycle, categorisation, registration status, receipt + self-cancellation, known issues |
-| [ADMIN_GUIDE.md](ADMIN_GUIDE.md) | What the admin panel really does, and its limitations |
-| [DEPLOYMENT.md](DEPLOYMENT.md) | Environment variables, build, deploy, migrations, post-deploy checks, troubleshooting |
-| [SECURITY.md](SECURITY.md) | Implemented controls vs. known gaps, secrets handling, incident steps |
-| [PROJECT_STATE.md](PROJECT_STATE.md) | What exists, what is verified, known issues, owner decisions, next tasks |
+| Framework | Next.js 15.5.28 Pages Router, React 18.3, Supabase/PostgreSQL, Vercel, Resend REST API, plain CSS |
+| Authentication | Single admin password hash in `ADMIN_PASSWORD_HASH`; DB-backed sessions in `admin_sessions`; HttpOnly cookie |
+| Public writes | Next.js API routes call SECURITY DEFINER RPCs |
+| Admin writes | Server-side API routes use `SUPABASE_SECRET_KEY` after session validation |
+| Event images | Admin-only upload endpoint; Supabase Storage bucket `event-images`; resulting public URL stored in `events.image_url` |
+| Event slugs | Optional custom single-segment slug; empty on create preserves automatic Persian-title slug generation |
+| Email | Resend REST API; admin notifications for public submissions; event registrants also receive a receipt + cancellation link |
+| Caching | ISR: home/list normally 3600 s; event detail 60 s; current production deployment also revalidates public event paths after admin event mutations |
+| Tests | No runnable automated test suite is configured in `package.json` |
 
-Supplementary / historical documents (not canonical, may be outdated — trust the code and the nine documents above): `ONBOARDING.md`, `SETUP_GUIDE.md`, `SUPABASE_ARCHITECTURE.md`, `CMS_ARCHITECTURE.md`, `CONTENT_INVENTORY.md`, and `docs/claude-onboarding/*`. See [PROJECT_STATE.md](PROJECT_STATE.md#7-supplementary-markdown-files) for the status of each.
+## Routes
 
-## Technology stack (from `package.json` / installed versions)
+Public:
+`/`, `/veranstaltungen`, `/veranstaltungen/[slug]`, `/kontakt`, `/mitglied-werden`, `/ueber-uns`, `/impressum`, `/datenschutz`, `/registrations/cancel`, and legacy `/registrations/verify`. German routes use the `/de` locale prefix.
 
-| Area | Choice |
-|---|---|
-| Framework | Next.js **15.5.x** (installed 15.5.25) using the **Pages Router**, React 18.3 |
-| Database | Supabase (PostgreSQL) through `@supabase/supabase-js` (2.x) |
-| Email | Resend **REST API** called with `fetch` (the `resend` npm package is listed in `package.json` but is **not imported anywhere**) |
-| Styling | Plain global CSS files in `styles/` (+ `admin.module.css`); fonts via `next/font/google` (Playfair Display, Vazirmatn, Lalezar), self-hosted at build time |
-| i18n | Next.js locale routing (`fa` default, `de`) + hand-written dictionary in `lib/i18n.js` |
-| Auth | Single admin; PBKDF2 password hash in env var + DB-backed session cookie |
-| Tests | One Jest-style file (`__tests__/auth.test.js`) exists but **Jest is not installed and there is no `test` script** — see [PROJECT_STATE.md](PROJECT_STATE.md) |
-| Node | `engines.node >= 18` (verified locally with Node 22) |
+Admin:
+`/admin/login`, `/admin`, `/admin/events`, `/admin/events/[slug]`, `/admin/registrations`, `/admin/memberships`, `/admin/contact`, `/admin/content`, `/admin/settings`.
+
+## Database and migrations
+
+The repository contains `data/schema.sql` and migrations 001 through 014. A fresh database cannot be reconstructed safely by blindly running migrations only; follow [DATABASE.md](DATABASE.md).
+
+Important recent migrations:
+
+- `migration_012_registration_self_cancellation.sql` — receipt-email cancellation token and cancellation RPC.
+- `migration_013_allow_reregistration_after_cancel.sql` — partial unique index allowing a new active registration after a cancellation while preserving history.
+- `migration_014_event_image_storage.sql` — configures the public-read `event-images` Storage bucket with a 5 MB JPEG/PNG/WebP allowlist.
+
+The repository does **not** prove that every migration is applied to Production. Check [DEPLOYMENT.md](DEPLOYMENT.md) before relying on production schema/storage state.
+
+## Deployment branch note
+
+The GitHub default branch is `main` at commit `0c6cb98d288e6e0ee026a6ba902cc76e913b3e09` as of 2026-11-03.
+
+The currently deployed Production deployment is:
+
+- Vercel deployment: `dpl_9H4DxWc3hT44yfK5giN2g5DhvGaJ`
+- target: Production
+- source branch: `feature/event-upload-custom-slugs`
+- source commit: `0b1379e471c9a9a03053bcacc5ceae58250ec91e`
+- state: READY
+
+That production commit adds the event-mutation ISR revalidation helper on top of the code already merged into `main`. Production and `main` should therefore not be described as identical until the feature branch's final commit is merged.
 
 ## Local development
 
@@ -43,58 +65,84 @@ Supplementary / historical documents (not canonical, may be outdated — trust t
 git clone https://github.com/didar-Stuttgart/didar-website.git
 cd didar-website
 npm install
-cp .env.example .env.local      # then fill in values (never commit .env.local)
-npm run dev                     # http://localhost:3000   (FA)  and /de (DE)
+cp .env.example .env.local
+npm run dev
 ```
 
-Required variables are listed in [DEPLOYMENT.md](DEPLOYMENT.md#2-environment-variables). `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are mandatory at import time (`lib/supabase.js` throws without them), so pages and API routes will fail to load without them.
+Required environment variables and migration ordering are documented in [DEPLOYMENT.md](DEPLOYMENT.md).
 
-Create the admin password hash (interactive, prints a `salt:hash` string for `ADMIN_PASSWORD_HASH`):
+## Commands
 
-```bash
-node scripts/setup-admin.js
-```
+`npm run dev` — development server.
 
-Database: create a Supabase project, then apply `data/schema.sql` and the migrations in the order given in [DATABASE.md](DATABASE.md#1-how-to-build-a-database-from-scratch). A new database cannot be built by running only the numbered migrations.
+`npm run build` — production build; build-time page generation reads Supabase.
 
-### Commands
+`npm run start` — serve the production build.
 
-| Command | What it does |
-|---|---|
-| `npm run dev` | Dev server |
-| `npm run build` | Production build (pre-renders pages; reads Supabase at build time) |
-| `npm run start` | Serve the production build |
-| `npm run lint` | `next lint` (config: `.eslintrc.json`; currently warnings only, no errors) |
+`npm run lint` — Next.js lint command. The latest verified run succeeded with warnings only.
 
-## Routes at a glance
+## Working rules
 
-Public: `/`, `/veranstaltungen`, `/veranstaltungen/[slug]`, `/kontakt`, `/mitglied-werden`, `/ueber-uns`, `/impressum`, `/datenschutz`, `/registrations/cancel` (self-cancellation), `/registrations/verify` (legacy thank-you page for old links). Every public route also exists under `/de/...`; the Persian version has **no** prefix.
+- Do not commit `.env.local`, credentials, exports, or secrets.
+- Preserve Persian spelling `اشتوتگارت`.
+- Keep public form writes manual-review based.
+- Do not broaden Supabase public permissions casually.
+- For UI changes, verify rendered pages in a browser.
+- For email changes, verify actual delivery; HTTP 201 alone is not proof of delivery.
+- Database changes require an explicit migration and production ordering review.
+- Do not modify known issues unless explicitly requested.
 
-Admin: `/admin/login`, `/admin`, `/admin/events`, `/admin/events/[slug]`, `/admin/registrations`, `/admin/memberships`, `/admin/content`, `/admin/settings`.
+See [PROJECT_STATE.md](PROJECT_STATE.md) for the current status and unresolved decisions.
 
-API: see [ARCHITECTURE.md](ARCHITECTURE.md#5-api-routes).
+## Developer quick reference
 
-## Repository layout
+### Public request paths
 
-```
-pages/                 Next.js pages (+ pages/api/** API routes)
-  admin/               Admin UI (login, dashboard, events, registrations, memberships, content, settings)
-  api/                 auth/, contact/, events/, memberships/, registrations/, admin/, health.js
-  registrations/       cancel.js (self-cancel UI), verify.js (legacy, static message)
-  veranstaltungen/     index.js, [slug].js (event detail + registration form)
-components/            Header, Footer, EventCard, EventCarousel, SocialIcons, SuccessModal
-lib/                   supabase clients, i18n, validation, admin auth/session, email, event helpers
-styles/                global CSS (globals, layout, components, enhancements, rtl) + admin.module.css
-data/                  schema.sql + migration_001…012 + verify_migration_004.sql
-public/                images and icons
-scripts/               setup-admin.js (password hash), tmp/insert_events.js (one-off, see PROJECT_STATE)
-__tests__/             auth.test.js (not runnable via npm, see above)
-docs/claude-onboarding historical AI-onboarding notes (not canonical)
-```
+- `GET /api/events?category=all|recurring|upcoming|past`
+- `GET /api/events/[eventId]/capacity-status`
+- `POST /api/registrations/submit`
+- `POST /api/registrations/cancel`
+- `/api/registrations/verify` is disabled and returns 404
+- `POST /api/memberships/submit`
+- `POST /api/contact/submit`
+- `GET /api/health`
 
-## Working rules (short)
+### Admin/auth request paths
 
-- Never commit `.env.local`, keys, or exports (`.gitignore` covers `.env*`, `*.csv`, `*.xlsx`).
-- Database changes need an explicit migration **applied to production before** the code that depends on it is deployed (this caused a production outage for migration 012; see [DEPLOYMENT.md](DEPLOYMENT.md#5-database-migrations)).
-- Persian spelling uses **اشتوتگارت**.
-- Prefer small, focused changes; verify in a browser for UI changes, and with real delivery tests for email changes.
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `POST /api/auth/verify`
+- `GET /api/admin/stats`
+- `GET, POST /api/admin/events`
+- `GET, PATCH, DELETE /api/admin/events/[slug]`
+- `POST /api/admin/events/upload-image`
+- `GET /api/admin/registrations` with optional `?eventId=<id>`
+- `PATCH, DELETE /api/admin/registrations/[id]`
+- `GET /api/admin/registrations/export`
+- membership/contact/content/settings endpoints are listed in [ARCHITECTURE.md](ARCHITECTURE.md#5-api-routes)
+
+### Before changing database-dependent code
+
+Read [DATABASE.md](DATABASE.md) and the relevant numbered migration first. A migration file existing in Git does not prove that Production has received it. This matters especially for migrations 012–014.
+
+### Before changing event rendering
+
+Read [EVENTS_AND_REGISTRATION.md](EVENTS_AND_REGISTRATION.md). Event images, slugs, registration status, the known auto-open issue and ISR revalidation are intentionally coupled behaviors.
+
+### Before changing email behavior
+
+Read [FORMS.md](FORMS.md) and inspect `lib/admin-email.js` / `lib/registration-receipt-email.js`. Public submissions must remain saved even when email delivery fails.
+
+### Environment-name quick reference
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_SECRET_KEY` — server-only
+- `ADMIN_PASSWORD_HASH` — server-only
+- `RESEND_API_KEY` — server-only
+- `DIDAR_NOTIFICATION_EMAIL`
+- `DIDAR_EMAIL_FROM`
+- `NEXT_PUBLIC_APP_URL` — optional base URL for public links
+- `RATE_LIMIT_REQUESTS` / `RATE_LIMIT_WINDOW_MS` — optional public-form limiter overrides
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for purpose and deployment-specific handling.

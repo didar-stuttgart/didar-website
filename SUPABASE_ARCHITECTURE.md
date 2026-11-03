@@ -1,300 +1,95 @@
-# Supabase Architecture — Phase 1 & Beyond
+# SUPABASE ARCHITECTURE
 
-## Overview
+This file is a concise architecture companion. The detailed schema and migration source of truth is [DATABASE.md](DATABASE.md).
 
-DIDAR uses Supabase with two distinct access patterns:
+## 1. Access model
 
-1. **Public/Form Submission** (Phase 1 — Current)
-   - Uses `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (public, safe for browser)
-   - Limited by Row Level Security (RLS)
-   - Can: INSERT forms, READ published events
-   - Cannot: SELECT/UPDATE/DELETE personal data
+### Public/server client
 
-2. **Admin Operations** (Phase 3+ — Future)
-   - Uses `SUPABASE_SECRET_KEY` (secret, server-only)
-   - Bypasses Row Level Security
-   - Full access: CREATE, READ, UPDATE, DELETE
-   - Used only after verifying admin session
+Uses `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
 
-## Phase 1 Architecture
+Used for public reads and calling the public SECURITY DEFINER RPCs.
 
-```
-Browser/Client
-  ↓
-Public Form Submission
-  ↓
-Next.js API Route (session-based auth check)
-  ↓
-Supabase (Publishable Key + RLS)
-  ↓
-INSERT form data into protected table
-  ↓
-RLS blocks public SELECT/UPDATE/DELETE
-```
+### Admin client
 
-### Supabase Keys in Phase 1
+Uses `SUPABASE_SECRET_KEY`.
 
-| Key | Use | Secret? | Access |
-|-----|-----|---------|--------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Project URL | No | Public |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Form submissions | No* | Limited by RLS |
-| `SUPABASE_SECRET_KEY` | Admin (Phase 3+) | **YES** | Bypasses RLS |
-| `ADMIN_PASSWORD_HASH` | Admin login | **YES** | Session only |
+Used only on the server after application-level admin session validation.
 
-*Safe to expose: Limited to INSERT on forms, cannot READ other data
+### Browser export
 
-## Row Level Security (RLS) Policies
+`supabase` is exported from `lib/supabase.js`, but the application does not use it for admin data.
 
-### Events Table
-```
-Policy: public_read_published_events
-  - SELECT only if status = 'published'
-  - Public can see event listings
-  - Draft/archived events are hidden
-```
+## 2. Public writes
 
-### Event Registrations Table
-```
-Policy: public_insert_event_registrations
-  - INSERT allowed (can submit registration)
-  - RLS enforces unique (event_id, email)
+Current form endpoints call:
 
-Policies: block_public_select/update/delete
-  - SELECT blocked (cannot read other registrations)
-  - UPDATE blocked (cannot modify submission)
-  - DELETE blocked (cannot delete submission)
-```
+- `insert_event_registration_manual`
+- `insert_membership_application_manual`
+- `insert_contact_submission_manual`
 
-### Membership Applications Table
-```
-Policy: public_insert_membership_applications
-  - INSERT allowed (can apply for membership)
-  - RLS enforces unique email
+Cancellation uses:
 
-Policies: block_public_select/update/delete
-  - SELECT blocked (cannot see other applications)
-  - UPDATE blocked (cannot modify application)
-  - DELETE blocked (cannot delete application)
-```
+- `cancel_event_registration_manual`
 
-### Contact Submissions Table
-```
-Policy: public_insert_contact_submissions
-  - INSERT allowed (can send contact message)
+The repository still contains direct anon INSERT grants on form tables. That is a hardening opportunity, not the intended application write path.
 
-Policies: block_public_select/update/delete
-  - SELECT blocked (cannot read other messages)
-  - UPDATE blocked (cannot modify message)
-  - DELETE blocked (cannot delete message)
-```
+## 3. Admin authentication
 
-## Authentication Layers
+Current flow:
 
-### Layer 1: Supabase RLS (Database)
-- **When**: Every Supabase query
-- **What**: Enforces access based on key type
-- **Public can**: INSERT forms, SELECT published events
-- **Public cannot**: SELECT/UPDATE/DELETE personal data
-- **Admin can** (Phase 3+): Everything (secret key bypasses RLS)
+1. password checked against `ADMIN_PASSWORD_HASH`;
+2. random session token created;
+3. SHA-256 token hash stored in `admin_sessions`;
+4. HttpOnly cookie issued;
+5. every admin API checks the DB-backed session;
+6. successful admin request uses `SUPABASE_SECRET_KEY`.
 
-### Layer 2: Application Session (API Route)
-- **When**: Admin operations (Phase 3+)
-- **What**: Checks HTTP-only session cookie
-- **Verified by**: `lib/admin-auth.js`
-- **Protects**: Routes in `pages/api/admin/*` (built in Phase 3)
-- **How it works**: Verify session → If valid, use service role key
+There is no `admins` table and no JWT session architecture.
 
-### Layer 3: Form Validation (API Route)
-- **When**: Public form submission
-- **What**: Server-side validation before inserting
-- **Prevents**: Invalid/malicious data
-- **Enforced by**: `lib/validation.js`
+## 4. Event image Storage
 
-## How Form Submission Works (Phase 1)
+The admin uploader uses the admin Supabase client and expects a public-read bucket named `event-images`.
 
-```
-1. User submits form (registrations/submit, memberships/submit, contact/submit)
-   ↓
-2. API route receives POST request
-   ↓
-3. Server-side validation checks:
-   - Email format valid
-   - Names present and reasonable length
-   - Phone number valid (if provided)
-   - Comment under length limit
-   ↓
-4. Rate limiting checks:
-   - Max 10 requests per minute per IP
-   - Reject if exceeded
-   ↓
-5. If validation passes:
-   - Create Supabase client with publishable key
-   - INSERT into table (e.g., event_registrations)
-   - RLS policy "public_insert_event_registrations" allows INSERT
-   ↓
-6. Return success/error to user
-   ↓
-7. Admin views data in Supabase dashboard
-   ↓
-8. Admin manually sends confirmation email
-```
+Migration 014 sets:
 
-## How Admin Access Will Work (Phase 3+)
+- public = true;
+- 5 MB limit;
+- JPEG/PNG/WebP allowlist;
+- no anon/authenticated upload policy.
 
-```
-1. Admin attempts to access /admin/* route
-   ↓
-2. API route checks session cookie
-   - If missing/invalid: Return 401 Unauthorized
-   - If valid: Continue
-   ↓
-3. Admin route uses createAdminClient()
-   - This creates a client with SUPABASE_SECRET_KEY
-   - Secret key bypasses RLS
-   - Now admin can SELECT/UPDATE/DELETE
-   ↓
-4. Admin can:
-   - View all registrations
-   - Update registration status (new → confirmed → declined)
-   - View all membership applications
-   - Download data for manual review
-   - Update membership status
-```
+Whether migration 014 is applied in Production is **NOT VERIFIED**.
 
-## Environment Variables
+## 5. Registration cancellation
 
-### Phase 1 (Current)
+Migration 012 stores only the SHA-256 hash of the emailed cancellation token.
 
-**Required:**
-```
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
-ADMIN_PASSWORD_HASH=generated-by-setup-script
-```
+Migration 013 allows re-registration after cancellation by replacing the table-wide unique constraint with a partial unique index.
 
-**Optional:**
-```
-SUPABASE_SECRET_KEY=not-needed-yet
-```
+See [DATABASE.md](DATABASE.md) and [EVENTS_AND_REGISTRATION.md](EVENTS_AND_REGISTRATION.md).
 
-### Phase 3+ (When Admin Dashboard Built)
+## 6. Historical design warning
 
-**Add to .env.local:**
-```
-SUPABASE_SECRET_KEY=get-from-supabase-settings
-```
+Older versions of this document described direct table INSERTs, future-phase admin auth and admin-manually-sent confirmation emails. Those descriptions are historical and must not be used as the current implementation reference.
 
-**In Vercel Project Settings:**
-```
-Add the same 3 required variables
-Add SUPABASE_SECRET_KEY (server-only)
-```
+For current behavior use the canonical root documents.
 
-## Security Checklist
+## 7. RLS and grant boundary
 
-- ✅ Publishable key is public but limited by RLS
-- ✅ Secret key is secret and server-only
-- ✅ `.env.local` is in `.gitignore` (never committed)
-- ✅ Secret key never sent to browser
-- ✅ Admin session verified before admin queries
-- ✅ Form validation prevents bad data
-- ✅ RLS prevents accidental data exposure
-- ✅ Each operation has multiple security layers
+The access model is intentionally split:
 
-## Common Questions
+- public published-event/CMS reads use the publishable Supabase client;
+- public form submissions use narrow SECURITY DEFINER RPCs;
+- personal-data tables are not publicly readable;
+- admin APIs validate the application session before using `SUPABASE_SECRET_KEY`;
+- `admin_sessions` is server-only.
 
-### Q: Why use publishable key if it can INSERT?
-**A:** Publishable key is limited by RLS. It can only INSERT forms, not SELECT/UPDATE/DELETE data. RLS is the second layer of protection.
+The repository still grants direct `anon` INSERT on the three form tables. That is a known hardening opportunity because it can bypass API-level validation/rate limiting. Do not change grants as part of unrelated work.
 
-### Q: Why not use JWT roles?
-**A:** Simple single-admin architecture doesn't need JWT complexity. Session-based is simpler and sufficient for Phase 1.
+## 8. Schema-dependent operational checks
 
-### Q: When do we use secret key?
-**A:** Phase 3 (Admin Dashboard). Only for admin operations. Never for public forms.
+- Migration 012: verify the eight-argument `insert_event_registration_manual` function.
+- Migration 013: verify `event_registrations_active_email_unique`.
+- Migration 014: verify the `event-images` bucket, public-read flag, 5 MB limit and JPEG/PNG/WebP allowlist.
 
-### Q: What if someone guesses the publishable key?
-**A:** They can only INSERT forms (add spam). RLS blocks them from seeing other data. Rate limiting prevents spam abuse. Good enough for Phase 1.
-
-### Q: How do we prevent duplicate registrations?
-**A:** Database constraints (UNIQUE) + RLS + API validation. User cannot submit same event+email twice.
-
-### Q: Can users read each other's phone numbers?
-**A:** No. RLS blocks all public SELECT on personal data tables. Only events table is readable (public events only).
-
-### Q: How do admins see registrations?
-**A:** Phase 1: Supabase dashboard (manual viewing)
-**A:** Phase 3: Admin dashboard (API route with session + service role key)
-
-## Migration Path
-
-### Phase 1 → Phase 3
-
-**No schema changes needed.** Schema is already correct.
-
-**Code changes needed:**
-1. Create admin API routes (`pages/api/admin/*`)
-2. Verify session before querying
-3. Use `createAdminClient()` after session verification
-4. Implement admin dashboard UI
-
-**Configuration changes:**
-1. Get service role key from Supabase Settings
-2. Add to `.env.local` and Vercel
-
-**That's it.** RLS policies are already in place.
-
-## Troubleshooting
-
-### "Database connection failed"
-- Check `NEXT_PUBLIC_SUPABASE_URL` is correct
-- Check `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` is correct
-- Check Supabase project is active
-- Check schema was deployed
-
-### "Permission denied" on INSERT
-- Check RLS policy "public_insert_*" exists
-- Check policy is enabled
-- Check table has RLS enabled
-
-### "Cannot read data" (admin in Phase 3)
-- Check session is valid
-- Check secret key is set
-- Check `createAdminClient()` is used (not `createServerClient()`)
-- Check admin routes exist
-
-### Can't generate secret key in Phase 1
-- Secret key is optional in Phase 1
-- Only needed when building Phase 3 admin dashboard
-- Until then, use Supabase dashboard to view data
-
-## Production Deployment
-
-### Vercel Environment Variables
-
-**Public (safe):**
-```
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-```
-
-**Secret (server-only):**
-```
-SUPABASE_SECRET_KEY (added in Phase 3)
-ADMIN_PASSWORD_HASH
-```
-
-### Supabase Database (PostgreSQL)
-
-**No production differences.** Schema is the same everywhere.
-
-**Backup:** Supabase handles automatic backups (free tier).
-
-### Security Summary
-
-- Publishable key: Public, limited by RLS
-- Secret key: Secret, full access
-- Session: HTTP-only cookie, verified on admin routes
-- Validation: Server-side on all forms
-- Rate limiting: 10 req/min per IP
-
-This is a solid, simple architecture that scales from Phase 1 to production.
+Repository SQL describes intended state. It does not prove live Production state.

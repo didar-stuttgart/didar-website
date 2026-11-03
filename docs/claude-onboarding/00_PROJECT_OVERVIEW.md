@@ -1,100 +1,27 @@
-# DIDAR Website Project Overview
+# Project Overview
 
-## Project Identity
+Read [../../README.md](../../README.md) and [../../PROJECT_STATE.md](../../PROJECT_STATE.md).
 
-**Project Name:** DIDAR — Iranische Kulturgemeinschaft Stuttgart – Hochschulgruppe  
-**Full English Name:** DIDAR — Iranian Cultural Community Stuttgart – University Group  
-**Type:** Bilingual (Persian/German) cultural organization website  
-**Production URL:** https://didar-stuttgart.com  
-**GitHub Repository:** https://github.com/didar-Stuttgart/didar-website  
-**Canonical Repository Location:** `C:\Users\Avid\Desktop\didar-website`
+Current identity: DIDAR — Iranische Kulturgemeinschaft Stuttgart / انجمن فرهنگی هنری اشتوتگارت.
 
-## Project Purpose
+Current stack: Next.js 15.5.28 Pages Router, React 18.3, Supabase/PostgreSQL, Vercel, Resend REST API, plain CSS.
 
-DIDAR is a registered university student group at the University of Stuttgart that:
-- Organizes cultural and artistic events for the Persian-speaking community
-- Promotes Iranian culture, art, and intercultural dialogue in Stuttgart
-- Manages event listings, event registration, and membership applications
-- Provides contact and engagement channels for community members
+Language model: Persian default/RTL, German `/de`/LTR.
 
-This website is the digital hub for DIDAR's activities, public information, and member engagement.
+Registration: manual review. Event registrants receive an acknowledgment/receipt and self-cancellation link, not an automatic confirmation.
 
-## Key Features
+Authentication: `ADMIN_PASSWORD_HASH` + DB-backed `admin_sessions`; no JWT/admins-table architecture.
 
-1. **Event Management**
-   - Event listing page with filtering and sorting
-   - Individual event detail pages
-   - Event registration workflow (manual review model)
-   - No automatic confirmation or capacity enforcement
+Events: custom slugs and admin image uploads are supported.
 
-2. **Membership**
-   - Membership application form
-   - Manual review by admin
-   - No automated confirmation
+Current Production uses `feature/event-upload-custom-slugs` commit `0b1379e...`; `main` is `0c6cb98...`.
 
-3. **Contact**
-   - Contact form for public inquiries
-   - Admin email notifications for all submissions
+## First-task facts
 
-4. **Bilingual Content**
-   - Persian (Farsi) with RTL layout
-   - German (Deutsch) with LTR layout
-   - Language switcher in header
-   - Consistent translations throughout
-
-5. **Admin Interface**
-   - Admin login/authentication
-   - Admin panel for reviewing submissions (membership, event registration, contact)
-   - Email notification system for new submissions
-
-## Technology Stack
-
-- **Framework:** Next.js 15.0.0
-- **Language:** React 18.3.1 with JavaScript
-- **Database:** Supabase (PostgreSQL)
-- **Email Service:** Resend
-- **Authentication:** Custom JWT-based admin auth
-- **Internationalization:** Custom i18n library (translations in `lib/i18n.js`)
-- **Hosting:** Vercel (serverless deployment)
-- **CSS:** CSS Modules and inline styles
-
-## Current Status (September 2026)
-
-✅ All core features implemented and deployed to production  
-✅ Email notification system verified working  
-✅ About page redesigned with founder images  
-✅ Persian spelling corrections complete  
-✅ Manual event registration workflow operational  
-✅ Admin authentication and session management working  
-
-## Role of Future Claude Agent
-
-The future Claude agent should:
-- Maintain the codebase according to established patterns
-- Implement new features while preserving existing functionality
-- Verify UI changes with browser testing
-- Respect the bilingual design and RTL/LTR behavior
-- Never expose secrets or API keys
-- Document changes that affect architecture or behavior
-- Test production behavior when relevant
-
-## Important Constraints
-
-**Do NOT:**
-- Casually refactor working code
-- Add unnecessary dependencies
-- Change authentication architecture without asking
-- Introduce automated email confirmations without explicit request
-- Modify the manual review model without consultation
-- Reset or discard user work
-- Commit API keys or environment secrets
-- Change URLs or routes without consultation
-
-**DO:**
-- Inspect code before changing it
-- Verify UI changes in Chrome browser
-- Use the actual repository as source of truth
-- Keep changes focused and minimal
-- Preserve RTL/LTR behavior
-- Maintain bilingual consistency
-- Document architectural decisions
+- Persian is the default locale; German is `/de`.
+- Admin authentication is a DB-backed session architecture, not JWT/admin-table auth.
+- Public forms use SECURITY DEFINER RPCs and save before email notification.
+- Event registration is manually reviewed; receipt email is not confirmation.
+- Migration 013 permits re-registration after cancellation; Production application is NOT VERIFIED.
+- Migration 014 defines the `event-images` bucket; Production application is NOT VERIFIED.
+- Current Production has event-mutation ISR revalidation from the feature branch; current `main` does not.
