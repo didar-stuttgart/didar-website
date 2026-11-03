@@ -237,3 +237,29 @@ Do not read personal records or runtime logs to prove these findings. Production
 Preserve DIDAR's manual registration model: submissions are saved immediately, reviewed manually, and notification email failures do not roll back successful database writes. No verification email, automatic public confirmation, or automatic capacity enforcement is to be reintroduced.
 
 No remediation was implemented by this investigation. No application code, database permissions, schema, Vercel configuration or deployment was changed.
+
+
+## 15. Vercel Production secret-visibility remediation attempt — Phase 05 (2026-11-03)
+
+Phase 05 attempted the narrowly authorized in-place conversion of the existing Production `SUPABASE_SECRET_KEY` environment variable from Config/readable-secret to Secret/sensitive. The attempt was **BLOCKED** by the available safe Vercel edit interface.
+
+### Verified result
+
+- Production entry `Zfv3GNeII6VXkphc` is `SUPABASE_SECRET_KEY`, targets Production only, and remains `encrypted` / `config` with the `readable-secret` warning.
+- Separate Preview entry `HXProF48ooiW3Uz2` remains Preview-only and `sensitive` / `secret`.
+- The in-place edit API rejected `type: sensitive` without the corresponding `visibility: secret` field. The safe edit interface did not expose that field.
+- No change was made; the post-check confirmed the Production entry is unchanged and exactly one Production entry exists.
+- No secret value was retrieved, supplied, copied or exposed.
+- No Preview variable, deployment, application code, database, Supabase setting, permission or other environment variable was modified.
+
+The Vercel CLI fallback was not used because it requires supplying the variable value. No delete/recreate workaround was attempted.
+
+### Status and remaining risk
+
+**BLOCKED — remediation not applied.** Production `SUPABASE_SECRET_KEY` remains readable to Vercel users who have configuration-read access. This is an access-control exposure risk; it is not evidence that the key was publicly exposed or previously read.
+
+The safest next step is for a Vercel project Owner to inspect whether the Dashboard offers an explicitly supported in-place Config → Secret conversion that preserves the existing value without revealing or re-entering it. If the Dashboard requires replacing/re-entering the value, stop. Do not use CLI or delete/recreate the variable as a workaround.
+
+A coordinated key rotation may then be planned separately, after identifying the exact current Supabase key type and reviewing the supported migration/retirement procedure. Rotation, key replacement/revocation, environment changes, permission changes and deployment each require separate explicit authorization.
+
+No deployment or runtime verification occurred in this phase. Do not mark the Production secret as protected until metadata confirms Secret/sensitive and the relevant deployment behavior is separately verified.
