@@ -142,3 +142,80 @@ In particular, migrations 013 and 014 are **NOT VERIFIED** as applied to Product
 3. Apply the migration before deploying dependent code.
 4. Verify the resulting schema/RPC signature.
 5. Update this document and [DEPLOYMENT.md](DEPLOYMENT.md).
+
+## 10. Detailed table/reference notes
+
+### events
+
+Important behavior-bearing columns:
+
+- `status`: `draft | published | archived`.
+- `registration_status`: `not_open | open | closed`.
+- `registration_open`: deprecated compatibility column; the current application uses `registration_status`.
+- `capacity`: positive integer or NULL; not enforced.
+- `remaining_capacity`: non-negative integer or NULL; manually edited and displayed.
+- `registration_deadline`: stored but not enforced.
+- `is_recurring`: affects categorisation together with `event_date`.
+- `image_url`: saved public image URL/path.
+- `admin_notes`: admin-only field; homepage strips it before embedding event data.
+
+### event_registrations
+
+Columns include `event_id`, names, `email`, `phone`, `telegram_id`, `comment`, `status`, `admin_notes`, `cancellation_token_hash` and `cancelled_at`. The event foreign key uses `ON DELETE CASCADE`.
+
+Migration 001 also left legacy verification columns/status values in the schema. They are not part of the current public workflow.
+
+### membership_applications
+
+`id`, timestamps, `first_name`, `last_name`, `email`, `phone`, `telegram_id`, `additional_info`, `status`, `admin_notes`. Email is unique.
+
+### contact_submissions
+
+`id`, `created_at`, `name`, `email`, `message`, `read`. There is no public read path. The admin UI can list/delete rows.
+
+## 11. RPC signatures and privilege model
+
+Current public write functions are SECURITY DEFINER with `search_path = public`:
+
+- `insert_event_registration_manual(event_id_param, first_name_param, last_name_param, email_param, phone_param, telegram_id_param, comment_param, cancellation_token_hash_param)` -> BIGINT id; EXECUTE granted to `anon`.
+- `insert_membership_application_manual(first_name_param, last_name_param, email_param, phone_param, telegram_id_param, additional_info_param)` -> BIGINT id; EXECUTE granted to `anon`.
+- `insert_contact_submission_manual(name_param, email_param, message_param)` -> BIGINT id; EXECUTE granted to `anon`.
+- `cancel_event_registration_manual(token_hash_param)` -> outcome row; EXECUTE granted to `anon`.
+
+Migration 012 replaces the earlier seven-argument event-registration function. Code using the cancellation-token field requires the eight-argument version.
+
+## 12. Grants/RLS boundary
+
+The repository SQL intentionally gives `anon` direct INSERT capability on the three public form tables while blocking public SELECT/UPDATE/DELETE with grants/RLS. The application uses the SECURITY DEFINER RPCs rather than direct inserts.
+
+This is a known hardening opportunity: revoking direct `anon INSERT while retaining the RPC EXECUTE grants would narrow the database surface. Do not change it as part of ordinary feature work.
+
+`admin_sessions` has no public grants; the server uses `SUPABASE_SECRET_KEY`.
+
+## 13. Schema drift and production verification
+
+Repository schema is not proof of live schema. The repository historically contains columns/configuration that were added directly in Production before being represented in `schema.sql`. Before relying on a migration-dependent field/function/index/bucket, verify it in the target Supabase project.
+
+For migration 013, verify:
+
+⟦BT`sql
+select indexname, indexdef
+from pg_indexes
+where tablename = 'event_registrations'
+  and indexname = 'event_registrations_active_email_unique';
+⟦BT`
+
+For migration 014, verify the Storage bucket and its public/size/MIME settings in the target Supabase project. The migration file alone is not evidence of live state.
+
+## 14. Troubleshooting
+
+| Symptom | First check |
+|---|---|
+| Registration 500 after deployment | migration 012 RPC signature and `SUPABASE/Resend` environment configuration |
+| Registration 409 duplicate | active row already exists for the same event/email; a cancelled row alone should not block after migration 013 |
+| Re-registration still blocked after cancellation | migration 013 index may not be applied in Production |
+| Upload returns 503 | `event-images` bucket missing/not public or Storage upload failure |
+| Admin API returns 401 | `session_token`, `admin_sessions` and `SUPABASE_SECRET_KEY` |
+| Form returns 429 | per-instance rate limiter has reached its configured threshold |
+
+Backups, retention and deletion policies are not defined by this repository; record Production/Supabase evidence before making operational claims.
