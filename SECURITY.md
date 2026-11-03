@@ -117,7 +117,6 @@ The privacy policy should be reviewed against the current receipt email, cancell
 ## 9. Dependency status
 
 Current `package.json` specifies Next.js `^15.5.28`, matching the version used by the verified recent build/deployment.
-
 Dependency maintenance is still an ongoing task; do not infer "secure" solely from the version string or from a successful build.
 
 ## 10. Incident basics
@@ -238,7 +237,6 @@ Preserve DIDAR's manual registration model: submissions are saved immediately, r
 
 No remediation was implemented by this investigation. No application code, database permissions, schema, Vercel configuration or deployment was changed.
 
-
 ## 15. Vercel Production secret-visibility remediation attempt — Phase 05 (2026-11-03)
 
 Phase 05 attempted the narrowly authorized in-place conversion of the existing Production `SUPABASE_SECRET_KEY` environment variable from Config/readable-secret to Secret/sensitive. The attempt was **BLOCKED** by the available safe Vercel edit interface.
@@ -358,7 +356,6 @@ During capability testing, a Vercel create-variable call created an unintended e
 The connected Vercel integration has no delete-variable action, so this placeholder could not be removed through the available tool. Delete this exact `DUMMY` variable in Vercel Project → Settings → Environment Variables. Do not change the two `SUPABASE_SECRET_KEY` entries as part of that cleanup.
 
 ### Rotation and verification
-
 No replacement Supabase key was created, no Production secret was installed, no new successful Production deployment was made, and the existing Supabase key was not retired. Public and admin application behavior under a replacement credential remains **NOT VERIFIED**. The prior READY deployment remains the recovery point. Do not revoke the old key until a replacement deployment and application verification pass.
 
 Owner action required: create a second Supabase secret key in the DIDAR Production project's API Keys settings while retaining the old key; then configure the replacement directly in Vercel as a Production-only Secret. Do not send the value through chat, email, GitHub, logs, or screenshots. Once the owner confirms those Dashboard actions are complete, verify metadata, deploy, test, and retire the old key only after successful application verification.
@@ -420,3 +417,37 @@ The four notification functions still catch their own notification failures. The
 - **PASS — production build:** `npm run build` compiled and generated the build output using temporary local-only placeholder public Supabase values. No real Supabase credentials, database, or application data were used. A temporary output-tracing-root setting was needed solely because an unrelated parent lockfile caused Next to traverse an inaccessible parent directory; that setting was removed afterward.
 - **PASS — production dependency audit completed:** `npm audit --omit=dev --json` reported 3 low and 5 moderate findings, with no high or critical finding. The reported chain starts at direct dependency `resend@3.5.0`; the available automated fix is the semver-major `resend@6.37.0`, which is outside this focused fix and was not applied.
 - **NOT VERIFIED:** Production deployment, runtime form submission, live Resend delivery, and Production log contents were not exercised. No Production environment variable, Supabase key, database schema/permission/data, or deployment was changed.
+
+## 21. Phase 08 closeout and security work pause — 2026-11-03
+
+**Owner decision:** pause further security investigation and remediation for now. This section records the current evidence and unresolved risks; it does not authorize or imply that any open item has been fixed. Resume only when the owner explicitly requests it.
+
+### Phase 08 implementation and verification
+
+| Check | Status | Evidence |
+|---|---|---|
+| Lint command compatibility | **PASS** | `package.json` changes the lint script from `next lint` to `eslint .`; commit `fb6a97bd1b40971e7ae995358771567f41caff87`. |
+| Dependency installation | **PASS** | `npm ci` completed in the isolated checkout. |
+| Lint | **PASS** | `npm run lint` completed with 13 existing warnings and 0 errors. |
+| Isolated local build | **FAIL / ENVIRONMENT BLOCKED** | `npm run build` could not fetch Google Fonts through `next/font` because the isolated environment returned `EACCES`. No environment-specific workaround or build configuration change was committed. |
+| Vercel Preview deployment | **PASS** | Preview deployment for `fb6a97b` reported READY and its alias pointed to the requested Preview URL. This is evidence of a successful Vercel build/deployment, not visual QA. |
+| PR #7 source/diff | **PASS — merged** | PR #7 was merged to `main` in merge commit `c368aba0969d20793b834069d378983cf727a8e4`; its application changes include the Phase 07 fixes and the `package.json` lint-script change. |
+| Authenticated Preview visual QA | **NOT VERIFIED** | Preview remained protected by Vercel Authentication. No authorized session was available; authentication was not bypassed. |
+| Production behavior and personal-data access controls | **NOT VERIFIED** | No Production database query, personal-record read, form submission, write RPC, permission change, environment change, or Production deployment was performed as part of Phase 08. |
+
+### Current security posture and unresolved items
+
+- The Phase 07 PII-safe notification logging and database-session-creation checks remain **implemented and locally verified**. Their Production runtime behavior and actual email delivery remain **NOT VERIFIED**.
+- Earlier production dependency audit evidence remains: 3 low and 5 moderate findings, 0 high and 0 critical, in the existing Resend dependency chain. A disposable Resend 6.37.0 resolution/audit exercise reported no production audit findings, but this was not an application compatibility test and no Resend upgrade was made.
+- The Production `SUPABASE_SECRET_KEY` remains configured with Vercel `config` visibility and the `readable-secret` warning. This is a configuration-read access risk for authorized Vercel users, not evidence of public internet exposure or prior access. The owner's earlier decision to defer key rotation remains in force; do not change or rotate the key without a new explicit authorization.
+- Production `ADMIN_PASSWORD_HASH` visibility remains a separate **NOT VERIFIED** least-privilege review item.
+- Repository-confirmed anonymous INSERT grants on the three form tables, public execution of form SECURITY DEFINER RPCs, and possible direct access to `events.admin_notes` remain **source-confirmed / Production NOT VERIFIED**. They do not establish that existing personal records have been read or exposed.
+- Effective Production grants, RLS, column privileges, RPC ACLs/owners/configuration, applied migrations, Storage configuration, public runtime payloads, admin runtime access boundaries, and actual notification delivery remain **NOT VERIFIED**.
+- Existing authentication hardening limitations remain: one shared admin password, PBKDF2-SHA256 at 10,000 iterations, no 2FA, and per-instance login throttling. Public form rate limiting is also per-instance/in-memory; CAPTCHA/bot defense is absent. CSP is not configured.
+- No evidence in the reviewed reports establishes a personal-data breach. Equally, the incomplete Production verification does not establish that no breach or unauthorized access has occurred.
+
+### Pause boundary
+
+No further security work is requested at this time. Do not continue the Production metadata investigation, change database grants/RLS/RPCs, alter Vercel environment variables, rotate/revoke Supabase keys, upgrade Resend, change authentication, or deploy security changes unless the owner explicitly reopens the work.
+
+If the owner later resumes, the highest-priority verification remains a technically enforced read-only Supabase metadata review that does not access application records, followed by an authorized Preview QA session. Preserve DIDAR's manual submission/review model and all existing production recovery options.
