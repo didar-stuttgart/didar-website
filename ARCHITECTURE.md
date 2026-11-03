@@ -143,7 +143,7 @@ Email helpers swallow send failures. A failed email does not roll back a saved s
 
 Known gaps and unresolved decisions are maintained in [SECURITY.md](SECURITY.md) and [PROJECT_STATE.md](PROJECT_STATE.md).
 
-## 9. Request/response operational details
+## 10. Request/response operational details
 
 ### Public forms
 
@@ -169,7 +169,7 @@ Server validation lives in `lib/validation.js` and is authoritative. Client-side
 
 `DELETE /api/admin/events/[slug]` does not delete the row. It updates `status='archived'`. Registrations remain associated with the event.
 
-## 10. Source-to-behavior map
+## 11. Source-to-behavior map
 
 | Behavior | Primary source |
 |---|---|
