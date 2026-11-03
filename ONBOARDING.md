@@ -61,3 +61,37 @@ Before changing anything:
 - preserve FA/DE and RTL/LTR;
 - verify UI changes in a browser;
 - keep secrets out of code and documentation.
+
+## 11. Practical first-task workflow
+
+For a new developer or AI coding agent, use this sequence:
+
+1. Read [PROJECT_STATE.md](PROJECT_STATE.md) for the current evidence and known issues.
+2. Read [ARCHITECTURE.md](ARCHITECTURE.md) for the request path you will touch.
+3. Read the relevant source file before changing documentation or code.
+4. If the change depends on Supabase, read the migration that introduced the behavior.
+5. Make the smallest focused change and review the complete diff.
+6. For UI work, render both Persian and German where the route supports both.
+7. For public forms, verify the database write separately from email delivery.
+8. Keep secrets and personal-data exports out of Git.
+
+### Local smoke test
+
+After environment setup:
+
+```bash
+npm install
+npm run dev
+```
+
+Check `/`, `/de`, `/veranstaltungen`, a published event, `/kontakt`, `/mitglied-werden` and `/admin/login`. The health endpoint is `GET /api/health`.
+
+### Where to work by task
+
+- Event image/detail mismatch: `lib/event-image.js`, event pages, ISR/revalidation.
+- Registration/cancellation/re-registration: registration APIs + migrations 012/013.
+- Event uploads/slugs: admin event APIs + `lib/event-slug.js` + migration 014.
+- Email: `lib/admin-email.js` and `lib/registration-receipt-email.js`.
+- Admin auth: auth APIs + `lib/admin-auth.js` + `lib/session-store-db.js`.
+- CMS: `cms_content` + `lib/cms-client.js` + admin content page/API.
+- Legal pages: owner-approved facts only; legal interpretation must be evidence-based and never invented.
