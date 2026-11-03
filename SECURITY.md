@@ -263,3 +263,40 @@ The safest next step is for a Vercel project Owner to inspect whether the Dashbo
 A coordinated key rotation may then be planned separately, after identifying the exact current Supabase key type and reviewing the supported migration/retirement procedure. Rotation, key replacement/revocation, environment changes, permission changes and deployment each require separate explicit authorization.
 
 No deployment or runtime verification occurred in this phase. Do not mark the Production secret as protected until metadata confirms Secret/sensitive and the relevant deployment behavior is separately verified.
+
+
+## 16. Production Supabase secret remediation — Phase 05 full authorization (2026-11-03)
+
+**Overall status: BLOCKED — the Production variable is not yet protected.** This section records the authorized remediation attempt and the exact boundary where the available interfaces stopped the change.
+
+### Credential type and use
+
+- The existing Production value was classified internally by its format as a **new-format Supabase secret API key** (`sb_secret_` format), not a legacy JWT-formatted `service_role` key. The credential value was not emitted in tool output, documentation, or this report.
+- `lib/supabase.js` reads `SUPABASE_SECRET_KEY` only in `createAdminClient()`. That client is server-side and bypasses RLS; reviewed admin API routes validate the database-backed admin session before constructing it. Public form API routes use the publishable key through `createServerClient()`.
+- Supabase documents new secret keys as elevated keys that coexist with legacy keys and can be separately created and deleted. No Supabase key was created, changed, or deleted in this phase.
+
+### Vercel configuration and attempted change
+
+- Project: `didar-website` (`prj_dN7oXpS01Iw7ylmaJPdwKFfiPdw0`), team `didar-team`.
+- Production variable ID `Zfv3GNeII6VXkphc`: `SUPABASE_SECRET_KEY`, Production only, type `encrypted`, visibility `config`, warning `readable-secret`.
+- Preview variable ID `HXProF48ooiW3Uz2`: `SUPABASE_SECRET_KEY`, Preview only, type `sensitive`, visibility `secret`. Preview was not modified.
+- The authenticated Vercel edit tool's schema rejects the required `visibility: secret` field before sending the request. Its supported fields do not provide a way to set that field. A previous request that set only `type: sensitive` was rejected because Secret visibility is also required. The available browser tool can inspect the open Dashboard tab but cannot navigate or interact with the edit dialog; the current tab remained on Team Overview, not the variable editor.
+- No value was decrypted for display, copied into a report, or placed in a file. No variable was deleted/recreated, no value was replaced, and no Vercel or Supabase configuration was changed.
+
+### Rotation and retirement
+
+- **Rotation: NOT PERFORMED.** The current credential is confirmed to be a new-format Supabase secret key. Supabase supports creating an additional named secret key while the existing key remains valid; this permits a coordinated migration without revoking the working key first.
+- The required safe sequence remains: create a replacement secret in Supabase; add it as a Vercel Production Secret; create a Production deployment; verify public pages and admin functions; then delete the old Supabase secret only after successful verification. The available connected tools do not expose Supabase API-key management, and the open browser integration is read-only, so key creation and Vercel Secret configuration could not be completed safely in this execution.
+- **Old credential retired: NO.** The existing credential remains active and configured as before.
+
+### Deployment and application verification
+
+- The previously observed Production deployment `dpl_J8HS2NmhbCVyv8LzradmqpgGooZZ` remains `READY`, tied to commit `9ea770d147750a4ef5be00aefbe2e9549e27772a`. This deployment predates this remediation attempt and does not contain a protected replacement configuration.
+- Recent production-target documentation deployments were returned as `CANCELED`; no deployment was initiated as part of this blocked credential change.
+- Public website HTTP behavior, admin login, admin events/content/settings, database-backed session behavior, manual registration/membership/contact submissions, and actual administrative notification delivery were **NOT VERIFIED** during this phase. No fake public submissions or database writes were performed.
+
+### Recovery and next action
+
+Keep the current working credential active until the replacement is configured and tested. Use an interface that supports creating a new Supabase secret key and setting Vercel visibility to Secret, then deploy and verify before retiring the existing key. If a failed deployment occurs, preserve the old key and previous READY deployment for recovery. Do not claim remediation complete until the Production variable metadata shows Secret, a new Production deployment is READY and uses it, application behavior is verified, and old-key retirement is separately confirmed.
+
+Evidence references: [Supabase API keys](https://supabase.com/docs/guides/getting-started/api-keys), [Supabase key migration](https://supabase.com/docs/guides/getting-started/migrating-to-new-api-keys), and [Vercel environment variables](https://vercel.com/docs/environment-variables).

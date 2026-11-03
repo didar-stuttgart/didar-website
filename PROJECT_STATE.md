@@ -165,3 +165,17 @@ This was a documentation-only update. No application code, database permissions,
 **Next step:** A Vercel project Owner may check for a Dashboard-supported in-place Config → Secret conversion that explicitly preserves the existing value without revealing or re-entering it. If replacement is required, stop and plan a separately authorized, coordinated key rotation after confirming the current key type and its supported retirement process. Do not use CLI, delete/recreate the variable, rotate, revoke or deploy without separate authorization.
 
 See [SECURITY.md](SECURITY.md), section 15, for the evidence boundary and detailed stop conditions. This phase made no application, database, Vercel configuration or deployment changes.
+
+
+## 12. Production Supabase secret remediation — Phase 05 full authorization (2026-11-03)
+
+**Status: BLOCKED.** The Production `SUPABASE_SECRET_KEY` remains configured as Vercel Config/readable-secret; no credential or deployment change was made.
+
+- **Credential type — PASS:** internal format classification identified the current value as a new-format Supabase secret API key (`sb_secret_` format), not a legacy JWT-formatted `service_role` key. The value was not emitted or recorded.
+- **Configuration — FAIL:** Production variable `Zfv3GNeII6VXkphc` remains `encrypted` / `config`, with `readable-secret`. Preview variable `HXProF48ooiW3Uz2` remains `sensitive` / `secret`, unchanged.
+- **In-place conversion — BLOCKED:** the available Vercel edit tool does not expose the required `visibility: secret` field and rejects it at tool-schema validation. No value was re-entered and no delete/recreate workaround was attempted.
+- **Rotation — BLOCKED / NOT PERFORMED:** Supabase supports overlapping new secret keys, but no connected Supabase key-management action or interactive browser control was available to create a replacement and configure Vercel safely. The existing key remains active; it was not retired.
+- **Deployment:** the previously observed Production deployment `dpl_J8HS2NmhbCVyv8LzradmqpgGooZZ` remains `READY` on commit `9ea770d147750a4ef5be00aefbe2e9549e27772a`; it predates remediation and does not prove the secret is protected. No new deployment was performed for this blocked change.
+- **Application verification — NOT VERIFIED:** public HTTP behavior, admin login/events/content/settings, database-backed admin sessions, public manual workflows, and notification delivery were not tested. No public submissions or database writes were created.
+
+Next step: create a replacement new-format Supabase secret, configure it as a Vercel Production Secret, deploy and verify the app, and only then delete the old Supabase secret. See [SECURITY.md](SECURITY.md), section 16, for the evidence and recovery sequence. Do not mark this issue resolved until configuration, deployment, application behavior, and retirement are verified separately.
