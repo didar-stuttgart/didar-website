@@ -156,22 +156,22 @@ Current event-registration states:
 
 | Status | Set by | Meaning |
 |---|---|---|
-| ⟦BT`new⟦BT` | registration RPC | saved but not yet reviewed |
-| ⟦BT`contacted⟦BT` | admin | admin reached out |
-| ⟦BT`confirmed⟦BT` | admin | manual decision to accept participation |
-| ⟦BT`declined⟦BT` | admin | manually declined |
-| ⟦BT`cancelled⟦BT` | self-cancellation RPC or admin | registration withdrawn; row retained |
-| ⟦BT`pending⟦BT`, ⟦BT`verified⟦BT` | legacy | still permitted by the SQL CHECK but not written by the current public flow |
+| ``new`` | registration RPC | saved but not yet reviewed |
+| ``contacted`` | admin | admin reached out |
+| ``confirmed`` | admin | manual decision to accept participation |
+| ``declined`` | admin | manually declined |
+| ``cancelled`` | self-cancellation RPC or admin | registration withdrawn; row retained |
+| ``pending``, ``verified`` | legacy | still permitted by the SQL CHECK but not written by the current public flow |
 
 ### Self-cancellation mechanics
 
 1. Registration generates a random raw cancellation token.
-2. Only the SHA-256 hash is stored in ⟦BT`event_registrations.cancellation_token_hash⟦BT`.
+2. Only the SHA-256 hash is stored in ``event_registrations.cancellation_token_hash``.
 3. The raw token is placed in the receipt link.
-4. Opening ⟦BT`/registrations/cancel?token=...⟦BT` with GET never mutates the database.
-5. The confirmation action sends POST to ⟦BT`/api/registrations/cancel⟦BT`.
-6. The RPC returns ⟦BT`cancelled⟦BT`, ⟦BT`already_cancelled⟦BT` or ⟦BT`invalid⟦BT`.
-7. The first successful cancellation sets ⟦BT`status='cancelled'⟦BT` and ⟦BT`cancelled_at⟦BT`; the registration row is not deleted.
+4. Opening ``/registrations/cancel?token=...`` with GET never mutates the database.
+5. The confirmation action sends POST to ``/api/registrations/cancel``.
+6. The RPC returns ``cancelled``, ``already_cancelled`` or ``invalid``.
+7. The first successful cancellation sets ``status='cancelled'`` and ``cancelled_at``; the registration row is not deleted.
 8. Cancellation does not change capacity or event registration status.
 9. After migration 013, the same email may register again and receives a new row/token.
 
@@ -179,14 +179,14 @@ If the receipt email was not delivered, the saved registration still exists but 
 
 ## Capacity endpoint behavior
 
-⟦BT`GET /api/events/[eventId]/capacity-status⟦BT` counts registrations with status ⟦BT`verified⟦BT`. The current manual model creates ⟦BT`new⟦BT`, not ⟦BT`verified⟦BT`, so this endpoint is effectively unable to mark an event full. The admin should use the manually stored ⟦BT`remaining_capacity⟦BT` and/or ⟦BT`registration_status='closed'⟦BT`.
+``GET /api/events/[eventId]/capacity-status`` counts registrations with status ``verified``. The current manual model creates ``new``, not ``verified``, so this endpoint is effectively unable to mark an event full. The admin should use the manually stored ``remaining_capacity`` and/or ``registration_status='closed'``.
 
 ## Troubleshooting
 
 | Symptom | Check |
 |---|---|
-| Form visible but submit returns 409 | server requires ⟦BT`registration_status='open'⟦BT`; check whether the page is stale or the event was just closed |
-| Same email cannot re-register | verify the first row is actually ⟦BT`cancelled⟦BT` and migration 013 is present in the target DB |
+| Form visible but submit returns 409 | server requires ``registration_status='open'``; check whether the page is stale or the event was just closed |
+| Same email cannot re-register | verify the first row is actually ``cancelled`` and migration 013 is present in the target DB |
 | Cancel link appears to do nothing | GET is intentionally non-mutating; press the page's confirmation action |
-| Event image differs between pages | inspect ⟦BT`events.image_url⟦BT` and ⟦BT`lib/event-image.js⟦BT`; Production should also have the mutation revalidation helper |
+| Event image differs between pages | inspect ``events.image_url`` and ``lib/event-image.js``; Production should also have the mutation revalidation helper |
 | Event change is stale on the homepage/list | normal ISR is up to 1 hour; current Production additionally revalidates after admin mutations |
