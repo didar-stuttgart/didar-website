@@ -29,3 +29,13 @@ These onboarding files must not maintain independent architecture claims.
 7. Use PASS / FAIL / BLOCKED / NOT VERIFIED only when evidence supports the status.
 8. Keep application changes focused.
 9. Do not change Production infrastructure as part of a documentation-only task.
+
+## Practical use
+
+Before starting a task, the first three files to consult are:
+
+1. `00_PROJECT_OVERVIEW.md` for project constraints and current Production/main split.
+2. `01_ARCHITECTURE.md` for the code/data path.
+3. The relevant root canonical document for the feature being changed.
+
+Then inspect the actual implementation. These files are orientation aids, not substitutes for source code.
